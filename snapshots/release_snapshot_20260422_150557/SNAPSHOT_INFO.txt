@@ -1,0 +1,5 @@
+snapshot_time=20260422_150557
+host=tnty
+container=cpgj-upload-web|cpgj-upload-web:1.4.6|Up 8 minutes
+entrypoint=/upload-web 
+mounts=/opt/cpgj/uploads:/data/uploads /opt/cpgj/exports:/data/exports 

@@ -1,0 +1,9 @@
+services:
+  upload-web:
+    image: cpgj-upload-web:1.0
+    container_name: cpgj-upload-web
+    ports:
+      - "8088:8088"
+    volumes:
+      - /opt/cpgj/uploads:/data/uploads
+    restart: unless-stopped

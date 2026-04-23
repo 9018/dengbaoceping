@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>测评资料上传与管理</title>
+  <style>
+    body { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin: 0; background: #f4f6fb; color: #1f2a37; }
+    .wrap { max-width: 980px; margin: 30px auto; background: #fff; border-radius: 14px; box-shadow: 0 8px 28px rgba(23, 32, 56, .08); padding: 24px; }
+    h1 { margin: 0 0 12px; font-size: 24px; }
+    h2 { margin: 20px 0 10px; font-size: 18px; }
+    .tip { margin: 0 0 14px; color: #5b6473; }
+    label { display: block; font-weight: 600; margin-bottom: 8px; }
+    select, input[type=file], button { width: 100%; box-sizing: border-box; border-radius: 10px; border: 1px solid #d7deea; padding: 10px 12px; font-size: 14px; }
+    input[type=file] { background: #fbfcff; }
+    button { margin-top: 12px; background: #1769ff; color: #fff; border: none; font-weight: 600; cursor: pointer; }
+    button:hover { background: #0f56d6; }
+    .btn-mini { width: auto; margin: 0; padding: 6px 10px; font-size: 12px; background: #d92d20; }
+    .btn-mini:hover { background: #b42318; }
+    .btn-refresh { width: auto; padding: 8px 14px; }
+    pre { margin-top: 16px; background: #0b1020; color: #cde2ff; padding: 12px; border-radius: 8px; overflow: auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border-bottom: 1px solid #e5e9f2; padding: 8px; text-align: left; font-size: 13px; vertical-align: top; }
+    th { background: #f7f9ff; }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>测评资料上传与管理</h1>
+    <p class="tip">上传后的文件会按分类保存到 <code>/opt/cpgj/uploads</code>，下方可查看并删除。</p>
+
+    <h2>上传资料</h2>
+    <form id="uform">
+      <label for="category">资料分类</label>
+      <select id="category" name="category" required>
+        <option value="" selected disabled>请选择分类</option>
+        <option value="guide">01_指导书</option>
+        <option value="standard">02_标准文档</option>
+        <option value="history">03_历史测评记录_excel</option>
+        <option value="topology">04_拓扑与设备截图</option>
+        <option value="config">05_交换机与linux配置</option>
+      </select>
+
+      <label for="files" style="margin-top: 14px;">选择文件（可多选）</label>
+      <input id="files" name="files" type="file" multiple required />
+      <button type="submit">开始上传</button>
+    </form>
+
+    <pre id="out">等待上传...</pre>
+
+    <div class="row">
+      <h2>已上传文件</h2>
+      <button class="btn-refresh" id="refreshBtn" type="button">刷新列表</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>分类</th>
+          <th>批次目录</th>
+          <th>文件名</th>
+          <th>大小</th>
+          <th>修改时间</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="fileRows">
+        <tr><td colspan="6">加载中...</td></tr>
+      </tbody>
+    </table>
+
+    <div class="row">
+      <h2>模板补充预览（二级/三级）</h2>
+      <button class="btn-refresh" id="previewRefreshBtn" type="button">刷新预览</button>
+    </div>
+    <div id="previewGroups">加载中...</div>
+
+    <div class="row">
+      <h2>指标明细（仿记录样式，仅二级/三级）</h2>
+      <button class="btn-refresh" id="detailRefreshBtn" type="button">刷新明细</button>
+    </div>
+    <div class="row" style="justify-content:flex-start; gap:12px; margin-bottom:8px;">
+      <div style="min-width:180px;">
+        <label for="detailExt">扩展类型</label>
+        <select id="detailExt">
+          <option value="all">全部</option>
+          <option value="general">通用</option>
+          <option value="cloud">云计算扩展</option>
+          <option value="mobile">移动互联扩展</option>
+          <option value="iot">物联网扩展</option>
+          <option value="industrial">工控扩展</option>
+        </select>
+      </div>
+    </div>
+    <div id="detailGroups">加载中...</div>
+  </div>
+
+  <script>
+    const form = document.getElementById('uform');
+    const out = document.getElementById('out');
+    const fileRows = document.getElementById('fileRows');
+    const previewGroups = document.getElementById('previewGroups');
+    const detailGroups = document.getElementById('detailGroups');
+    const detailExt = document.getElementById('detailExt');
+    let detailAllItems = [];
+
+    function sizeText(size) {
+      if (size < 1024) return size + ' B';
+      if (size < 1024 * 1024) return (size / 1024).toFixed(1) + ' KB';
+      if (size < 1024 * 1024 * 1024) return (size / 1024 / 1024).toFixed(1) + ' MB';
+      return (size / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+    }
+
+    function domainOf(level2) {
+      const s = (level2 || '').trim();
+      if (!s) return '安全计算环境';
+      if (s.includes('物理') || s.includes('防火') || s.includes('防盗') || s.includes('防雷') || s.includes('防水') || s.includes('温湿度') || s.includes('电力') || s.includes('电磁') || s.includes('防静电')) return '物理环境';
+      if (s.includes('通信') || s.includes('网络架构')) return '安全通信网络';
+      if (s.includes('边界')) return '安全区域边界';
+      if (s.includes('身份鉴别') || s.includes('访问控制') || s.includes('入侵防范') || s.includes('恶意代码') || s.includes('审计') || s.includes('剩余信息') || s.includes('数据') || s.includes('配置') || s.includes('可信验证') || s.includes('计算') || s.includes('镜像')) return '安全计算环境';
+      if (s.includes('集中管控') || s.includes('安全管理中心') || s.includes('安全策略')) return '安全管理中心';
+      if (s.includes('管理制度') || s.includes('制定和发布') || s.includes('评审和修订')) return '安全管理制度';
+      if (s.includes('管理机构') || s.includes('岗位设置') || s.includes('授权和审批')) return '安全管理机构';
+      if (s.includes('管理人员') || s.includes('人员录用') || s.includes('人员离岗') || s.includes('意识教育')) return '安全管理人员';
+      if (s.includes('建设') || s.includes('方案设计') || s.includes('产品采购') || s.includes('自行软件开发') || s.includes('外包软件开发') || s.includes('工程实施') || s.includes('测试验收') || s.includes('系统交付') || s.includes('等级测评') || s.includes('服务供应商') || s.includes('供应链')) return '安全建设管理';
+      if (s.includes('运维') || s.includes('介质管理') || s.includes('设备维护') || s.includes('漏洞') || s.includes('变更管理') || s.includes('备份') || s.includes('应急') || s.includes('外包运维') || s.includes('资产管理') || s.includes('密码管理') || s.includes('网络和系统安全管理')) return '安全运维管理';
+      if (s.includes('云')) return '云扩展';
+      if (s.includes('个人信息保护')) return '安全计算环境';
+      if (s.includes('人员配备')) return '安全管理人员';
+      if (s.includes('基础设施位置')) return '物理环境';
+      if (s.includes('外部人员访问管理')) return '安全运维管理';
+      if (s.includes('安全事件处置')) return '安全运维管理';
+      if (s.includes('安全管理')) return '安全管理中心';
+      if (s.includes('定级和备案')) return '安全建设管理';
+      if (s.includes('审核和检查')) return '安全运维管理';
+      if (s.includes('控制点')) return '安全计算环境';
+      if (s.includes('沟通和合作')) return '安全运维管理';
+      if (s.includes('环境管理')) return '物理环境';
+      if (s.includes('系统管理')) return '安全运维管理';
+      return '安全计算环境';
+    }
+
+    const domainOrder = [
+      '物理环境',
+      '安全通信网络',
+      '安全区域边界',
+      '安全计算环境',
+      '安全管理中心',
+      '安全管理制度',
+      '安全管理机构',
+      '安全管理人员',
+      '安全建设管理',
+      '安全运维管理',
+      '云扩展'
+    ];
+
+    function sortDomains(arr) {
+      return arr.slice().sort((a, b) => {
+        const ia = domainOrder.indexOf(a);
+        const ib = domainOrder.indexOf(b);
+        const va = ia === -1 ? 999 : ia;
+        const vb = ib === -1 ? 999 : ib;
+        if (va !== vb) return va - vb;
+        return a.localeCompare(b, 'zh-CN');
+      });
+    }
+
+    function level2Order(domain, level2) {
+      const s = (level2 || '').trim();
+      const orderMap = {
+        '安全计算环境': [
+          '身份鉴别','访问控制','安全审计','入侵防范','恶意代码防范','可信验证',
+          '数据完整性','数据保密性','数据完整性和保密性','剩余信息保护',
+          '数据备份恢复','配置管理','镜像和快照保护','个人信息保护'
+        ],
+        '安全通信网络': ['网络架构','通信传输'],
+        '安全区域边界': ['边界防护'],
+        '物理环境': ['物理位置选择','物理访问控制','防盗窃和防破坏','防雷击','防火','防水和防潮','防静电','温湿度控制','电力供应','电磁防护','环境管理','基础设施位置'],
+        '安全管理制度': ['管理制度','制定和发布','评审和修订'],
+        '安全管理机构': ['管理机构','岗位设置','授权和审批'],
+        '安全管理人员': ['管理人员','人员录用','人员离岗','人员配备'],
+        '安全建设管理': ['定级和备案','安全方案设计','产品采购和使用','自行软件开发','外包软件开发','工程实施','测试验收','系统交付','等级测评','服务供应商选择','云服务商选择','供应链管理'],
+        '安全运维管理': ['环境管理','资产管理','介质管理','设备维护管理','漏洞和风险管理','网络和系统安全管理','恶意代码防范管理','配置管理','密码管理','变更管理','备份与恢复管理','安全事件处置','应急预案管理','外包运维管理','外部人员访问管理','沟通和合作','审核和检查','系统管理'],
+        '安全管理中心': ['安全管理中心','安全策略','集中管控','安全管理']
+      };
+      const arr = orderMap[domain] || [];
+      const i = arr.findIndex(x => s.includes(x));
+      return i === -1 ? 999 : i;
+    }
+
+    function extLabel(x) {
+      if (x === 'cloud') return '云计算扩展';
+      if (x === 'mobile') return '移动互联扩展';
+      if (x === 'iot') return '物联网扩展';
+      if (x === 'industrial') return '工控扩展';
+      return '通用';
+    }
+
+    async function loadFiles() {
+      fileRows.innerHTML = '<tr><td colspan="6">加载中...</td></tr>';
+      try {
+        const res = await fetch('/files');
+        const data = await res.json();
+        if (!data.ok) {
+          fileRows.innerHTML = '<tr><td colspan="6">读取失败</td></tr>';
+          return;
+        }
+        if (!data.files || !data.files.length) {
+          fileRows.innerHTML = '<tr><td colspan="6">暂无文件</td></tr>';
+          return;
+        }
+        fileRows.innerHTML = data.files.map(f => `
+          <tr>
+            <td>${f.category}</td>
+            <td>${f.batch || ''}</td>
+            <td title="${f.rel_path}">${f.name}</td>
+            <td>${sizeText(f.size)}</td>
+            <td>${f.mod_time}</td>
+            <td><button class="btn-mini" onclick="removeFile('${encodeURIComponent(f.rel_path)}')">删除</button></td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        fileRows.innerHTML = '<tr><td colspan="6">读取异常</td></tr>';
+      }
+    }
+
+    async function loadPreview() {
+      previewGroups.innerHTML = '加载中...';
+      try {
+        const res = await fetch('/preview_detail');
+        const data = await res.json();
+        if (!data.ok) {
+          previewGroups.innerHTML = '读取失败';
+          return;
+        }
+        if (!data.items || !data.items.length) {
+          previewGroups.innerHTML = '暂无数据';
+          return;
+        }
+        const ext = detailExt.value || 'all';
+        const rows = (data.items || []).filter(it => ext === 'all' || it.extension_type === ext);
+        const groups = {};
+        rows.forEach(it => {
+          const d = domainOf(it.level2);
+          if (!groups[d]) groups[d] = [];
+          groups[d].push(it);
+        });
+        const domains = sortDomains(Object.keys(groups));
+        previewGroups.innerHTML = domains.map(d => {
+          const agg = {};
+          groups[d].forEach(it => {
+            const l2 = it.level2 || '';
+            if (!agg[l2]) agg[l2] = {general:0, cloud:0, mobile:0, iot:0, industrial:0, total:0};
+            const t = it.extension_type || 'general';
+            if (!(t in agg[l2])) agg[l2][t] = 0;
+            agg[l2][t] += 1;
+            agg[l2].total += 1;
+          });
+          const rowList = Object.keys(agg).sort((a,b)=>{
+            const oa = level2Order(d, a), ob = level2Order(d, b);
+            if (oa !== ob) return oa - ob;
+            return a.localeCompare(b, 'zh-CN');
+          }).map(k => {
+            const v = agg[k];
+            const qty = ext === 'all' ? (v.total || 0) :
+              (ext === 'general' ? (v.general || 0) :
+              (ext === 'cloud' ? (v.cloud || 0) :
+              (ext === 'mobile' ? (v.mobile || 0) :
+              (ext === 'iot' ? (v.iot || 0) : (v.industrial || 0)))));
+            return `
+            <tr>
+              <td>${k}</td>
+              <td>${qty}</td>
+            </tr>`;
+          }).join('');
+          const sum = Object.values(agg).reduce((a, b) => ({
+            general: a.general + (b.general || 0),
+            cloud: a.cloud + (b.cloud || 0),
+            mobile: a.mobile + (b.mobile || 0),
+            iot: a.iot + (b.iot || 0),
+            industrial: a.industrial + (b.industrial || 0),
+            total: a.total + (b.total || 0),
+          }), {general:0, cloud:0, mobile:0, iot:0, industrial:0, total:0});
+          return `
+            <div style="margin:10px 0 14px;">
+              <div style="font-weight:700; margin:6px 0;">领域：${d}</div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>二级项</th>
+                    <th>数量</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowList}
+                  <tr style="font-weight:700; background:#f7f9ff;">
+                    <td>领域小计</td>
+                    <td>${ext === 'all' ? sum.total : (ext === 'general' ? sum.general : (ext === 'cloud' ? sum.cloud : (ext === 'mobile' ? sum.mobile : (ext === 'iot' ? sum.iot : sum.industrial))))}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        previewGroups.innerHTML = '读取异常';
+      }
+    }
+
+    async function loadDetail() {
+      detailGroups.innerHTML = '加载中...';
+      try {
+        const res = await fetch('/preview_detail');
+        const data = await res.json();
+        if (!data.ok) {
+          detailGroups.innerHTML = '读取失败';
+          return;
+        }
+        if (!data.items || !data.items.length) {
+          detailGroups.innerHTML = '暂无数据';
+          return;
+        }
+        detailAllItems = data.items;
+        renderDetailGroups();
+      } catch (e) {
+        detailGroups.innerHTML = '读取异常';
+      }
+    }
+
+    function renderDetailGroups() {
+      const ext = detailExt.value || 'all';
+      const rows = detailAllItems.filter(it => ext === 'all' || it.extension_type === ext);
+      if (!rows.length) {
+        detailGroups.innerHTML = '当前筛选下暂无数据';
+        return;
+      }
+      const grouped = {};
+      rows.forEach(it => {
+        const key = domainOf(it.level2);
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(it);
+      });
+      const l2s = sortDomains(Object.keys(grouped));
+      detailGroups.innerHTML = l2s.map(l2 => {
+        const rowsInDomain = grouped[l2].slice().sort((a,b)=>{
+          const oa = level2Order(l2, a.level2 || ''), ob = level2Order(l2, b.level2 || '');
+          if (oa !== ob) return oa - ob;
+          return (a.level2 || '').localeCompare(b.level2 || '', 'zh-CN');
+        });
+        return `
+          <div style="margin:12px 0 18px;">
+            <div style="font-weight:700; margin:6px 0;">领域：${l2}</div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:70px;">序号</th>
+                  <th style="width:100px;">类型</th>
+                  <th style="width:220px;">二级项</th>
+                  <th>三级测评指标</th>
+                </tr>
+              </thead>
+              <tbody>${rowsInDomain.map((it, idx) => `
+                <tr>
+                  <td>${idx + 1}</td>
+                  <td>${extLabel(it.extension_type)}</td>
+                  <td>${it.level2 || ''}</td>
+                  <td>${it.level3 || ''}</td>
+                </tr>
+              `).join('')}</tbody>
+            </table>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function removeFile(encodedRelPath) {
+      const relPath = decodeURIComponent(encodedRelPath);
+      if (!confirm('确认删除该文件？\n' + relPath)) return;
+      try {
+        const res = await fetch('/files', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rel_path: relPath })
+        });
+        const data = await res.json();
+        out.textContent = JSON.stringify(data, null, 2);
+        await loadFiles();
+      } catch (e) {
+        out.textContent = '删除失败: ' + e;
+      }
+    }
+    window.removeFile = removeFile;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const fs = document.getElementById('files').files;
+      const category = document.getElementById('category').value;
+      if (!category) {
+        out.textContent = '请先选择资料分类';
+        return;
+      }
+      if (!fs.length) {
+        out.textContent = '请至少选择一个文件';
+        return;
+      }
+
+      const fd = new FormData(form);
+      out.textContent = '上传中，请稍候...';
+
+      try {
+        const res = await fetch('/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        out.textContent = JSON.stringify(data, null, 2);
+        if (data.ok) {
+          document.getElementById('files').value = '';
+          await loadFiles();
+        }
+      } catch (err) {
+        out.textContent = '上传失败: ' + err;
+      }
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', loadFiles);
+    document.getElementById('previewRefreshBtn').addEventListener('click', loadPreview);
+    document.getElementById('detailRefreshBtn').addEventListener('click', loadDetail);
+    detailExt.addEventListener('change', () => {
+      renderDetailGroups();
+      loadPreview();
+    });
+    loadFiles();
+    loadPreview();
+    loadDetail();
+  </script>
+</body>
+</html>

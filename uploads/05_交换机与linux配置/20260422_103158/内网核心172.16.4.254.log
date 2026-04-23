@@ -1,0 +1,3052 @@
+<HeXin-3#2F-10508V>display version 
+H3C Comware Software, Version 7.1.070, Release 7585P05
+Copyright (c) 2004-2019 New H3C Technologies Co., Ltd. All rights reserved.
+H3C S10508-V uptime is 295 weeks, 0 days, 9 hours, 22 minutes
+Last reboot reason : USER reboot
+
+Boot image: flash:/S10500-CMW710-BOOT-R7585P05.bin
+Boot image version: 7.1.070, Release 7585P05
+  Compiled Jul 25 2019 16:00:00
+System image: flash:/S10500-CMW710-SYSTEM-R7585P05.bin
+System image version: 7.1.070, Release 7585P05
+  Compiled Jul 25 2019 16:00:00
+Feature image(s) list:
+  flash:/S10500-CMW710-FREERADIUS-R7585P05.bin, version: 7.1.070
+    Compiled Jul 25 2019 16:00:00
+
+
+LPU Chassis 1 Slot 0:
+Uptime is 295 weeks,0 days,10 hours,39 minutes
+BOARD TYPE:         LSUM1TGS48RSH0
+DRAM:               2048M bytes
+FLASH:              0M bytes
+NVRAM:              0K bytes
+PCB 1 Version:      VER.A
+<HeXin-3#2F-10508V>display cpu-usage   
+Chassis 1 Slot 0 CPU 0 CPU usage:
+      11% in last 5 seconds
+      11% in last 1 minute
+      11% in last 5 minutes
+
+Chassis 1 Slot 2 CPU 0 CPU usage:
+       9% in last 5 seconds
+       9% in last 1 minute
+       9% in last 5 minutes
+
+Chassis 1 Slot 4 CPU 0 CPU usage:
+       5% in last 5 seconds
+       5% in last 1 minute
+       6% in last 5 minutes
+
+Chassis 1 Slot 5 CPU 0 CPU usage:
+       3% in last 5 seconds
+       3% in last 1 minute
+       4% in last 5 minutes
+
+Chassis 1 Slot 7 CPU 0 CPU usage:
+       3% in last 5 seconds
+       3% in last 1 minute
+<HeXin-3#2F-10508V>display memory    
+Memory statistics are measured in KB:
+Chassis 1 Slot 0: 
+             Total      Used      Free    Shared   Buffers    Cached   FreeRatio
+Mem:       1854208    964584    889624         0         4     36464       48.0%
+-/+ Buffers/Cache:    928116    926092
+Swap:            0         0         0
+
+Chassis 1 Slot 2: 
+             Total      Used      Free    Shared   Buffers    Cached   FreeRatio
+Mem:        999896    564472    435424         0         4     32688       43.6%
+-/+ Buffers/Cache:    531780    468116
+Swap:            0         0         0
+
+Chassis 1 Slot 4: 
+             Total      Used      Free    Shared   Buffers    Cached   FreeRatio
+Mem:       4035452   1279460   2755992         0      1176    371312       70.8%
+-/+ Buffers/Cache:    906972   3128480
+Swap:            0         0         0
+
+Chassis 1 Slot 5: 
+             Total      Used      Free    Shared   Buffers    Cached   FreeRatio
+Mem:       4035452   1052428   2983024         0      1176    199584       74.0%
+-/+ Buffers/Cache:    851668   3183784
+<HeXin-3#2F-10508V>display clock          
+10:48:59.296 8 Fri 03/20/2026
+Time Zone : 8 add 08:00:00
+<HeXin-3#2F-10508V>display ntp-service status     
+ Clock status: synchronized
+ Clock stratum: 2 
+ System peer: 192.168.0.91 
+ Local mode: client
+ Reference clock ID: 192.168.0.91
+ Leap indicator: 00
+ Clock jitter: 0.000092 s
+ Stability: 0.000 pps 
+ Clock precision: 2^-18
+ Root delay: 1.49536 ms 
+ Root dispersion: 941.90979 ms 
+ Reference time: ed6733f8.fcd269c7  Fri, Mar 20 2026 10:48:24.987
+ System poll interval: 64 s
+<HeXin-3#2F-10508V>display acl all   
+Basic IPv4 ACL 2000, 4 rules,
+used-by-access-limit
+ACL's step is 5, start ID is 0
+ rule 10 permit source 192.168.22.0 0.0.0.255
+ rule 15 permit source 192.168.0.0 0.0.0.255
+ rule 20 permit source 192.168.44.0 0.0.0.255
+ rule 25 permit source 172.16.0.0 0.0.255.255
+
+Advanced IPv4 ACL 3000, 3 rules,
+ACL's step is 5, start ID is 0
+ rule 1 deny tcp destination 192.168.100.0 0.0.0.255 destination-port eq 139
+ rule 2 deny tcp destination 192.168.100.0 0.0.0.255 destination-port eq 445
+ rule 10 permit ip
+
+Advanced IPv4 ACL 3001, 4 rules,
+ACL's step is 5, start ID is 0
+ rule 10 permit ip source 192.168.22.7 0 logging counting
+ rule 20 permit ip source 192.168.40.88 0 logging counting
+ rule 21 deny ip destination 172.16.4.3 0 logging counting
+ rule 55 deny ip destination 172.16.4.0 0.0.0.127 logging counting
+
+<HeXin-3#2F-10508V>            display aaa configuration       
+                                           ^
+ % Unrecognized command found at '^' position.
+<HeXin-3#2F-10508V>display local-user  
+Device management user dbcp:
+  State:                      Active
+  Service type:               SSH/Telnet
+  User group:                 system
+  Bind attributes:
+  Authorization attributes:
+    Work directory:           flash:
+    User role list:           level-15, network-admin, network-operator
+
+Device management user zmdzxyyxxk:
+  State:                      Active
+  Service type:               SSH
+  User group:                 system
+  Bind attributes:
+  Authorization attributes:
+    Work directory:           flash:
+    User role list:           level-15, network-operator
+
+Device management user zmdzxyy:
+  State:                      Active
+  Service type:               FTP/SSH/Telnet/Terminal/HTTP/HTTPS
+  User group:                 system
+  Bind attributes:
+<HeXin-3#2F-10508V>display password-control  
+ Global password control configurations:
+ Password control:                    Disabled (device management users)
+                                      Disabled (network access users)
+ Password aging:                      Enabled (90 days)
+ Password length:                     Enabled (10 characters)
+ Password composition:                Enabled (1 types, 1 characters per type)
+ Password history:                    Enabled (max history records:4)
+ Early notice on password expiration: 7 days
+ User authentication timeout:         600 seconds
+ Maximum login attempts:              3
+ Action for exceeding login attempts: Lock user for 1 minutes
+ Minimum interval between two updates:24 hours
+ User account idle time:              90 days
+ Logins with aged password:           3 times in 30 days
+ Password complexity:                 Disabled (username checking)
+                                      Disabled (repeated characters checking)
+ Password change:                     Enabled (first login)
+<HeXin-3#2F-10508V>display local-aaa-user password policy administrator  
+                           ^
+ % Unrecognized command found at '^' position.
+<HeXin-3#2F-10508V>display telnet server status  
+                                  ^
+ % Unrecognized command found at '^' position.
+<HeXin-3#2F-10508V>display ssh server status  
+ Stelnet server: Enable
+ SSH version : 2.0
+ SSH authentication-timeout : 60 second(s)
+ SSH server key generating interval : 0 hour(s)
+ SSH authentication retries : 3 time(s)
+ SFTP server: Disable
+ SFTP Server Idle-Timeout: 10 minute(s)
+ NETCONF server: Disable
+ SCP server: Disable
+<HeXin-3#2F-10508V>display snmp-agent statistics       
+  3432896581 messages delivered to the SNMP entity.
+  18 messages were for an unsupported version.
+  0 messages used an unknown SNMP community name.
+  6 messages represented an illegal operation for the community supplied.
+  0 ASN.1 or BER errors in the process of decoding.
+  3439918643 messages passed from the SNMP entity.
+  0 SNMP PDUs had badValue error-status.
+  0 SNMP PDUs had genErr error-status.
+  24 SNMP PDUs had noSuchName error-status.
+  138364 SNMP PDUs had tooBig error-status (Maximum packet size 1500).
+  4211131568 MIB objects retrieved successfully.
+  0 MIB objects altered successfully.
+  2313508031 GetRequest-PDU accepted and processed.
+  1111977005 GetNextRequest-PDU accepted and processed.
+  7410368 GetBulkRequest-PDU accepted and processed.
+  3432895388 GetResponse-PDU accepted and processed.
+  0 SetRequest-PDU accepted and processed.
+  7023255 Trap PDUs accepted and processed.
+  0 alternate Response Class PDUs dropped silently.
+  0 forwarded Confirmed Class PDUs dropped silently.
+<HeXin-3#2F-10508V>display info-center      
+Information Center: Enabled
+Console: Enabled
+Monitor: Enabled
+Log host: Enabled
+    172.16.4.129,
+    port number: 514, DSCP value:0, host facility: local7
+Log buffer: Enabled
+    Max buffer size 1024, current buffer size 512
+    Current messages 512, dropped messages 0, overwritten messages 5457548
+Log file: Enabled
+Security log file: Disabled
+Information timestamp format:
+    Log host: Date
+    Other output destination: Date
+<HeXin-3#2F-10508V>display logbuffer      
+Log buffer: Enabled
+Max buffer size: 1024
+Actual buffer size: 512
+Dropped messages: 0
+Overwritten messages: 5457551
+Current messages: 512
+%Mar  5 10:33:34:717 2026 HeXin-3#2F-10508V SSHS/6/SSHS_AUTH_PWD_FAIL: Authentication failed for user linux from 172.16.5.15 port 50072 because of invalid username or wrong password.
+%Mar  5 10:33:34:723 2026 HeXin-3#2F-10508V SSHS/6/SSHS_LOG: Connection closed by 172.16.5.15.
+%Mar  5 10:33:34:723 2026 HeXin-3#2F-10508V SSHS/6/SSHS_DISCONNECT: SSH user linux (IP: 172.16.5.15) disconnected from the server.
+%Mar  5 10:33:34:892 2026 HeXin-3#2F-10508V SSHS/6/SSHS_AUTH_PWD_FAIL: Authentication failed for user linux from 172.16.5.15 port 50076 because of invalid username or wrong password.
+%Mar  5 10:33:34:903 2026 HeXin-3#2F-10508V SSHS/6/SSHS_LOG: Connection closed by 172.16.5.15.
+%Mar  5 10:33:34:904 2026 HeXin-3#2F-10508V SSHS/6/SSHS_DISCONNECT: SSH user linux (IP: 172.16.5.15) disconnected from the server.
+%Mar  5 10:33:35:032 2026 HeXin-3#2F-10508V SSHS/6/SSHS_AUTH_PWD_FAIL: Authentication failed for user linux from 172.16.5.15 port 50074 because of invalid username or wrong password.
+%Mar  5 10:33:35:036 2026 HeXin-3#2F-10508V SSHS/6/SSHS_LOG: Connection closed by 172.16.5.15.
+%Mar  5 10:33:35:037 2026 HeXin-3#2F-10508V SSHS/6/SSHS_DISCONNECT: SSH user linux (IP: 172.16.5.15) disconnected from the server.
+%Mar  5 10:33:35:265 2026 HeXin-3#2F-10508V SSHS/6/SSHS_AUTH_PWD_FAIL: Authentication failed for user linux from 172.16.5.15 port 50084 because of invalid username or wrong password.
+%Mar  5 10:33:35:272 2026 HeXin-3#2F-10508V SSHS/6/SSHS_LOG: Connection closed by 172.16.5.15.
+%Mar  5 10:33:35:273 2026 HeXin-3#2F-10508V SSHS/6/SSHS_DISCONNECT: SSH user linux (IP: 172.16.5.15) disconnected from the server.
+%Mar  5 10:33:35:475 2026 HeXin-3#2F-10508V SSHS/6/SSHS_AUTH_PWD_FAIL: Authentication failed for user linux from 172.16.5.15 port 50086 because of invalid username or wrong password.
+%Mar  5 10:33:35:480 2026 HeXin-3#2F-10508V SSHS/6/SSHS_LOG: Connection closed by 172.16.5.15.
+%Mar  5 10:33:35:480 2026 HeXin-3#2F-10508V SSHS/6/SSHS_DISCONNECT: SSH user linux (IP: 172.16.5.15) disconnected from the server.
+%Mar  5 10:33:35:602 2026 HeXin-3#2F-10508V SSHS/6/SSHS_AUTH_PWD_FAIL: Authentication failed for user linux from 172.16.5.15 port 50088 because of invalid username or wrong password.
+%Mar  5 10:33:35:603 2026 HeXin-3#2F-10508V SSHS/6/SSHS_AUTH_PWD_FAIL: Authentication failed for user linux from 172.16.5.15 port 50082 because of invalid username or wrong password.
+<HeXin-3#2F-10508V>display logbuffer summary 
+ Chassis  Slot  CPU EMERG ALERT  CRIT ERROR  WARN NOTIF  INFO DEBUG
+       1     0    0     0     0     0     0     0    69     0     0
+       1     4    0     0     0     0     1     5    33   404     0
+<HeXin-3#2F-10508V>display current-configuration    
+#
+ version 7.1.070, Release 7585P05
+#
+mdc Admin id 1
+#
+ sysname HeXin-3#2F-10508V
+#
+ clock timezone 8 add 08:00:00
+#
+ telnet server enable
+#
+ forward-path-detection enable
+#
+ irf mac-address persistent always
+ irf auto-update enable
+ irf auto-merge enable
+ undo irf link-delay
+ irf member 1 priority 32
+ irf member 2 priority 2
+ irf mode normal
+#
+ router id 172.17.1.254
+#
+ospf 1 router-id 172.17.1.254
+ import-route direct
+ area 0.0.0.0
+  network 172.16.4.0 0.0.0.255
+  network 172.16.5.0 0.0.0.255
+  network 172.16.6.0 0.0.0.255
+  network 172.17.1.254 0.0.0.0
+  network 192.168.6.0 0.0.0.255
+  network 192.168.100.0 0.0.0.255
+  network 192.168.252.0 0.0.0.255
+  network 192.168.254.0 0.0.0.3
+  network 192.168.254.4 0.0.0.3
+  network 192.168.254.8 0.0.0.3
+  network 192.168.254.12 0.0.0.3
+  network 192.168.254.32 0.0.0.3
+  network 192.168.254.48 0.0.0.3
+  network 192.168.254.56 0.0.0.7
+  network 192.168.254.64 0.0.0.7
+  network 192.168.254.72 0.0.0.7
+  network 192.168.254.80 0.0.0.7
+  network 192.168.254.88 0.0.0.7
+  network 192.168.254.96 0.0.0.7
+  network 192.168.254.104 0.0.0.7
+  network 192.168.254.128 0.0.0.15
+#              
+ dhcp enable
+#
+ mirroring-group 1 local
+ mirroring-group 2 local
+ mirroring-group 5 remote-source
+ mirroring-group 5 remote-probe vlan 2010
+#
+ lldp global enable
+#
+ system-working-mode standard
+ password-recovery enable
+#
+vlan 1
+#
+vlan 2
+#
+vlan 6
+ description YunWeiGuanLi
+#
+vlan 15
+#
+vlan 16
+ description connect-FenBuShiCunChu
+#              
+vlan 17
+ description KFFy-hulian
+#
+vlan 19
+ description 8#
+#
+vlan 20
+ description xin xi ke
+#
+vlan 21
+ description XBF-1F
+#
+vlan 22
+ description XBF-2F
+#
+vlan 23
+ description XBF-3F
+#
+vlan 24
+ description XBF-4F
+#
+vlan 25
+ description XBF-5F
+#
+vlan 26
+ description XBF-6F
+#
+vlan 27
+ description XBF-7F
+#
+vlan 28
+ description XBF-8F
+#
+vlan 29
+ description XBF-9F
+#
+vlan 30
+ description XBF-10F
+#
+vlan 31
+ description XBF-11F
+#
+vlan 32
+ description XBF-12F
+#
+vlan 33        
+ description XBF-13F
+#
+vlan 34
+ description XBF-14F
+#
+vlan 35
+ description XBF-15F
+#
+vlan 36
+ description XBF-16F
+#
+vlan 37
+ description jing-pei-zhongxin
+#
+vlan 38
+ description FangLiao-1F
+#
+vlan 40
+#
+vlan 41
+ description yingxiang-2
+#
+vlan 42        
+ description tongdaxiaoqumenzhen
+#
+vlan 44
+ description YingXiang_lou_1F-JR
+#
+vlan 45
+ description connect-zmdzxyy-HJ-TONGDA
+#
+vlan 50
+#
+vlan 55
+ description vmware
+#
+vlan 100
+ description To_WX5510E
+#
+vlan 104
+#
+vlan 107
+#
+vlan 110
+ description xinfuwuqi
+#              
+vlan 137
+ description connect 3# 3F-wuxian
+#
+vlan 138
+ description connect 3# 5F-dong-wuxian
+#
+vlan 139
+ description connect 3# 5F-xi-wuxian
+#
+vlan 140
+#
+vlan 141
+ description connect 3# 6F-dong-wuxian
+#
+vlan 142
+ description connect 3# 6F-xi-wuxian
+#
+vlan 143
+ description connect 3# 7F-dong-wuxian
+#
+vlan 144
+ description connect 3# 7F-xi-wuxian
+#              
+vlan 145
+ description connect 3# 8F-dong-wuxian
+#
+vlan 146
+ description connect 3# 8F-xi-wuxian
+#
+vlan 147
+ description connect 3# 9F-dong-wuxian
+#
+vlan 148
+ description connect 3# 9F-xi-wuxian
+#
+vlan 149
+ description connect 3# 10F-dong-wuxian
+#
+vlan 150
+ description connect 3# 10F-xi-wuxian
+#
+vlan 151
+ description connect 3# 11F-dong-wuxian
+#
+vlan 152
+ description connect 3# 11F-xi-wuxian
+#
+vlan 153
+ description connect 3# 12F-dong-wuxian
+#
+vlan 154
+ description connect 3# 12F-xi-wuxian
+#
+vlan 155
+ description connect 3# 13F-dong-wuxian
+#
+vlan 156
+ description connect 3# 13F-xi-wuxian
+#
+vlan 157
+ description connect 3# 14F-dong-wuxian
+#
+vlan 158
+ description connect 3# 14F-xi-wuxian
+#
+vlan 159
+ description connect 3# 15F-dong-wuxian
+#
+vlan 160       
+ description connect 3# 15F-xi-wuxian
+#
+vlan 161
+ description connect 16F-dong-wuxian
+#
+vlan 162
+ description connect 16F-xi-wuxian
+#
+vlan 177
+ description connect 6# 2-3F-wuxian
+#
+vlan 181
+ description connect jiZhen# 2F-wuxian
+#
+vlan 182
+ description connect jiZhen# 3F-wuxian
+#
+vlan 183
+ description connect jiZhen# 4F-wuxian
+#
+vlan 184
+ description connect jiZhen# 5F-wuxian
+#              
+vlan 185
+ description connect jiZhen# 6F-wuxian
+#
+vlan 186
+ description connect jiZhen# 8F-wuxian
+#
+vlan 203
+ description connect-3#wuxian_manyou
+#
+vlan 206
+ description connect 6# wuxian_ManYou
+#
+vlan 208
+ description connect JiZhen# wuxian_ManYou
+#
+vlan 254
+ name WaiLianDanWei-FW
+#
+vlan 255
+ name H3c-WX5510E
+#
+vlan 800
+ name kangfuceshi
+#
+vlan 900
+ description bfd jian ce
+#
+vlan 901
+ description CYlan
+#
+vlan 999
+ description fuwuqi-sw
+#
+vlan 1000
+ description guan li vlan
+#
+vlan 1001
+#
+vlan 1008
+ name KangFu-fenYuan-Guanli
+#
+vlan 1100
+#
+vlan 1240
+ description nsx-tep
+#              
+vlan 2010
+ description duanKouJingXiang
+#
+irf-port 1/1
+ port group interface FortyGigE1/7/0/1 mode enhanced
+ port group interface FortyGigE1/7/0/2 mode enhanced
+#
+irf-port 2/2
+ port group interface FortyGigE2/7/0/1 mode enhanced
+ port group interface FortyGigE2/7/0/2 mode enhanced
+#
+dhcp server ip-pool vlan104
+ gateway-list 192.168.104.1
+ network 192.168.104.0 mask 255.255.255.0
+ option 43 hex 8007000001ac11010a
+#
+interface Bridge-Aggregation2
+ description connect YX-HJ02
+ port link-type trunk
+ port trunk permit vlan 1 to 2009 2012 to 4094
+ undo stp enable
+#
+interface Bridge-Aggregation4
+ description to HJ-FWQ-A
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 110 1000
+ undo stp enable
+#
+interface Bridge-Aggregation6
+ description to HJ-FWQ-C
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ undo stp enable
+#
+interface Bridge-Aggregation7
+ description to HJ-FWQ-B
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ undo stp enable
+#
+interface Bridge-Aggregation9
+ port link-type trunk
+ port trunk permit vlan 1 to 2009 2013 to 4094
+ shutdown
+ undo stp enable
+#
+interface Bridge-Aggregation10
+ description vmware
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000
+#
+interface Bridge-Aggregation16
+ description connect-FenBuShiCunChu-SW-1/0/8-2/0/8
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 16 55 100 110
+#
+interface Bridge-Aggregation17
+ description KFFY-HuLian
+ port access vlan 17
+#
+interface Bridge-Aggregation18
+ description connect_NAS_CunChu_yeWU
+ port access vlan 16
+ link-aggregation mode dynamic
+#
+interface Bridge-Aggregation100
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 100 110 1000
+#
+interface Bridge-Aggregation101
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 100 110 1000
+#
+interface Bridge-Aggregation110
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 100 110 1000
+#
+interface Bridge-Aggregation254
+ description WaiLianDanWei-FW
+ port access vlan 254
+#
+interface Bridge-Aggregation997
+ description WuLiSERVER-SW_T1/1/3+T2/1/3
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 110 1000
+#
+interface Bridge-Aggregation999
+ description to HJ-FWQ-D
+ port link-type hybrid
+ port hybrid vlan 1 100 tagged
+ port hybrid vlan 999 untagged
+ port hybrid pvid vlan 999
+#
+interface Route-Aggregation1
+ description men zhen lou
+ ip address 192.168.254.1 255.255.255.252
+#
+interface Route-Aggregation2
+ description wai ke lou
+ ip address 192.168.254.5 255.255.255.252
+#
+interface Route-Aggregation3
+ description dong qu bing fang
+ ip address 192.168.254.9 255.255.255.252
+#
+interface Route-Aggregation4
+ description ying xiang lou
+ ip address 192.168.254.13 255.255.255.252
+#
+interface Route-Aggregation5
+ description JiZhenLou_HJ
+ ip address 192.168.254.89 255.255.255.248
+#
+interface Route-Aggregation6
+ description 3#-HJ
+ ip address 192.168.254.97 255.255.255.248
+#
+interface Route-Aggregation8
+ description ShengZhiFenYuan
+ ip address 192.168.254.57 255.255.255.248
+#
+interface Route-Aggregation9
+ description connect-XinFaErMenZhen
+ ip address 192.168.254.65 255.255.255.248
+#
+interface Route-Aggregation10
+ description Wei Xiao Su She-10#
+ ip address 192.168.254.73 255.255.255.248
+#              
+interface Route-Aggregation128
+ description Connect-BeiQu-FuNvErTong
+ ip address 192.168.254.129 255.255.255.240
+#
+interface NULL0
+#
+interface LoopBack0
+ ip address 172.17.1.254 255.255.255.255
+#
+interface Vlan-interface1
+#
+interface Vlan-interface2
+ ip address 2.2.2.1 255.255.255.0
+#
+interface Vlan-interface6
+ description YunWeiGuanLi
+ ip address 172.16.6.254 255.255.255.0
+#
+interface Vlan-interface16
+ description FenBuShiCunChu
+ ip address 192.168.6.254 255.255.255.0
+#
+interface Vlan-interface17
+ description KFFy-hulian
+ ip address 192.168.254.81 255.255.255.248
+#
+interface Vlan-interface19
+ ip address 192.168.254.105 255.255.255.248
+#
+interface Vlan-interface40
+#
+interface Vlan-interface44
+ description YingXiang_lou_1F-JR
+ ip address 192.168.44.1 255.255.255.0
+#
+interface Vlan-interface50
+ description to-wangzha
+ ip address 196.196.11.6 255.255.255.248
+#
+interface Vlan-interface55
+ description vmware+YunWeiGuanLi
+ ip address 172.16.5.254 255.255.255.0
+#
+interface Vlan-interface100
+#
+interface Vlan-interface104
+ ip address 192.168.104.1 255.255.255.0
+#
+interface Vlan-interface110
+ description xinfuwuqi
+ ip address 192.168.100.254 255.255.255.0
+#
+interface Vlan-interface254
+ description WaiLianDanWei-FW
+ ip address 192.168.254.41 255.255.255.248
+#
+interface Vlan-interface255
+ description connect_H3c-WX5510E
+ ip address 192.168.254.49 255.255.255.252
+#
+interface Vlan-interface900
+#
+interface Vlan-interface999
+ description fuwuqi-sw
+ ip address 192.168.254.33 255.255.255.248
+#
+interface Vlan-interface1000
+ description guan li vlan
+ ip address 172.16.4.254 255.255.255.0
+#
+interface Vlan-interface1240
+ mtu 1700
+#
+interface FortyGigE1/7/0/3
+ port link-mode bridge
+ description to 2F-wuwuqi
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 6
+#
+interface FortyGigE1/7/0/4
+ port link-mode bridge
+ description to 2F-wuwuqi
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 6
+#
+interface FortyGigE1/7/0/5
+ port link-mode bridge
+ description to 7F-fuwuqi
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 7
+#
+interface FortyGigE1/7/0/6
+ port link-mode bridge
+ description to 7F-fuwuqi
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 7
+#
+interface FortyGigE2/7/0/3
+ port link-mode bridge
+ description to 2F-wuwuqi
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 6
+#
+interface FortyGigE2/7/0/4
+ port link-mode bridge
+ description to 2F-wuwuqi
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 6
+#
+interface FortyGigE2/7/0/5
+ port link-mode bridge
+ description to 7F-fuwuqi
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 7
+#
+interface FortyGigE2/7/0/6
+ port link-mode bridge
+ description to 7F-fuwuqi
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 7
+#
+interface FortyGigE1/7/0/1
+ description IRF-port
+#
+interface FortyGigE1/7/0/2
+ description IRF-port
+#
+interface FortyGigE2/7/0/1
+ description IRF-port
+#
+interface FortyGigE2/7/0/2
+ description IRF-port
+#
+interface GigabitEthernet1/2/0/1
+ port link-mode bridge
+ description connect-wx5510_g1/0/1
+ port access vlan 255
+#
+interface GigabitEthernet1/2/0/2
+ port link-mode bridge
+ description connect-WangZha-INT0
+ port access vlan 50
+ mirroring-group 1 mirroring-port both
+#
+interface GigabitEthernet1/2/0/3
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/4
+ port link-mode bridge
+ description connect-AnQuanYunWei-SW-g1/0/24
+ port link-type trunk
+ port trunk permit vlan 1 to 2009 2012 to 4094
+#
+interface GigabitEthernet1/2/0/5
+ port link-mode bridge
+ port access vlan 110
+#
+interface GigabitEthernet1/2/0/6
+ port link-mode bridge
+ port access vlan 6
+#
+interface GigabitEthernet1/2/0/7
+ port link-mode bridge
+ port access vlan 6
+#
+interface GigabitEthernet1/2/0/8
+ port link-mode bridge
+ port access vlan 6
+#
+interface GigabitEthernet1/2/0/9
+ port link-mode bridge
+ port access vlan 6
+#
+interface GigabitEthernet1/2/0/10
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/11
+ port link-mode bridge
+ description JingXiang-taiShiGanzhi-TanZhen-NeiWang
+ port access vlan 2010
+ shutdown
+#
+interface GigabitEthernet1/2/0/12
+ port link-mode bridge
+ description shenXinFu-IPS-eth5
+ port access vlan 110
+#
+interface GigabitEthernet1/2/0/13
+ port link-mode bridge
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 6 110 1000
+#
+interface GigabitEthernet1/2/0/14
+ port link-mode bridge
+ description neiWang-ShuJvkuShenJi
+ port access vlan 2010
+#
+interface GigabitEthernet1/2/0/15
+ port link-mode bridge
+ description connect-AngKe-AC-BeiJi
+ port access vlan 110
+#
+interface GigabitEthernet1/2/0/16
+ port link-mode bridge
+ description connect-AngKe-AC
+ port access vlan 110
+#
+interface GigabitEthernet1/2/0/17
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/18
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/19
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/20
+ port link-mode bridge
+ description linshi-ShuJuKaoBei-PC
+ port access vlan 16
+#
+interface GigabitEthernet1/2/0/21
+ port link-mode bridge
+ port access vlan 254
+#
+interface GigabitEthernet1/2/0/22
+ port link-mode bridge
+ port access vlan 254
+#
+interface GigabitEthernet1/2/0/23
+ port link-mode bridge
+ description connect-WaiLianFW-eth10
+ port access vlan 254
+ port link-aggregation group 254
+#
+interface GigabitEthernet1/2/0/24
+ port link-mode bridge
+ description BeiXinYuan-ZhunRu
+ mirroring-group 2 monitor-port
+#
+interface GigabitEthernet1/2/0/25
+ port link-mode bridge
+ description connet-AnkeXin-YunPingTai
+ port access vlan 2010
+#
+interface GigabitEthernet1/2/0/26
+ port link-mode bridge
+ port link-type trunk
+ port trunk permit vlan 1 to 2009 2012 to 4094
+#
+interface GigabitEthernet1/2/0/27
+ port link-mode bridge
+ description connect-YX2-HuiJu-g1/0/49
+ port link-type trunk
+ port trunk permit vlan 1 to 2009 2012 to 4094
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 2
+#
+interface GigabitEthernet1/2/0/28
+ port link-mode bridge
+ description connec-YinXiangLou-1F-2F-JR-g1/0/50
+ port link-type trunk
+ port trunk permit vlan 1 to 2009 2012 to 4094
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 2
+#
+interface GigabitEthernet1/2/0/29
+ port link-mode bridge
+ port access vlan 800
+#
+interface GigabitEthernet1/2/0/30
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/31
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/32
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/33
+ port link-mode bridge
+ description 8#HJ-2F_HuiYiShi_XinZheng_lou-2F-SW_g1/0/25
+ port access vlan 19
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+#
+interface GigabitEthernet1/2/0/34
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/35
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/36
+ port link-mode bridge
+#              
+interface GigabitEthernet1/2/0/37
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/38
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/39
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/40
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/41
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/42
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/43
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/44
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/1
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/2
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/3
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/4
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/5
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/6
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/7
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/8
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/9
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/10
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/11
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/12
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/13
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/14
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/15
+ port link-mode bridge
+#              
+interface GigabitEthernet2/2/0/16
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/17
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/18
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/19
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/20
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/21
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/22
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/23
+ port link-mode bridge
+ description connect-WaiLianFW-eth11
+ port access vlan 254
+ port link-aggregation group 254
+#
+interface GigabitEthernet2/2/0/24
+ port link-mode bridge
+ port access vlan 110
+#
+interface GigabitEthernet2/2/0/25
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/26
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/27
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/28
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/29
+ port link-mode bridge
+ port access vlan 800
+#
+interface GigabitEthernet2/2/0/30
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/31
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/32
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/33
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/34
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/35
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/36
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/37
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/38
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/39
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/40
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/41
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/42
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/43
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/44
+ port link-mode bridge
+ port access vlan 110
+#
+interface M-GigabitEthernet1/0/0/0
+#
+interface M-GigabitEthernet1/0/0/1
+#
+interface M-GigabitEthernet1/0/0/2
+#
+interface M-GigabitEthernet1/0/0/3
+#
+interface Ten-GigabitEthernet1/0/0/1
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 1
+#
+interface Ten-GigabitEthernet1/0/0/2
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 1
+#
+interface Ten-GigabitEthernet1/0/0/3
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 2
+#
+interface Ten-GigabitEthernet1/0/0/4
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 2
+#
+interface Ten-GigabitEthernet1/0/0/5
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 3
+#
+interface Ten-GigabitEthernet1/0/0/6
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 3
+#
+interface Ten-GigabitEthernet1/0/0/7
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 4
+#
+interface Ten-GigabitEthernet1/0/0/8
+ port link-mode route
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 4
+#
+interface Ten-GigabitEthernet1/0/0/13
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 6
+#
+interface Ten-GigabitEthernet1/0/0/14
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 6
+#
+interface Ten-GigabitEthernet1/0/0/17
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 5
+#
+interface Ten-GigabitEthernet1/0/0/18
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 5
+#
+interface Ten-GigabitEthernet1/0/0/43
+ port link-mode route
+ description WeiXiaoSuShe-HJ-XG1/0/27
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 10
+#
+interface Ten-GigabitEthernet1/0/0/44
+ port link-mode route
+ description connect-xinfaReMenZhen_HJ_A
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 9
+#
+interface Ten-GigabitEthernet1/0/0/45
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 9
+#
+interface Ten-GigabitEthernet1/0/0/46
+ port link-mode route
+ description connect ShengZhiYuanQu-HJ-A-xg1/0/1
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 8
+#
+interface Ten-GigabitEthernet1/0/0/48
+ port link-mode route
+ description connect BeiQu-fuEr-heXin-xg3/0/3
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port outbound
+ port link-aggregation group 128
+#
+interface Ten-GigabitEthernet2/0/0/1
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 1
+#
+interface Ten-GigabitEthernet2/0/0/2
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 1
+#
+interface Ten-GigabitEthernet2/0/0/3
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 2
+#
+interface Ten-GigabitEthernet2/0/0/4
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 2
+#              
+interface Ten-GigabitEthernet2/0/0/5
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 3
+#
+interface Ten-GigabitEthernet2/0/0/6
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 3
+#
+interface Ten-GigabitEthernet2/0/0/7
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 4
+#
+interface Ten-GigabitEthernet2/0/0/8
+ port link-mode route
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 4
+#              
+interface Ten-GigabitEthernet2/0/0/13
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 6
+#
+interface Ten-GigabitEthernet2/0/0/14
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 6
+#
+interface Ten-GigabitEthernet2/0/0/15
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 5
+#
+interface Ten-GigabitEthernet2/0/0/16
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 5
+#
+interface Ten-GigabitEthernet2/0/0/43
+ port link-mode route
+ description WeiXiaoSuShe-HJ-XG1/0/28
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 10
+#
+interface Ten-GigabitEthernet2/0/0/44
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 9
+#
+interface Ten-GigabitEthernet2/0/0/45
+ port link-mode route
+ description connect-xinfaReMenZhen_HJ_B
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 9
+#
+interface Ten-GigabitEthernet2/0/0/46
+ port link-mode route
+ description connect ShengZhiYuanQu-HJ-B-xg1/0/1
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 8
+#
+interface Ten-GigabitEthernet2/0/0/48
+ port link-mode route
+ description connect BeiQu-fuEr-heXin-xg3/0/3
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port outbound
+ port link-aggregation group 128
+#
+interface Ten-GigabitEthernet1/0/0/9
+ port link-mode bridge
+ description fuwuqi-sw-A
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 110 1000
+ port link-aggregation group 4
+#
+interface Ten-GigabitEthernet1/0/0/10
+ port link-mode bridge
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 110 1000
+ port link-aggregation group 4
+#
+interface Ten-GigabitEthernet1/0/0/11
+ port link-mode bridge
+ description fuwuqi-sw
+ port link-type hybrid
+ port hybrid vlan 1 100 tagged
+ port hybrid vlan 999 untagged
+ port hybrid pvid vlan 999
+ port link-aggregation group 999
+#
+interface Ten-GigabitEthernet1/0/0/12
+ port link-mode bridge
+ description fuwuqi-sw
+ port link-type hybrid
+ port hybrid vlan 1 100 tagged
+ port hybrid vlan 999 untagged
+ port hybrid pvid vlan 999
+ port link-aggregation group 999
+#
+<HeXin-3#2F-10508V> 
+<HeXin-3#2F-10508V> 
+<HeXin-3#2F-10508V>display current-configuration    
+#
+ version 7.1.070, Release 7585P05
+#
+mdc Admin id 1
+#
+ sysname HeXin-3#2F-10508V
+#
+ clock timezone 8 add 08:00:00
+#
+ telnet server enable
+#
+ forward-path-detection enable
+#
+ irf mac-address persistent always
+ irf auto-update enable
+ irf auto-merge enable
+ undo irf link-delay
+ irf member 1 priority 32
+ irf member 2 priority 2
+ irf mode normal
+#
+ router id 172.17.1.254
+#
+ospf 1 router-id 172.17.1.254
+ import-route direct
+ area 0.0.0.0
+  network 172.16.4.0 0.0.0.255
+  network 172.16.5.0 0.0.0.255
+  network 172.16.6.0 0.0.0.255
+  network 172.17.1.254 0.0.0.0
+  network 192.168.6.0 0.0.0.255
+  network 192.168.100.0 0.0.0.255
+  network 192.168.252.0 0.0.0.255
+  network 192.168.254.0 0.0.0.3
+  network 192.168.254.4 0.0.0.3
+  network 192.168.254.8 0.0.0.3
+  network 192.168.254.12 0.0.0.3
+  network 192.168.254.32 0.0.0.3
+  network 192.168.254.48 0.0.0.3
+  network 192.168.254.56 0.0.0.7
+  network 192.168.254.64 0.0.0.7
+  network 192.168.254.72 0.0.0.7
+  network 192.168.254.80 0.0.0.7
+  network 192.168.254.88 0.0.0.7
+  network 192.168.254.96 0.0.0.7
+  network 192.168.254.104 0.0.0.7
+  network 192.168.254.128 0.0.0.15
+#
+ dhcp enable
+#
+ mirroring-group 1 local
+ mirroring-group 2 local
+ mirroring-group 5 remote-source
+ mirroring-group 5 remote-probe vlan 2010
+#
+ lldp global enable
+#
+ system-working-mode standard
+ password-recovery enable
+#
+vlan 1
+#
+vlan 2
+#
+vlan 6
+ description YunWeiGuanLi
+#
+vlan 15
+#
+vlan 16        
+ description connect-FenBuShiCunChu
+#
+vlan 17
+ description KFFy-hulian
+#
+vlan 19
+ description 8#
+#
+vlan 20
+ description xin xi ke
+#
+vlan 21
+ description XBF-1F
+#
+vlan 22
+ description XBF-2F
+#
+vlan 23
+ description XBF-3F
+#
+vlan 24
+ description XBF-4F
+#              
+vlan 25
+ description XBF-5F
+#
+vlan 26
+ description XBF-6F
+#
+vlan 27
+ description XBF-7F
+#
+vlan 28
+ description XBF-8F
+#
+vlan 29
+ description XBF-9F
+#
+vlan 30
+ description XBF-10F
+#
+vlan 31
+ description XBF-11F
+#
+vlan 32
+ description XBF-12F
+#
+vlan 33
+ description XBF-13F
+#
+vlan 34
+ description XBF-14F
+#
+vlan 35
+ description XBF-15F
+#
+vlan 36
+ description XBF-16F
+#
+vlan 37
+ description jing-pei-zhongxin
+#
+vlan 38
+ description FangLiao-1F
+#
+vlan 40
+#
+vlan 41
+ description yingxiang-2
+#
+vlan 42
+ description tongdaxiaoqumenzhen
+#
+vlan 44
+ description YingXiang_lou_1F-JR
+#
+vlan 45
+ description connect-zmdzxyy-HJ-TONGDA
+#
+vlan 50
+#
+vlan 55
+ description vmware
+#
+vlan 100
+ description To_WX5510E
+#
+vlan 104
+#
+vlan 107
+#
+vlan 110       
+ description xinfuwuqi
+#
+vlan 137
+ description connect 3# 3F-wuxian
+#
+vlan 138
+ description connect 3# 5F-dong-wuxian
+#
+vlan 139
+ description connect 3# 5F-xi-wuxian
+#
+vlan 140
+#
+vlan 141
+ description connect 3# 6F-dong-wuxian
+#
+vlan 142
+ description connect 3# 6F-xi-wuxian
+#
+vlan 143
+ description connect 3# 7F-dong-wuxian
+#
+vlan 144       
+ description connect 3# 7F-xi-wuxian
+#
+vlan 145
+ description connect 3# 8F-dong-wuxian
+#
+vlan 146
+ description connect 3# 8F-xi-wuxian
+#
+vlan 147
+ description connect 3# 9F-dong-wuxian
+#
+vlan 148
+ description connect 3# 9F-xi-wuxian
+#
+vlan 149
+ description connect 3# 10F-dong-wuxian
+#
+vlan 150
+ description connect 3# 10F-xi-wuxian
+#
+vlan 151
+ description connect 3# 11F-dong-wuxian
+#              
+vlan 152
+ description connect 3# 11F-xi-wuxian
+#
+vlan 153
+ description connect 3# 12F-dong-wuxian
+#
+vlan 154
+ description connect 3# 12F-xi-wuxian
+#
+vlan 155
+ description connect 3# 13F-dong-wuxian
+#
+vlan 156
+ description connect 3# 13F-xi-wuxian
+#
+vlan 157
+ description connect 3# 14F-dong-wuxian
+#
+vlan 158
+ description connect 3# 14F-xi-wuxian
+#
+vlan 159
+ description connect 3# 15F-dong-wuxian
+#
+vlan 160
+ description connect 3# 15F-xi-wuxian
+#
+vlan 161
+ description connect 16F-dong-wuxian
+#
+vlan 162
+ description connect 16F-xi-wuxian
+#
+vlan 177
+ description connect 6# 2-3F-wuxian
+#
+vlan 181
+ description connect jiZhen# 2F-wuxian
+#
+vlan 182
+ description connect jiZhen# 3F-wuxian
+#
+vlan 183
+ description connect jiZhen# 4F-wuxian
+#
+vlan 184       
+ description connect jiZhen# 5F-wuxian
+#
+vlan 185
+ description connect jiZhen# 6F-wuxian
+#
+vlan 186
+ description connect jiZhen# 8F-wuxian
+#
+vlan 203
+ description connect-3#wuxian_manyou
+#
+vlan 206
+ description connect 6# wuxian_ManYou
+#
+vlan 208
+ description connect JiZhen# wuxian_ManYou
+#
+vlan 254
+ name WaiLianDanWei-FW
+#
+vlan 255
+ name H3c-WX5510E
+#              
+vlan 800
+ name kangfuceshi
+#
+vlan 900
+ description bfd jian ce
+#
+vlan 901
+ description CYlan
+#
+vlan 999
+ description fuwuqi-sw
+#
+vlan 1000
+ description guan li vlan
+#
+vlan 1001
+#
+vlan 1008
+ name KangFu-fenYuan-Guanli
+#
+vlan 1100
+#
+vlan 1240      
+ description nsx-tep
+#
+vlan 2010
+ description duanKouJingXiang
+#
+irf-port 1/1
+ port group interface FortyGigE1/7/0/1 mode enhanced
+ port group interface FortyGigE1/7/0/2 mode enhanced
+#
+irf-port 2/2
+ port group interface FortyGigE2/7/0/1 mode enhanced
+ port group interface FortyGigE2/7/0/2 mode enhanced
+#
+dhcp server ip-pool vlan104
+ gateway-list 192.168.104.1
+ network 192.168.104.0 mask 255.255.255.0
+ option 43 hex 8007000001ac11010a
+#
+interface Bridge-Aggregation2
+ description connect YX-HJ02
+ port link-type trunk
+ port trunk permit vlan 1 to 2009 2012 to 4094
+ undo stp enable
+#
+interface Bridge-Aggregation4
+ description to HJ-FWQ-A
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 110 1000
+ undo stp enable
+#
+interface Bridge-Aggregation6
+ description to HJ-FWQ-C
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ undo stp enable
+#
+interface Bridge-Aggregation7
+ description to HJ-FWQ-B
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ undo stp enable
+#
+interface Bridge-Aggregation9
+ port link-type trunk
+ port trunk permit vlan 1 to 2009 2013 to 4094
+ shutdown
+ undo stp enable
+#
+interface Bridge-Aggregation10
+ description vmware
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000
+#
+interface Bridge-Aggregation16
+ description connect-FenBuShiCunChu-SW-1/0/8-2/0/8
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 16 55 100 110
+#
+interface Bridge-Aggregation17
+ description KFFY-HuLian
+ port access vlan 17
+#
+interface Bridge-Aggregation18
+ description connect_NAS_CunChu_yeWU
+ port access vlan 16
+ link-aggregation mode dynamic
+#
+interface Bridge-Aggregation100
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 100 110 1000
+#
+interface Bridge-Aggregation101
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 100 110 1000
+#
+interface Bridge-Aggregation110
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 100 110 1000
+#
+interface Bridge-Aggregation254
+ description WaiLianDanWei-FW
+ port access vlan 254
+#
+interface Bridge-Aggregation997
+ description WuLiSERVER-SW_T1/1/3+T2/1/3
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 110 1000
+#
+interface Bridge-Aggregation999
+ description to HJ-FWQ-D
+ port link-type hybrid
+ port hybrid vlan 1 100 tagged
+ port hybrid vlan 999 untagged
+ port hybrid pvid vlan 999
+#
+interface Route-Aggregation1
+ description men zhen lou
+ ip address 192.168.254.1 255.255.255.252
+#
+interface Route-Aggregation2
+ description wai ke lou
+ ip address 192.168.254.5 255.255.255.252
+#
+interface Route-Aggregation3
+ description dong qu bing fang
+ ip address 192.168.254.9 255.255.255.252
+#
+interface Route-Aggregation4
+ description ying xiang lou
+ ip address 192.168.254.13 255.255.255.252
+#
+interface Route-Aggregation5
+ description JiZhenLou_HJ
+ ip address 192.168.254.89 255.255.255.248
+#
+interface Route-Aggregation6
+ description 3#-HJ
+ ip address 192.168.254.97 255.255.255.248
+#
+interface Route-Aggregation8
+ description ShengZhiFenYuan
+ ip address 192.168.254.57 255.255.255.248
+#
+interface Route-Aggregation9
+ description connect-XinFaErMenZhen
+ ip address 192.168.254.65 255.255.255.248
+#
+interface Route-Aggregation10
+ description Wei Xiao Su She-10#
+ ip address 192.168.254.73 255.255.255.248
+#
+interface Route-Aggregation128
+ description Connect-BeiQu-FuNvErTong
+ ip address 192.168.254.129 255.255.255.240
+#
+interface NULL0
+#
+interface LoopBack0
+ ip address 172.17.1.254 255.255.255.255
+#
+interface Vlan-interface1
+#
+interface Vlan-interface2
+ ip address 2.2.2.1 255.255.255.0
+#
+interface Vlan-interface6
+ description YunWeiGuanLi
+ ip address 172.16.6.254 255.255.255.0
+#
+interface Vlan-interface16
+ description FenBuShiCunChu
+ ip address 192.168.6.254 255.255.255.0
+#
+interface Vlan-interface17
+ description KFFy-hulian
+ ip address 192.168.254.81 255.255.255.248
+#
+interface Vlan-interface19
+ ip address 192.168.254.105 255.255.255.248
+#
+interface Vlan-interface40
+#
+interface Vlan-interface44
+ description YingXiang_lou_1F-JR
+ ip address 192.168.44.1 255.255.255.0
+#
+interface Vlan-interface50
+ description to-wangzha
+ ip address 196.196.11.6 255.255.255.248
+#
+interface Vlan-interface55
+ description vmware+YunWeiGuanLi
+ ip address 172.16.5.254 255.255.255.0
+#
+interface Vlan-interface100
+#
+interface Vlan-interface104
+ ip address 192.168.104.1 255.255.255.0
+#
+interface Vlan-interface110
+ description xinfuwuqi
+ ip address 192.168.100.254 255.255.255.0
+#
+interface Vlan-interface254
+ description WaiLianDanWei-FW
+ ip address 192.168.254.41 255.255.255.248
+#
+interface Vlan-interface255
+ description connect_H3c-WX5510E
+ ip address 192.168.254.49 255.255.255.252
+#
+interface Vlan-interface900
+#
+interface Vlan-interface999
+ description fuwuqi-sw
+ ip address 192.168.254.33 255.255.255.248
+#
+interface Vlan-interface1000
+ description guan li vlan
+ ip address 172.16.4.254 255.255.255.0
+#
+interface Vlan-interface1240
+ mtu 1700
+#
+interface FortyGigE1/7/0/3
+ port link-mode bridge
+ description to 2F-wuwuqi
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 6
+#
+interface FortyGigE1/7/0/4
+ port link-mode bridge
+ description to 2F-wuwuqi
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 6
+#
+interface FortyGigE1/7/0/5
+ port link-mode bridge
+ description to 7F-fuwuqi
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 7
+#
+interface FortyGigE1/7/0/6
+ port link-mode bridge
+ description to 7F-fuwuqi
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 7
+#
+interface FortyGigE2/7/0/3
+ port link-mode bridge
+ description to 2F-wuwuqi
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 6
+#
+interface FortyGigE2/7/0/4
+ port link-mode bridge
+ description to 2F-wuwuqi
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 6
+#
+interface FortyGigE2/7/0/5
+ port link-mode bridge
+ description to 7F-fuwuqi
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 7
+#              
+interface FortyGigE2/7/0/6
+ port link-mode bridge
+ description to 7F-fuwuqi
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000 1240
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 7
+#
+interface FortyGigE1/7/0/1
+ description IRF-port
+#
+interface FortyGigE1/7/0/2
+ description IRF-port
+#
+interface FortyGigE2/7/0/1
+ description IRF-port
+#
+interface FortyGigE2/7/0/2
+ description IRF-port
+#
+interface GigabitEthernet1/2/0/1
+ port link-mode bridge
+ description connect-wx5510_g1/0/1
+ port access vlan 255
+#
+interface GigabitEthernet1/2/0/2
+ port link-mode bridge
+ description connect-WangZha-INT0
+ port access vlan 50
+ mirroring-group 1 mirroring-port both
+#
+interface GigabitEthernet1/2/0/3
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/4
+ port link-mode bridge
+ description connect-AnQuanYunWei-SW-g1/0/24
+ port link-type trunk
+ port trunk permit vlan 1 to 2009 2012 to 4094
+#
+interface GigabitEthernet1/2/0/5
+ port link-mode bridge
+ port access vlan 110
+#
+interface GigabitEthernet1/2/0/6
+ port link-mode bridge
+ port access vlan 6
+#
+interface GigabitEthernet1/2/0/7
+ port link-mode bridge
+ port access vlan 6
+#
+interface GigabitEthernet1/2/0/8
+ port link-mode bridge
+ port access vlan 6
+#
+interface GigabitEthernet1/2/0/9
+ port link-mode bridge
+ port access vlan 6
+#
+interface GigabitEthernet1/2/0/10
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/11
+ port link-mode bridge
+ description JingXiang-taiShiGanzhi-TanZhen-NeiWang
+ port access vlan 2010
+ shutdown      
+#
+interface GigabitEthernet1/2/0/12
+ port link-mode bridge
+ description shenXinFu-IPS-eth5
+ port access vlan 110
+#
+interface GigabitEthernet1/2/0/13
+ port link-mode bridge
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 6 110 1000
+#
+interface GigabitEthernet1/2/0/14
+ port link-mode bridge
+ description neiWang-ShuJvkuShenJi
+ port access vlan 2010
+#
+interface GigabitEthernet1/2/0/15
+ port link-mode bridge
+ description connect-AngKe-AC-BeiJi
+ port access vlan 110
+#
+interface GigabitEthernet1/2/0/16
+ port link-mode bridge
+ description connect-AngKe-AC
+ port access vlan 110
+#
+interface GigabitEthernet1/2/0/17
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/18
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/19
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/20
+ port link-mode bridge
+ description linshi-ShuJuKaoBei-PC
+ port access vlan 16
+#
+interface GigabitEthernet1/2/0/21
+ port link-mode bridge
+ port access vlan 254
+#
+interface GigabitEthernet1/2/0/22
+ port link-mode bridge
+ port access vlan 254
+#
+interface GigabitEthernet1/2/0/23
+ port link-mode bridge
+ description connect-WaiLianFW-eth10
+ port access vlan 254
+ port link-aggregation group 254
+#
+interface GigabitEthernet1/2/0/24
+ port link-mode bridge
+ description BeiXinYuan-ZhunRu
+ mirroring-group 2 monitor-port
+#
+interface GigabitEthernet1/2/0/25
+ port link-mode bridge
+ description connet-AnkeXin-YunPingTai
+ port access vlan 2010
+#
+interface GigabitEthernet1/2/0/26
+ port link-mode bridge
+ port link-type trunk
+ port trunk permit vlan 1 to 2009 2012 to 4094
+#
+interface GigabitEthernet1/2/0/27
+ port link-mode bridge
+ description connect-YX2-HuiJu-g1/0/49
+ port link-type trunk
+ port trunk permit vlan 1 to 2009 2012 to 4094
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 2
+#
+interface GigabitEthernet1/2/0/28
+ port link-mode bridge
+ description connec-YinXiangLou-1F-2F-JR-g1/0/50
+ port link-type trunk
+ port trunk permit vlan 1 to 2009 2012 to 4094
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 2
+#
+interface GigabitEthernet1/2/0/29
+ port link-mode bridge
+ port access vlan 800
+#              
+interface GigabitEthernet1/2/0/30
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/31
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/32
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/33
+ port link-mode bridge
+ description 8#HJ-2F_HuiYiShi_XinZheng_lou-2F-SW_g1/0/25
+ port access vlan 19
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+#
+interface GigabitEthernet1/2/0/34
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/35
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/36
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/37
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/38
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/39
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/40
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/41
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/42
+ port link-mode bridge
+#
+interface GigabitEthernet1/2/0/43
+ port link-mode bridge
+#              
+interface GigabitEthernet1/2/0/44
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/1
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/2
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/3
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/4
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/5
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/6
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/7
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/8
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/9
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/10
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/11
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/12
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/13
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/14
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/15
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/16
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/17
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/18
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/19
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/20
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/21
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/22
+ port link-mode bridge
+#              
+interface GigabitEthernet2/2/0/23
+ port link-mode bridge
+ description connect-WaiLianFW-eth11
+ port access vlan 254
+ port link-aggregation group 254
+#
+interface GigabitEthernet2/2/0/24
+ port link-mode bridge
+ port access vlan 110
+#
+interface GigabitEthernet2/2/0/25
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/26
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/27
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/28
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/29
+ port link-mode bridge
+ port access vlan 800
+#
+interface GigabitEthernet2/2/0/30
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/31
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/32
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/33
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/34
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/35
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/36
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/37
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/38
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/39
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/40
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/41
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/42
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/43
+ port link-mode bridge
+#
+interface GigabitEthernet2/2/0/44
+ port link-mode bridge
+ port access vlan 110
+#
+interface M-GigabitEthernet1/0/0/0
+#
+interface M-GigabitEthernet1/0/0/1
+#
+interface M-GigabitEthernet1/0/0/2
+#
+interface M-GigabitEthernet1/0/0/3
+#
+interface Ten-GigabitEthernet1/0/0/1
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 1
+#
+interface Ten-GigabitEthernet1/0/0/2
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 1
+#              
+interface Ten-GigabitEthernet1/0/0/3
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 2
+#
+interface Ten-GigabitEthernet1/0/0/4
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 2
+#
+interface Ten-GigabitEthernet1/0/0/5
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 3
+#
+interface Ten-GigabitEthernet1/0/0/6
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 3
+#
+interface Ten-GigabitEthernet1/0/0/7
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 4
+#
+interface Ten-GigabitEthernet1/0/0/8
+ port link-mode route
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 4
+#
+interface Ten-GigabitEthernet1/0/0/13
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 6
+#
+interface Ten-GigabitEthernet1/0/0/14
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 6
+#
+interface Ten-GigabitEthernet1/0/0/17
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 5
+#
+interface Ten-GigabitEthernet1/0/0/18
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 5
+#
+interface Ten-GigabitEthernet1/0/0/43
+ port link-mode route
+ description WeiXiaoSuShe-HJ-XG1/0/27
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 10
+#
+interface Ten-GigabitEthernet1/0/0/44
+ port link-mode route
+ description connect-xinfaReMenZhen_HJ_A
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 9
+#
+interface Ten-GigabitEthernet1/0/0/45
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 9
+#
+interface Ten-GigabitEthernet1/0/0/46
+ port link-mode route
+ description connect ShengZhiYuanQu-HJ-A-xg1/0/1
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 8
+#
+interface Ten-GigabitEthernet1/0/0/48
+ port link-mode route
+ description connect BeiQu-fuEr-heXin-xg3/0/3
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port outbound
+ port link-aggregation group 128
+#
+interface Ten-GigabitEthernet2/0/0/1
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 1
+#
+interface Ten-GigabitEthernet2/0/0/2
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 1
+#
+interface Ten-GigabitEthernet2/0/0/3
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 2
+#
+interface Ten-GigabitEthernet2/0/0/4
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 2
+#
+interface Ten-GigabitEthernet2/0/0/5
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 3
+#
+interface Ten-GigabitEthernet2/0/0/6
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 3
+#
+interface Ten-GigabitEthernet2/0/0/7
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 4
+#
+interface Ten-GigabitEthernet2/0/0/8
+ port link-mode route
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 4
+#
+interface Ten-GigabitEthernet2/0/0/13
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 6
+#
+interface Ten-GigabitEthernet2/0/0/14
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 6
+#
+interface Ten-GigabitEthernet2/0/0/15
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 5
+#
+interface Ten-GigabitEthernet2/0/0/16
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 5
+#
+interface Ten-GigabitEthernet2/0/0/43
+ port link-mode route
+ description WeiXiaoSuShe-HJ-XG1/0/28
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 10
+#
+interface Ten-GigabitEthernet2/0/0/44
+ port link-mode route
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 9
+#
+interface Ten-GigabitEthernet2/0/0/45
+ port link-mode route
+ description connect-xinfaReMenZhen_HJ_B
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 9
+#              
+interface Ten-GigabitEthernet2/0/0/46
+ port link-mode route
+ description connect ShengZhiYuanQu-HJ-B-xg1/0/1
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 8
+#
+interface Ten-GigabitEthernet2/0/0/48
+ port link-mode route
+ description connect BeiQu-fuEr-heXin-xg3/0/3
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port outbound
+ port link-aggregation group 128
+#
+interface Ten-GigabitEthernet1/0/0/9
+ port link-mode bridge
+ description fuwuqi-sw-A
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 110 1000
+ port link-aggregation group 4
+#
+interface Ten-GigabitEthernet1/0/0/10
+ port link-mode bridge
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 110 1000
+ port link-aggregation group 4
+#
+interface Ten-GigabitEthernet1/0/0/11
+ port link-mode bridge
+ description fuwuqi-sw
+ port link-type hybrid
+ port hybrid vlan 1 100 tagged
+ port hybrid vlan 999 untagged
+ port hybrid pvid vlan 999
+ port link-aggregation group 999
+#
+interface Ten-GigabitEthernet1/0/0/12
+ port link-mode bridge
+ description fuwuqi-sw
+ port link-type hybrid
+ port hybrid vlan 1 100 tagged
+ port hybrid vlan 999 untagged
+ port hybrid pvid vlan 999
+ port link-aggregation group 999
+#
+interface Ten-GigabitEthernet1/0/0/15
+ port link-mode bridge
+ description fuwuqi-sw
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 110 1000
+ port link-aggregation group 997
+#
+interface Ten-GigabitEthernet1/0/0/16
+ port link-mode bridge
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 110 1000
+ port link-aggregation group 997
+#
+interface Ten-GigabitEthernet1/0/0/19
+ port link-mode bridge
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 100 110 1000
+ port link-aggregation group 100
+#              
+interface Ten-GigabitEthernet1/0/0/20
+ port link-mode bridge
+ description xinfuwuqi-2F-1/0/45-2/0/45
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 100 110 1000
+ port link-aggregation group 101
+#
+interface Ten-GigabitEthernet1/0/0/21
+ port link-mode bridge
+ description TaiShi_GanZhi_TanZhen_eth7-linshi
+ port access vlan 2010
+#
+interface Ten-GigabitEthernet1/0/0/22
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/0/0/23
+ port link-mode bridge
+ description connect_SheBei_GuanLi_3#2FHJ-01_Te1/1/28
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 1000
+#              
+interface Ten-GigabitEthernet1/0/0/24
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/0/0/25
+ port link-mode bridge
+ description vmware
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 10
+#
+interface Ten-GigabitEthernet1/0/0/26
+ port link-mode bridge
+ description conncet-FenBushiCunChu-SW-01-xg1/0/8
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 16 55 100 110
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 16
+#
+interface Ten-GigabitEthernet1/0/0/27
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/0/0/28
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/0/0/29
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/0/0/30
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/0/0/31
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/0/0/32
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/0/0/33
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/0/0/34
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/0/0/35
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/0/0/36
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/0/0/37
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/0/0/38
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/0/0/39
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/0/0/40
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/0/0/41
+ port link-mode bridge
+ description KfFy-hulian-Kffy-JR-01-T1/0/25
+ port access vlan 17
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 17
+#
+interface Ten-GigabitEthernet1/0/0/42
+ port link-mode bridge
+ description connect_NAS_CunChu_yeWU_KOU1
+ port access vlan 16
+ port link-aggregation group 18
+#
+interface Ten-GigabitEthernet1/0/0/47
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/2/0/45
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/2/0/46
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/2/0/47
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/9
+ port link-mode bridge
+ description fuwuqi-sw-A
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 110 1000
+ port link-aggregation group 4
+#
+interface Ten-GigabitEthernet2/0/0/10
+ port link-mode bridge
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 110 1000
+ port link-aggregation group 4
+#
+interface Ten-GigabitEthernet2/0/0/11
+ port link-mode bridge
+ port link-type trunk
+ port trunk permit vlan 1 to 2009 2012 to 4094
+#
+interface Ten-GigabitEthernet2/0/0/12
+ port link-mode bridge
+ port link-type trunk
+ port trunk permit vlan 1 to 2009 2012 to 4094
+#
+interface Ten-GigabitEthernet2/0/0/17
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/18
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/19
+ port link-mode bridge
+ description fuwuqi-sw
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 100 110 1000
+ port link-aggregation group 100
+#
+interface Ten-GigabitEthernet2/0/0/20
+ port link-mode bridge
+ description xinfuwuqi-2F-1/0/45-2/0/45
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 100 110 1000
+ port link-aggregation group 101
+#
+interface Ten-GigabitEthernet2/0/0/21
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/22
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/23
+ port link-mode bridge
+ description connect_SheBei_GuanLi_JiZhen-7F-HJ-02_Te1/1/28
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 1000
+#
+interface Ten-GigabitEthernet2/0/0/24
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/25
+ port link-mode bridge
+ description vmware
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 55 100 110 1000
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 10
+#              
+interface Ten-GigabitEthernet2/0/0/26
+ port link-mode bridge
+ description conncet-FenBushiCunChu-SW-02-xg1/0/8
+ port link-type trunk
+ undo port trunk permit vlan 1
+ port trunk permit vlan 16 55 100 110
+ mirroring-group 5 mirroring-port both
+ port link-aggregation group 16
+#
+interface Ten-GigabitEthernet2/0/0/27
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/28
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/29
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/30
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/31
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/32
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/33
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/34
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/35
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/36
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/37
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/38
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/39
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/40
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/0/0/41
+ port link-mode bridge
+ description KfFy-hulian-Kffy-JR-01-T1/0/26
+ port access vlan 17
+ mirroring-group 2 mirroring-port inbound
+ mirroring-group 5 mirroring-port inbound
+ port link-aggregation group 17
+#
+interface Ten-GigabitEthernet2/0/0/42
+ port link-mode bridge
+ description connect_NAS_CunChu_yeWU_KOU2
+ port access vlan 16
+ port link-aggregation group 18
+#
+interface Ten-GigabitEthernet2/0/0/47
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/2/0/45
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/2/0/46
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/2/0/47
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet2/2/0/48
+ port link-mode bridge
+#
+interface Ten-GigabitEthernet1/2/0/48
+ port link-mode bridge
+ mirroring-group 5 reflector-port
+#
+ scheduler logfile size 16
+#
+scheduler job backup
+ command 1 tftp 192.168.100.12 put flash:/startup.cfg
+#
+scheduler schedule backup
+ user-role network-operator
+ user-role level-15
+ job backup
+ time repeating at 00:00
+#
+line class aux
+ user-role network-admin
+#
+line class vty
+ user-role network-operator
+#
+line aux 1/0
+ authentication-mode scheme
+ user-role network-admin
+#
+line aux 1/1 2/1
+ user-role network-admin
+#
+line vty 0 4
+ authentication-mode scheme
+ user-role level-15
+ user-role network-operator
+ idle-timeout 10 30
+#
+line vty 5 63  
+ user-role network-operator
+#
+ ip route-static 0.0.0.0 0 192.168.254.46
+ ip route-static 10.10.10.100 32 192.168.254.46
+ ip route-static 10.120.12.0 24 192.168.254.46
+ ip route-static 10.120.12.26 32 192.168.254.46
+ ip route-static 10.120.13.168 29 192.168.254.46
+ ip route-static 10.130.1.4 32 192.168.254.46
+ ip route-static 10.130.1.9 32 192.168.254.46
+ ip route-static 10.224.30.0 24 192.168.254.46
+ ip route-static 10.248.8.50 32 192.168.254.46
+ ip route-static 10.248.8.51 32 192.168.254.46
+ ip route-static 10.248.8.52 32 192.168.254.46
+ ip route-static 10.248.8.53 32 192.168.254.46
+ ip route-static 10.248.8.54 32 192.168.254.46
+ ip route-static 47.107.12.110 32 196.196.11.5
+ ip route-static 100.0.0.0 16 192.168.254.130
+ ip route-static 101.0.0.0 16 172.16.5.108
+ ip route-static 102.0.0.0 16 172.16.5.128
+ ip route-static 103.0.0.0 16 172.16.5.118
+ ip route-static 112.33.7.70 32 192.196.11.5 preference 10
+ ip route-static 114.255.123.84 32 196.196.11.5 preference 20
+ ip route-static 121.46.20.48 32 196.196.11.5 preference 10
+ ip route-static 172.17.1.10 32 192.168.254.50 description To-WX5510E
+ ip route-static 192.168.101.0 24 192.168.254.50 description To-WX5510E
+ ip route-static 192.168.102.0 24 192.168.254.50 description To-WX5510E
+ ip route-static 192.168.103.0 24 192.168.254.50 description To-WX5510E
+ ip route-static 192.168.107.0 24 192.168.254.2
+ ip route-static 192.168.110.0 24 192.168.254.58
+ ip route-static 192.168.114.0 24 192.168.56.1
+#
+ info-center loghost 172.16.4.129
+#
+ snmp-agent
+ snmp-agent local-engineid 800063A2030CDA41B479CD
+ snmp-agent community read public mib-view ViewISO
+ snmp-agent community write zmdzxyy
+ snmp-agent sys-info version all 
+ snmp-agent target-host trap address udp-domain 192.168.0.28 params securityname public v2c
+ snmp-agent mib-view included ViewISO iso 
+#
+ ssh server enable
+ ssh user zmdzxyy service-type all authentication-type password
+#
+ ntp-service enable
+ ntp-service unicast-server 192.168.0.91
+#
+acl number 2000
+ description used-by-access-limit
+ rule 10 permit source 192.168.22.0 0.0.0.255
+ rule 15 permit source 192.168.0.0 0.0.0.255
+ rule 20 permit source 192.168.44.0 0.0.0.255
+ rule 25 permit source 172.16.0.0 0.0.255.255
+#
+acl number 3000
+ rule 1 deny tcp destination 192.168.100.0 0.0.0.255 destination-port eq 139
+ rule 2 deny tcp destination 192.168.100.0 0.0.0.255 destination-port eq 445
+ rule 10 permit ip
+#
+acl number 3001
+ rule 10 permit ip source 192.168.22.7 0 logging counting
+ rule 20 permit ip source 192.168.40.88 0 logging counting
+ rule 21 deny ip destination 172.16.4.3 0 logging counting
+ rule 55 deny ip destination 172.16.4.0 0.0.0.127 logging counting
+#
+ super password role network-admin hash $h$6$ffjzBt3hPxXbTBjq$J1SFT0N+Xz3ubs/b1ZajoZ0xzXBYN2eLCdMsQzMdbJVsOqWyIucFSjhH8NRASQ85zkBDW8I4nq1asWpybhPylg==
+#
+domain system
+#              
+ domain default enable system
+#
+role name level-0
+ description Predefined level-0 role
+#
+role name level-1
+ description Predefined level-1 role
+#
+role name level-2
+ description Predefined level-2 role
+#
+role name level-3
+ description Predefined level-3 role
+#
+role name level-4
+ description Predefined level-4 role
+#
+role name level-5
+ description Predefined level-5 role
+#
+role name level-6
+ description Predefined level-6 role
+#              
+role name level-7
+ description Predefined level-7 role
+#
+role name level-8
+ description Predefined level-8 role
+#
+role name level-9
+ description Predefined level-9 role
+#
+role name level-10
+ description Predefined level-10 role
+#
+role name level-11
+ description Predefined level-11 role
+#
+role name level-12
+ description Predefined level-12 role
+#
+role name level-13
+ description Predefined level-13 role
+#
+role name level-14
+ description Predefined level-14 role
+#
+user-group system
+#
+local-user dbcp class manage
+ password hash $h$6$hKap0cltHpHJu+Ld$LCsjD93xk6dNItbc2zMPd93Ndy+bvV8mDnCRslO7/6PsrciT3/I5ERZhkporwYSbXIsemV8/r6NMw0i9fxoYMA==
+ service-type telnet ssh
+ authorization-attribute user-role level-15
+ authorization-attribute user-role network-admin
+ authorization-attribute user-role network-operator
+#
+local-user zmdzxyy class manage
+ password hash $h$6$RzxsekU/kXa0HMn3$rifquIp1ol2xAGetwxczRd+TQ1AE2R5GFz6WEX8ohZCwt9ruycV16bGxFbXic/ggwW0u+k6QsuTNYwMGJzFXSQ==
+ service-type ftp
+ service-type telnet http https ssh terminal
+ authorization-attribute user-role level-15
+ authorization-attribute user-role network-operator
+#
+local-user zmdzxyyxxk class manage
+ password hash $h$6$FwvWM0G3R/ZwfyKp$a8AV4BQSMKboGCRgaDKcYgjsfT/WPM+sddasPXnLIckp3iG2fU+tjldLmcIL5AVbMedV1sjk+8U5oDEsyjIM6A==
+ service-type ssh
+ authorization-attribute user-role level-15
+ authorization-attribute user-role network-operator
+#              
+ ftp server enable
+#
+return
