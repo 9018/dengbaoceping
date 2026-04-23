@@ -1,0 +1,106 @@
+from pathlib import Path
+
+from app.core.config import settings
+
+
+def create_project(client):
+    resp = client.post(
+        "/api/v1/projects",
+        json={"code": "PJT-REC", "name": "记录项目", "project_type": "等级保护测评", "status": "draft"},
+    )
+    assert resp.status_code == 201
+    return resp.json()["data"]["id"]
+
+
+def upload_evidence(client, project_id: str, filename: str) -> str:
+    upload_resp = client.post(
+        f"/api/v1/projects/{project_id}/evidences/upload",
+        files={"file": (filename, b"hello evidence", "text/plain")},
+        data={
+            "title": "配置截图",
+            "evidence_type": "screenshot",
+            "summary": "记录生成",
+            "device": "AUTO",
+            "tags_json": '["record"]',
+            "source_ref": "test-upload",
+        },
+    )
+    assert upload_resp.status_code == 201
+    return upload_resp.json()["data"]["id"]
+
+
+def run_extract_flow(client, evidence_id: str, sample_id: str, template_code: str):
+    ocr_resp = client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={"sample_id": sample_id})
+    assert ocr_resp.status_code == 200
+    extract_resp = client.post(
+        f"/api/v1/evidences/{evidence_id}/extract-fields",
+        json={"template_code": template_code},
+    )
+    assert extract_resp.status_code == 200
+    return extract_resp.json()
+
+
+def test_generate_record_full_match(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "firewall_basic.txt")
+    run_extract_flow(client, evidence_id, "firewall_basic", "security_device_basic")
+
+    resp = client.post(
+        f"/api/v1/projects/{project_id}/records/generate",
+        json={"evidence_id": evidence_id},
+    )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["message"] == "测评记录生成成功"
+    data = body["data"]
+    assert data["item_code"] == "net_boundary_firewall_config"
+    assert data["template_code"] == "security_device_basic"
+    assert data["status"] == "generated"
+    assert data["match_score"] >= 0.6
+    assert "FW-01" in data["title"]
+    assert "待补充" not in data["record_content"]
+    assert len(data["matched_fields_json"]) == 3
+
+    list_resp = client.get(f"/api/v1/projects/{project_id}/records")
+    assert list_resp.status_code == 200
+    assert list_resp.json()["meta"]["total"] == 1
+
+    detail_resp = client.get(f"/api/v1/records/{data['id']}")
+    assert detail_resp.status_code == 200
+    assert detail_resp.json()["data"]["evidence_ids"] == [evidence_id]
+
+
+def test_generate_record_with_missing_field_fallback(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "policy_missing_action.txt")
+    run_extract_flow(client, evidence_id, "security_policy_missing_action", "security_policy_basic")
+
+    resp = client.post(
+        f"/api/v1/projects/{project_id}/records/generate",
+        json={"evidence_id": evidence_id},
+    )
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["item_code"] == "security_policy_check"
+    assert data["status"] == "reviewed"
+    assert "[待补充: action]" in data["record_content"]
+    assert "缺失字段: action" in data["review_comment"]
+    assert data["match_score"] < 0.7
+
+
+def test_generate_record_with_low_score_override_device_type(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "windows_host_partial.txt")
+    run_extract_flow(client, evidence_id, "windows_host_partial", "host_basic_info")
+
+    resp = client.post(
+        f"/api/v1/projects/{project_id}/records/generate",
+        json={"evidence_id": evidence_id, "device_type_override": "firewall"},
+    )
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["item_code"] == "host_basic_info_check"
+    assert data["status"] == "reviewed"
+    assert data["match_score"] < 0.65
+    assert "匹配得分低于阈值" in data["review_comment"]
+    assert data["match_reasons"]["device_type_reason"].startswith("设备类型冲突")

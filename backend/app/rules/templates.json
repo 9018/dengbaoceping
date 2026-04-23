@@ -1,0 +1,98 @@
+[
+  {
+    "template_code": "security_device_basic",
+    "name": "安全设备基础信息抽取模板",
+    "template_type": "built_in_extraction",
+    "extension_type": "evidence_fields",
+    "domain": "network_security",
+    "description": "用于防火墙等安全设备证据的基础字段抽取",
+    "field_codes": [
+      "device_name",
+      "device_ip",
+      "os_version",
+      "device_model"
+    ],
+    "generation": {
+      "title_template": "{device_name} 边界防护检查记录",
+      "record_template": "经核查，设备名称为{device_name}，管理地址为{device_ip}，系统版本为{os_version}，设备型号为{device_model}。",
+      "fallbacks": {
+        "device_name": "待补充设备名称",
+        "device_ip": "待补充设备IP",
+        "os_version": "待补充系统版本",
+        "device_model": "待补充设备型号"
+      },
+      "default_review_comment": "系统自动生成，请人工复核设备基础信息完整性。"
+    }
+  },
+  {
+    "template_code": "host_basic_info",
+    "name": "主机基础信息抽取模板",
+    "template_type": "built_in_extraction",
+    "extension_type": "evidence_fields",
+    "domain": "host_security",
+    "description": "用于 Windows 主机类证据的基础字段抽取",
+    "field_codes": [
+      "hostname",
+      "os_name",
+      "patch_level"
+    ],
+    "generation": {
+      "title_template": "{hostname} 主机安全检查记录",
+      "record_template": "经核查，主机名称为{hostname}，操作系统为{os_name}，补丁级别为{patch_level}。",
+      "fallbacks": {
+        "hostname": "待补充主机名称",
+        "os_name": "待补充操作系统名称",
+        "patch_level": "待补充补丁级别"
+      },
+      "default_review_comment": "系统自动生成，请人工复核主机信息与补丁情况。"
+    }
+  },
+  {
+    "template_code": "network_config_basic",
+    "name": "网络配置抽取模板",
+    "template_type": "built_in_extraction",
+    "extension_type": "evidence_fields",
+    "domain": "network_security",
+    "description": "用于网络配置文档中的地址字段抽取",
+    "field_codes": [
+      "management_ip",
+      "subnet_mask",
+      "gateway"
+    ],
+    "generation": {
+      "title_template": "网络配置检查记录",
+      "record_template": "经核查，管理地址为{management_ip}，子网掩码为{subnet_mask}，默认网关为{gateway}。",
+      "fallbacks": {
+        "management_ip": "待补充管理地址",
+        "subnet_mask": "待补充子网掩码",
+        "gateway": "待补充默认网关"
+      },
+      "default_review_comment": "系统自动生成，请人工复核网络配置字段。"
+    }
+  },
+  {
+    "template_code": "security_policy_basic",
+    "name": "安全策略抽取模板",
+    "template_type": "built_in_extraction",
+    "extension_type": "evidence_fields",
+    "domain": "network_security",
+    "description": "用于安全策略页面与表格的策略字段抽取",
+    "field_codes": [
+      "policy_name",
+      "source_zone",
+      "destination_zone",
+      "action"
+    ],
+    "generation": {
+      "title_template": "{policy_name} 安全策略检查记录",
+      "record_template": "经核查，策略名称为{policy_name}，源区域为{source_zone}，目的区域为{destination_zone}，动作配置为{action}。",
+      "fallbacks": {
+        "policy_name": "待补充策略名称",
+        "source_zone": "待补充源区域",
+        "destination_zone": "待补充目的区域",
+        "action": "[待补充: action]"
+      },
+      "default_review_comment": "系统自动生成，请人工复核安全策略配置。"
+    }
+  }
+]

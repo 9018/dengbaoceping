@@ -1,0 +1,44 @@
+[
+  {
+    "item_code": "net_boundary_firewall_config",
+    "template_code": "security_device_basic",
+    "domain": "network_security",
+    "level2": "边界防护",
+    "level3": "检查安全设备基础配置是否完整",
+    "required_fields": ["device_name", "device_ip", "os_version"],
+    "device_types": ["firewall"],
+    "match_weights": {
+      "required_fields": 0.7,
+      "device_type": 0.3
+    },
+    "pass_score": 0.6
+  },
+  {
+    "item_code": "host_basic_info_check",
+    "template_code": "host_basic_info",
+    "domain": "host_security",
+    "level2": "主机安全",
+    "level3": "检查主机基础信息与补丁信息",
+    "required_fields": ["hostname", "os_name", "patch_level"],
+    "device_types": ["server", "host"],
+    "match_weights": {
+      "required_fields": 0.8,
+      "device_type": 0.2
+    },
+    "pass_score": 0.65
+  },
+  {
+    "item_code": "security_policy_check",
+    "template_code": "security_policy_basic",
+    "domain": "network_security",
+    "level2": "访问控制",
+    "level3": "检查安全策略配置项",
+    "required_fields": ["policy_name", "source_zone", "destination_zone", "action"],
+    "device_types": ["firewall"],
+    "match_weights": {
+      "required_fields": 0.75,
+      "device_type": 0.25
+    },
+    "pass_score": 0.7
+  }
+]
