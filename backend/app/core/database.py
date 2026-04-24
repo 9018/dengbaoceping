@@ -1,11 +1,12 @@
 from pathlib import Path
 
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
-from app.models.base import Base
 
 url = make_url(settings.DATABASE_URL)
 connect_args = {}
@@ -29,6 +30,9 @@ if url.drivername.startswith("sqlite"):
 
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+BACKEND_DIR = Path(__file__).resolve().parents[2]
+ALEMBIC_INI_PATH = BACKEND_DIR / "alembic.ini"
+ALEMBIC_SCRIPT_PATH = BACKEND_DIR / "alembic"
 
 
 def get_db():
@@ -44,8 +48,17 @@ def ensure_runtime_directories() -> None:
         Path(directory).mkdir(parents=True, exist_ok=True)
 
 
-def init_db() -> None:
-    from app.models import asset, evaluation_item, evaluation_record, evidence, extracted_field, project, template  # noqa: F401
+def build_alembic_config() -> Config:
+    config = Config(str(ALEMBIC_INI_PATH))
+    config.set_main_option("script_location", str(ALEMBIC_SCRIPT_PATH))
+    config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+    return config
 
+
+def run_migrations() -> None:
+    command.upgrade(build_alembic_config(), "head")
+
+
+def init_db() -> None:
     ensure_runtime_directories()
-    Base.metadata.create_all(bind=engine)
+    run_migrations()

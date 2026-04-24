@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.evaluation_record import EvaluationRecord, EvaluationRecordEvidence
 from app.models.extracted_field import ReviewAuditLog
@@ -10,8 +10,20 @@ class EvaluationRecordRepository:
     def list_by_project(self, db: Session, project_id: str) -> list[EvaluationRecord]:
         return (
             db.query(EvaluationRecord)
+            .options(
+                selectinload(EvaluationRecord.evidence_links)
+                .selectinload(EvaluationRecordEvidence.evidence),
+            )
             .filter(EvaluationRecord.project_id == project_id)
             .order_by(EvaluationRecord.created_at.desc())
+            .all()
+        )
+
+    def list_audit_logs(self, db: Session, record_id: str) -> list[ReviewAuditLog]:
+        return (
+            db.query(ReviewAuditLog)
+            .filter(ReviewAuditLog.target_type == "record", ReviewAuditLog.target_id == record_id)
+            .order_by(ReviewAuditLog.created_at.desc())
             .all()
         )
 

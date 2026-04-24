@@ -1,0 +1,23 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    env_file:
+      - ./backend/.env
+    ports:
+      - "${BACKEND_PORT:-18000}:8000"
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/exports:/app/exports
+      - ./backend/snapshots:/app/snapshots
+      - ./backend/app.db:/app/app.db
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-18080}:80"

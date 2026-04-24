@@ -20,7 +20,12 @@ class OCRService:
             raise BadRequestException("EVIDENCE_ASSET_NOT_FOUND", "证据未关联文件资产")
 
         adapter = self.adapter_factory.create()
-        result = adapter.run(evidence_id=evidence_id, filename=evidence.asset.filename, sample_id=sample_id)
+        result = adapter.run(
+            evidence_id=evidence_id,
+            filename=evidence.asset.filename,
+            file_path=evidence.asset.absolute_path,
+            sample_id=sample_id,
+        )
         evidence.text_content = result.get("full_text")
         evidence.ocr_result_json = result
         evidence.ocr_status = result.get("status")

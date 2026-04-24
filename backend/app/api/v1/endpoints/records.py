@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.schemas.audit import AuditLogRead
 from app.schemas.common import ApiResponse, list_response, success_response
 from app.schemas.record import RecordGenerateRequest, RecordRead, RecordReviewRequest, RecordUpdateRequest
 from app.services.record_service import RecordService
@@ -44,3 +45,9 @@ def update_record(record_id: str, payload: RecordUpdateRequest, db: Session = De
 def review_record(record_id: str, payload: RecordReviewRequest, db: Session = Depends(get_db)):
     record = service.review_record(db, record_id, payload.model_dump())
     return success_response(RecordRead.model_validate(record), "测评记录复核成功")
+
+
+@router.get("/records/{record_id}/audit-logs", response_model=ApiResponse)
+def list_record_audit_logs(record_id: str, db: Session = Depends(get_db)):
+    logs = [AuditLogRead.model_validate(item) for item in service.list_record_audit_logs(db, record_id)]
+    return list_response(logs, "测评记录审计日志获取成功")

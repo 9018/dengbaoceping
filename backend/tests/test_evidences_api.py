@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from app.core.config import settings
 
 
@@ -37,7 +39,8 @@ def test_evidence_upload_and_delete(client):
 
     upload_dir = Path(settings.UPLOAD_DIR) / project_id
     assert upload_dir.exists()
-    assert any(upload_dir.iterdir())
+    stored_files = list(upload_dir.iterdir())
+    assert stored_files
 
     list_resp = client.get(f"/api/v1/projects/{project_id}/evidences")
     assert list_resp.status_code == 200
@@ -54,6 +57,7 @@ def test_evidence_upload_and_delete(client):
     delete_resp = client.delete(f"/api/v1/evidences/{evidence_id}")
     assert delete_resp.status_code == 200
     assert delete_resp.json()["message"] == "证据已删除"
+    assert not upload_dir.exists() or not any(upload_dir.iterdir())
 
     missing_resp = client.get(f"/api/v1/evidences/{evidence_id}")
     assert missing_resp.status_code == 404
@@ -124,3 +128,13 @@ def test_run_ocr_with_invalid_sample_returns_400(client):
     resp = client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={"sample_id": "missing-sample"})
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "MOCK_OCR_SAMPLE_NOT_FOUND"
+
+
+@pytest.mark.skipif(settings.OCR_PROVIDER != "real", reason="仅在真实OCR provider配置下验证占位返回")
+def test_run_real_ocr_without_provider_config_returns_400(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id)
+
+    resp = client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={})
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "REAL_OCR_NOT_CONFIGURED"

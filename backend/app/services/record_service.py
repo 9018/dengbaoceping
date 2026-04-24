@@ -16,6 +16,12 @@ from app.services.template_service import TemplateService
 
 
 ALLOWED_RECORD_STATUS = {"generated", "reviewed", "approved", "exported"}
+RECORD_STATUS_TRANSITIONS = {
+    "generated": {"generated", "reviewed"},
+    "reviewed": {"reviewed", "approved"},
+    "approved": {"approved", "exported"},
+    "exported": {"exported"},
+}
 
 
 class RecordService:
@@ -108,10 +114,15 @@ class RecordService:
             raise NotFoundException("EVALUATION_RECORD_NOT_FOUND", "测评记录不存在")
         return record
 
+    def list_record_audit_logs(self, db: Session, record_id: str) -> list[ReviewAuditLog]:
+        self.get_record(db, record_id)
+        return self.record_repository.list_audit_logs(db, record_id)
+
     def update_record(self, db: Session, record_id: str, payload: dict) -> EvaluationRecord:
         record = self.get_record(db, record_id)
         if payload.get("status") is not None:
             self._validate_status(payload["status"])
+            self._validate_transition(record.status, payload["status"])
         changed_fields = self._collect_changes(record, payload, {"record_content": "record_text"})
         for key, value in payload.items():
             if value is None:
@@ -127,6 +138,7 @@ class RecordService:
     def review_record(self, db: Session, record_id: str, payload: dict) -> EvaluationRecord:
         record = self.get_record(db, record_id)
         self._validate_status(payload.get("status"))
+        self._validate_transition(record.status, payload["status"])
         review_payload = {
             "status": payload.get("status"),
             "final_content": payload.get("final_content", record.final_content or record.record_text),
@@ -149,6 +161,16 @@ class RecordService:
     def _validate_status(self, status: str | None) -> None:
         if status is None or status not in ALLOWED_RECORD_STATUS:
             raise BadRequestException("INVALID_RECORD_STATUS", "记录状态不合法", sorted(ALLOWED_RECORD_STATUS))
+
+    def _validate_transition(self, current_status: str | None, next_status: str) -> None:
+        normalized_current_status = current_status or "generated"
+        allowed_next_statuses = RECORD_STATUS_TRANSITIONS.get(normalized_current_status)
+        if not allowed_next_statuses or next_status not in allowed_next_statuses:
+            raise BadRequestException(
+                "INVALID_RECORD_STATUS_TRANSITION",
+                "记录状态流转不合法",
+                {"current_status": current_status, "next_status": next_status, "allowed_statuses": sorted(allowed_next_statuses or [])},
+            )
 
     def _collect_changes(self, record: EvaluationRecord, payload: dict, aliases: dict[str, str] | None = None) -> list[dict]:
         changed_fields = []

@@ -61,11 +61,19 @@ def test_generate_record_full_match(client):
     assert "待补充" not in data["record_content"]
     assert len(data["matched_fields_json"]) == 3
 
+    rerun_resp = client.post(
+        f"/api/v1/projects/{project_id}/records/generate",
+        json={"evidence_id": evidence_id, "force_regenerate": True},
+    )
+    assert rerun_resp.status_code == 201
+    rerun_data = rerun_resp.json()["data"]
+    assert rerun_data["id"] != data["id"]
+
     list_resp = client.get(f"/api/v1/projects/{project_id}/records")
     assert list_resp.status_code == 200
     assert list_resp.json()["meta"]["total"] == 1
 
-    detail_resp = client.get(f"/api/v1/records/{data['id']}")
+    detail_resp = client.get(f"/api/v1/records/{rerun_data['id']}")
     assert detail_resp.status_code == 200
     assert detail_resp.json()["data"]["evidence_ids"] == [evidence_id]
 
@@ -104,3 +112,29 @@ def test_generate_record_with_low_score_override_device_type(client):
     assert data["match_score"] < 0.65
     assert "匹配得分低于阈值" in data["review_comment"]
     assert data["match_reasons"]["device_type_reason"].startswith("设备类型冲突")
+
+
+
+def test_record_update_rejects_direct_export_from_reviewed(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "policy_missing_action.txt")
+    run_extract_flow(client, evidence_id, "security_policy_missing_action", "security_policy_basic")
+
+    resp = client.post(
+        f"/api/v1/projects/{project_id}/records/generate",
+        json={"evidence_id": evidence_id},
+    )
+    assert resp.status_code == 201
+    record = resp.json()["data"]
+    assert record["status"] == "reviewed"
+
+    update_resp = client.put(
+        f"/api/v1/records/{record['id']}",
+        json={
+            "status": "exported",
+            "review_comment": "非法跳过审批",
+            "reviewed_by": "carol",
+        },
+    )
+    assert update_resp.status_code == 400
+    assert update_resp.json()["error"]["code"] == "INVALID_RECORD_STATUS_TRANSITION"

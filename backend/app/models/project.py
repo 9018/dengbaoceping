@@ -19,3 +19,4 @@ class Project(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     extracted_fields = relationship("ExtractedField", back_populates="project", cascade="all, delete-orphan")
     templates = relationship("Template", back_populates="project", cascade="all, delete-orphan")
     evaluation_records = relationship("EvaluationRecord", back_populates="project", cascade="all, delete-orphan")
+    export_jobs = relationship("ExportJob", back_populates="project", cascade="all, delete-orphan")

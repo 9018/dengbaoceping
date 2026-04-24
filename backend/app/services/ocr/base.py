@@ -4,5 +4,5 @@ from typing import Protocol
 
 
 class OCRAdapter(Protocol):
-    def run(self, *, evidence_id: str, filename: str, sample_id: str | None = None) -> dict:
+    def run(self, *, evidence_id: str, filename: str, file_path: str, sample_id: str | None = None) -> dict:
         ...

@@ -14,6 +14,18 @@ def test_project_crud(client):
     assert create_body["success"] is True
     project_id = create_body["data"]["id"]
 
+    duplicate_resp = client.post(
+        "/api/v1/projects",
+        json={
+            "code": "PJT-001",
+            "name": "重复项目",
+            "project_type": "等级保护测评",
+            "status": "draft",
+        },
+    )
+    assert duplicate_resp.status_code == 400
+    assert duplicate_resp.json()["error"]["code"] == "PROJECT_CODE_EXISTS"
+
     list_resp = client.get("/api/v1/projects")
     assert list_resp.status_code == 200
     list_body = list_resp.json()

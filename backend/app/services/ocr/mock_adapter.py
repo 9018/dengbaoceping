@@ -69,7 +69,7 @@ MOCK_OCR_SAMPLES: dict[str, dict] = {
 
 
 class MockOCRAdapter:
-    def run(self, *, evidence_id: str, filename: str, sample_id: str | None = None) -> dict:
+    def run(self, *, evidence_id: str, filename: str, file_path: str, sample_id: str | None = None) -> dict:
         resolved_sample = sample_id or self._infer_sample_id(filename)
         payload = MOCK_OCR_SAMPLES.get(resolved_sample)
         if not payload:
@@ -78,6 +78,7 @@ class MockOCRAdapter:
             **payload,
             "evidence_id": evidence_id,
             "filename": filename,
+            "file_path": file_path,
             "processed_at": datetime.now(UTC).isoformat(),
         }
 

@@ -14,6 +14,14 @@ class ExtractedFieldRepository:
             .all()
         )
 
+    def list_audit_logs(self, db: Session, field_id: str) -> list[ReviewAuditLog]:
+        return (
+            db.query(ReviewAuditLog)
+            .filter(ReviewAuditLog.target_type == "field", ReviewAuditLog.target_id == field_id)
+            .order_by(ReviewAuditLog.created_at.desc())
+            .all()
+        )
+
     def get(self, db: Session, field_id: str) -> ExtractedField | None:
         return db.get(ExtractedField, field_id)
 

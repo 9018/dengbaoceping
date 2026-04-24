@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = str(BASE_DIR / "uploads")
     EXPORT_DIR: str = str(BASE_DIR / "exports")
     SNAPSHOT_DIR: str = str(BASE_DIR / "snapshots")
+    OCR_PROVIDER: str = "mock"
+    OCR_TIMEOUT_SECONDS: int = 30
 
     model_config = SettingsConfigDict(
         env_file=str(BASE_DIR / ".env"),

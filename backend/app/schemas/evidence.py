@@ -42,7 +42,7 @@ class EvidenceUploadData(BaseModel):
 
 
 class EvidenceOCRRequest(BaseModel):
-    sample_id: str | None = Field(default=None, description="mock OCR样例ID")
+    sample_id: str | None = Field(default=None, description="mock OCR样例ID；真实provider场景下可为空")
     force: bool = Field(default=False, description="是否强制重新执行")
 
 

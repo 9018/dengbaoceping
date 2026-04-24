@@ -77,6 +77,68 @@ def test_update_and_review_field(client):
     assert review_data["review_comment"] == "复核通过"
     assert review_data["reviewed_by"] == "bob"
 
+    logs_resp = client.get(f"/api/v1/fields/{device_name_field['id']}/audit-logs")
+    assert logs_resp.status_code == 200
+    logs_body = logs_resp.json()
+    assert logs_body["meta"]["total"] == 2
+    assert logs_body["data"][0]["action"] == "field_review"
+    assert logs_body["data"][0]["target_type"] == "field"
+    assert logs_body["data"][0]["target_id"] == device_name_field["id"]
+    assert logs_body["data"][0]["reviewed_by"] == "bob"
+    assert logs_body["data"][1]["action"] == "field_update"
+    assert logs_body["data"][1]["reviewed_by"] == "alice"
+
+
+def test_field_transition_rejects_return_to_extracted(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "firewall_basic.txt")
+    fields = run_extract_flow(client, evidence_id, "firewall_basic", "security_device_basic")
+    device_name_field = next(item for item in fields if item["field_name"] == "device_name")
+
+    corrected_resp = client.put(
+        f"/api/v1/fields/{device_name_field['id']}",
+        json={
+            "corrected_value": "FW-01-MANUAL",
+            "status": "corrected",
+            "review_comment": "人工修正设备名称",
+            "reviewed_by": "alice",
+        },
+    )
+    assert corrected_resp.status_code == 200
+
+    invalid_resp = client.put(
+        f"/api/v1/fields/{device_name_field['id']}",
+        json={
+            "status": "extracted",
+            "review_comment": "错误回退",
+            "reviewed_by": "alice",
+        },
+    )
+    assert invalid_resp.status_code == 400
+    assert invalid_resp.json()["error"]["code"] == "INVALID_FIELD_STATUS_TRANSITION"
+
+
+
+def test_field_transition_allows_missing_to_corrected(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "policy_missing_action.txt")
+    fields = run_extract_flow(client, evidence_id, "security_policy_missing_action", "security_policy_basic")
+    action_field = next(item for item in fields if item["field_name"] == "action")
+    assert action_field["status"] == "missing"
+
+    update_resp = client.put(
+        f"/api/v1/fields/{action_field['id']}",
+        json={
+            "corrected_value": "allow",
+            "status": "corrected",
+            "review_comment": "补录缺失动作",
+            "reviewed_by": "alice",
+        },
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["data"]["status"] == "corrected"
+    assert update_resp.json()["data"]["corrected_value"] == "allow"
+
 
 def test_generate_record_prefers_corrected_value_and_supports_record_review(client):
     project_id = create_project(client)
@@ -132,3 +194,35 @@ def test_generate_record_prefers_corrected_value_and_supports_record_review(clie
     assert review_data["review_comment"] == "审批通过"
     assert review_data["reviewed_by"] == "dave"
     assert review_data["reviewed_at"] is not None
+
+    logs_resp = client.get(f"/api/v1/records/{record['id']}/audit-logs")
+    assert logs_resp.status_code == 200
+    logs_body = logs_resp.json()
+    assert logs_body["meta"]["total"] == 2
+    assert logs_body["data"][0]["action"] == "record_review"
+    assert logs_body["data"][0]["target_type"] == "record"
+    assert logs_body["data"][0]["target_id"] == record["id"]
+    assert logs_body["data"][0]["reviewed_by"] == "dave"
+    assert logs_body["data"][1]["action"] == "record_update"
+    assert logs_body["data"][1]["reviewed_by"] == "carol"
+
+
+
+def test_record_transition_rejects_approve_from_generated(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "firewall_basic.txt")
+    run_extract_flow(client, evidence_id, "firewall_basic", "security_device_basic")
+    record = generate_record(client, project_id, evidence_id)
+    assert record["status"] == "generated"
+
+    invalid_resp = client.post(
+        f"/api/v1/records/{record['id']}/review",
+        json={
+            "status": "approved",
+            "final_content": "跳过 review",
+            "review_comment": "非法跳转",
+            "reviewed_by": "dave",
+        },
+    )
+    assert invalid_resp.status_code == 400
+    assert invalid_resp.json()["error"]["code"] == "INVALID_RECORD_STATUS_TRANSITION"
