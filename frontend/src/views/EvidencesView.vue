@@ -1,10 +1,15 @@
 <template>
-  <AppShell :project-id="projectId" title="证据管理" subtitle="上传证据、查看证据列表、触发 OCR 和字段抽取">
-    <el-space direction="vertical" fill size="16">
+  <AppShell :project-id="projectId" title="证据中心页" subtitle="围绕证据采集、OCR、字段抽取与进入复核构建专业工作流。">
+    <div class="page-stack">
+      <StatsCards :items="summaryCards" />
+
       <el-card>
         <template #header>
           <div class="toolbar">
-            <span>证据列表</span>
+            <div>
+              <div class="section-title">证据流水线</div>
+              <div class="section-subtitle">统一查看证据元信息、识别状态与抽取入口。</div>
+            </div>
             <el-space>
               <el-button @click="loadEvidences">刷新</el-button>
               <el-button type="primary" @click="dialogVisible = true">上传证据</el-button>
@@ -12,13 +17,29 @@
           </div>
         </template>
 
-        <el-table :data="evidences" border>
-          <el-table-column prop="title" label="证据标题" min-width="180" />
+        <el-form inline class="filter-bar">
+          <el-form-item label="OCR 样例">
+            <el-select v-model="selectedSampleId" style="width: 240px">
+              <el-option v-for="sample in ocrSampleOptions" :key="sample" :label="sample" :value="sample" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="抽取模板">
+            <el-select v-model="selectedTemplateCode" style="width: 240px">
+              <el-option v-for="code in templateCodeOptions" :key="code" :label="code" :value="code" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="关键词">
+            <el-input v-model="keyword" clearable placeholder="搜索证据标题、设备、摘要" style="width: 280px" />
+          </el-form-item>
+        </el-form>
+
+        <el-table :data="filteredEvidences" border>
+          <el-table-column prop="title" label="证据标题" min-width="200" />
           <el-table-column prop="device" label="关联设备" min-width="140" />
           <el-table-column prop="evidence_type" label="类型" width="120" />
-          <el-table-column label="OCR 状态" width="150">
+          <el-table-column label="OCR 状态" width="120">
             <template #default="scope">
-              <el-tag :type="getOcrStatusTagType(scope.row.ocr_status)" effect="light">{{ getOcrStatusLabel(scope.row.ocr_status) }}</el-tag>
+              <AppStatusTag kind="ocr" :status="scope.row.ocr_status" />
             </template>
           </el-table-column>
           <el-table-column label="OCR Provider" width="140">
@@ -26,8 +47,8 @@
               {{ scope.row.ocr_provider || '-' }}
             </template>
           </el-table-column>
-          <el-table-column prop="summary" label="摘要" min-width="220" show-overflow-tooltip />
-          <el-table-column label="操作" min-width="500" fixed="right">
+          <el-table-column prop="summary" label="摘要" min-width="240" show-overflow-tooltip />
+          <el-table-column label="操作" min-width="520" fixed="right">
             <template #default="scope">
               <el-space wrap>
                 <el-button size="small" @click="runOcrFor(scope.row.id)">执行 OCR</el-button>
@@ -50,35 +71,19 @@
         </el-table>
       </el-card>
 
-      <el-card>
-        <template #header>
-          <span>操作参数</span>
-        </template>
-        <el-form inline>
-          <el-form-item label="OCR 样例">
-            <el-select v-model="selectedSampleId" style="width: 240px">
-              <el-option v-for="sample in ocrSampleOptions" :key="sample" :label="sample" :value="sample" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="抽取模板">
-            <el-select v-model="selectedTemplateCode" style="width: 240px">
-              <el-option v-for="code in templateCodeOptions" :key="code" :label="code" :value="code" />
-            </el-select>
-          </el-form-item>
-        </el-form>
-      </el-card>
-    </el-space>
-
-    <EvidenceUploadDialog v-model="dialogVisible" @submit="submitUpload" />
+      <EvidenceUploadDialog v-model="dialogVisible" @submit="submitUpload" />
+    </div>
   </AppShell>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import AppShell from '@/components/AppShell.vue'
+import AppStatusTag from '@/components/AppStatusTag.vue'
 import EvidenceUploadDialog from '@/components/EvidenceUploadDialog.vue'
+import StatsCards, { type StatsCardItem } from '@/components/StatsCards.vue'
 import { deleteEvidence, extractFields, listEvidences, runOcr, uploadEvidence } from '@/api/evidences'
 import { ocrSampleOptions, templateCodeOptions } from '@/utils/constants'
 import type { Evidence } from '@/types/domain'
@@ -89,28 +94,28 @@ const evidences = ref<Evidence[]>([])
 const dialogVisible = ref(false)
 const selectedSampleId = ref('firewall_basic')
 const selectedTemplateCode = ref('security_device_basic')
+const keyword = ref('')
 
-const ocrStatusLabelMap: Record<string, string> = {
-  completed: '已完成',
-  pending: '处理中',
-  failed: '失败',
-}
+const summaryCards = computed<StatsCardItem[]>(() => [
+  { label: '证据总数', value: evidences.value.length, tip: '项目内全部证据', tone: 'primary' },
+  { label: '待 OCR', value: evidences.value.filter((item) => item.ocr_status !== 'completed').length, tip: '优先推进识别', tone: 'warning' },
+  { label: '已完成 OCR', value: evidences.value.filter((item) => item.ocr_status === 'completed').length, tip: '可进入抽取与复核', tone: 'success' },
+  { label: '待抽取', value: evidences.value.filter((item) => item.ocr_status === 'completed' && item.text_content).length, tip: '满足抽取前置条件', tone: 'default' },
+])
+
+const filteredEvidences = computed(() => {
+  const search = keyword.value.trim().toLowerCase()
+  return evidences.value.filter((item) => {
+    if (!search) return true
+    return [item.title, item.device, item.summary]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(search))
+  })
+})
 
 async function loadEvidences() {
   const { data } = await listEvidences(props.projectId)
   evidences.value = data
-}
-
-function getOcrStatusLabel(status: string | null) {
-  if (!status) return '未执行'
-  return ocrStatusLabelMap[status] || status
-}
-
-function getOcrStatusTagType(status: string | null) {
-  if (!status) return 'info'
-  if (status === 'completed') return 'success'
-  if (status === 'failed') return 'danger'
-  return 'warning'
 }
 
 function canExtractFields(evidence: Evidence) {
@@ -166,6 +171,11 @@ onMounted(loadEvidences)
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+}
+
+.filter-bar {
+  margin-bottom: 16px;
 }
 
 .action-wrapper {

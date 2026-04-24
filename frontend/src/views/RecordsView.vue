@@ -1,71 +1,58 @@
 <template>
-  <AppShell :project-id="projectId" title="记录中心" subtitle="查看 EvaluationRecord 列表、编辑 final_content、标记已复核、导出项目结果">
-    <el-space direction="vertical" fill size="16">
-      <el-card>
-        <template #header>
-          <div class="toolbar">
-            <span>记录操作</span>
-            <el-space>
-              <el-button @click="loadData">刷新</el-button>
-              <el-button type="primary" @click="generateDialogVisible = true">生成测评记录</el-button>
-              <el-tooltip :disabled="canCreateExport" :content="getExportDisabledReason()" placement="top">
-                <span class="action-wrapper">
-                  <el-button type="success" :disabled="!canCreateExport" @click="createExportJob">导出项目结果</el-button>
-                </span>
-              </el-tooltip>
-            </el-space>
-          </div>
-        </template>
-        <el-form inline>
-          <el-form-item label="选择证据">
-            <el-select v-model="generateEvidenceId" placeholder="请选择证据" style="width: 280px">
-              <el-option v-for="item in evidences" :key="item.id" :label="`${item.title} (${item.device || '未绑定设备'})`" :value="item.id" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="设备类型覆盖">
-            <el-input v-model="deviceTypeOverride" placeholder="可留空" style="width: 180px" />
-          </el-form-item>
-        </el-form>
-      </el-card>
+  <AppShell :project-id="projectId" title="测评记录页" subtitle="按设备和状态聚焦记录复核，编辑 final_content 并推进审批闭环。">
+    <div class="page-stack">
+      <StatsCards :items="summaryCards" />
 
       <el-card>
         <template #header>
           <div class="toolbar">
-            <span>记录列表</span>
-            <span class="table-summary">共 {{ filteredRecords.length }} / {{ records.length }} 条</span>
+            <div>
+              <div class="section-title">记录生成与筛选</div>
+              <div class="section-subtitle">以项目范围为基础，叠加设备与状态筛选，聚焦 final_content 修订。</div>
+            </div>
+            <el-space>
+              <el-button @click="loadData">刷新</el-button>
+              <el-button type="primary" @click="generateDialogVisible = true">生成测评记录</el-button>
+              <el-button type="success" @click="go(`/projects/${projectId}/exports`)">进入导出中心</el-button>
+            </el-space>
           </div>
         </template>
-        <el-form inline class="filter-form">
+
+        <el-form inline class="filter-bar">
+          <el-form-item label="设备筛选">
+            <el-select v-model="deviceFilter" clearable placeholder="全部设备" style="width: 220px">
+              <el-option v-for="device in deviceOptions" :key="device" :label="device" :value="device" />
+            </el-select>
+          </el-form-item>
           <el-form-item label="状态筛选">
             <el-select v-model="statusFilter" clearable placeholder="全部状态" style="width: 180px">
-              <el-option v-for="item in recordStatusOptions" :key="item" :label="getRecordStatusLabel(item)" :value="item" />
+              <el-option v-for="status in recordStatusOptions" :key="status" :label="getStatusLabel('record', status)" :value="status" />
             </el-select>
           </el-form-item>
           <el-form-item label="关键词">
             <el-input v-model="keywordFilter" clearable placeholder="搜索标题/模板/测评项" style="width: 260px" />
           </el-form-item>
-          <el-form-item>
-            <el-button @click="resetFilters">重置筛选</el-button>
-          </el-form-item>
         </el-form>
+
         <el-table :data="filteredRecords" border>
           <el-table-column prop="title" label="记录标题" min-width="200" />
+          <el-table-column prop="device_name" label="设备" min-width="160" />
           <el-table-column label="状态" width="120">
             <template #default="scope">
-              <el-tag :type="getRecordStatusTagType(scope.row.status)" effect="light">{{ getRecordStatusLabel(scope.row.status) }}</el-tag>
+              <AppStatusTag kind="record" :status="scope.row.status" />
             </template>
           </el-table-column>
           <el-table-column prop="match_score" label="匹配得分" width="120" />
-          <el-table-column prop="template_code" label="模板编码" width="160" />
-          <el-table-column prop="item_code" label="测评项编码" width="160" />
-          <el-table-column prop="final_content" label="最终正文" min-width="260" show-overflow-tooltip />
-          <el-table-column label="操作" min-width="460" fixed="right">
+          <el-table-column prop="template_code" label="模板编码" width="170" />
+          <el-table-column prop="item_code" label="测评项编码" width="170" />
+          <el-table-column prop="final_content" label="最终正文" min-width="280" show-overflow-tooltip />
+          <el-table-column label="操作" min-width="420" fixed="right">
             <template #default="scope">
               <el-space wrap>
                 <el-button size="small" @click="openEditor(scope.row)">编辑</el-button>
                 <el-tooltip :disabled="canMarkReviewed(scope.row.status)" :content="getMarkReviewedDisabledReason(scope.row.status)" placement="top">
                   <span class="action-wrapper">
-                    <el-button size="small" type="primary" :disabled="!canMarkReviewed(scope.row.status)" @click="quickReview(scope.row.id, 'reviewed')">标记已复核</el-button>
+                    <el-button size="small" type="primary" :disabled="!canMarkReviewed(scope.row.status)" @click="quickReview(scope.row.id, 'reviewed')">标记复核</el-button>
                   </span>
                 </el-tooltip>
                 <el-tooltip :disabled="canApprove(scope.row.status)" :content="getApproveDisabledReason(scope.row.status)" placement="top">
@@ -80,76 +67,67 @@
         </el-table>
       </el-card>
 
-      <el-card v-if="exportJobs.length">
-        <template #header>
-          <span>导出任务</span>
-        </template>
-        <el-table :data="exportJobs" border>
-          <el-table-column prop="file_name" label="文件名" min-width="240" />
-          <el-table-column label="状态" width="120">
-            <template #default="scope">
-              <el-tag :type="getExportStatusTagType(scope.row.status)" effect="light">{{ getExportStatusLabel(scope.row.status) }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="record_count" label="记录数" width="120" />
-          <el-table-column prop="file_size" label="文件大小" width="120" />
-          <el-table-column label="下载" width="120">
-            <template #default="scope">
-              <el-link :href="getExportDownloadUrl(scope.row.id)" target="_blank" type="primary">下载</el-link>
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-card>
-
       <el-card v-if="auditLogs.length">
         <template #header>
-          <span>记录审计日志</span>
+          <div>
+            <div class="section-title">记录审计日志</div>
+            <div class="section-subtitle">查看当前记录的复核轨迹。</div>
+          </div>
         </template>
         <el-timeline>
           <el-timeline-item v-for="log in auditLogs" :key="log.id" :timestamp="log.created_at">
             <div>{{ log.action }} / {{ log.reviewed_by || '未填写复核人' }}</div>
-            <div class="timeline-comment">{{ log.review_comment || '无复核意见' }}</div>
+            <div class="muted-text">{{ log.review_comment || '无复核意见' }}</div>
           </el-timeline-item>
         </el-timeline>
       </el-card>
-    </el-space>
 
-    <RecordEditDrawer v-model="drawerVisible" :record="editingRecord" @save="saveRecord" />
+      <RecordEditDrawer v-model="drawerVisible" :record="editingRecord" @save="saveRecord" />
 
-    <el-dialog v-model="generateDialogVisible" title="生成测评记录" width="520px">
-      <el-form label-width="110px">
-        <el-form-item label="证据">
-          <el-select v-model="generateEvidenceId" placeholder="请选择证据" class="w-full">
-            <el-option v-for="item in evidences" :key="item.id" :label="item.title" :value="item.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="设备类型覆盖">
-          <el-input v-model="deviceTypeOverride" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="generateDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="generateNewRecord">生成</el-button>
-      </template>
-    </el-dialog>
+      <el-dialog v-model="generateDialogVisible" title="生成测评记录" width="520px">
+        <el-form label-width="110px">
+          <el-form-item label="证据">
+            <el-select v-model="generateEvidenceId" placeholder="请选择证据" class="w-full">
+              <el-option v-for="item in evidences" :key="item.id" :label="item.title" :value="item.id" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="设备类型覆盖">
+            <el-input v-model="deviceTypeOverride" />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="generateDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="generateNewRecord">生成</el-button>
+        </template>
+      </el-dialog>
+    </div>
   </AppShell>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import AppShell from '@/components/AppShell.vue'
+import AppStatusTag from '@/components/AppStatusTag.vue'
 import RecordEditDrawer from '@/components/RecordEditDrawer.vue'
+import StatsCards, { type StatsCardItem } from '@/components/StatsCards.vue'
+import { listAssets } from '@/api/assets'
 import { listEvidences } from '@/api/evidences'
-import { createProjectExport, getExportDownloadUrl, listProjectExports } from '@/api/exports'
 import { generateRecord, listRecordAuditLogs, listRecords, reviewRecord, updateRecord } from '@/api/records'
 import { recordStatusOptions } from '@/utils/constants'
-import type { AuditLog, EvaluationRecord, Evidence, ExportJob } from '@/types/domain'
+import { getStatusLabel } from '@/utils/status'
+import type { Asset, AuditLog, EvaluationRecord, Evidence } from '@/types/domain'
+
+interface RecordViewItem extends EvaluationRecord {
+  device_name: string
+}
 
 const props = defineProps<{ projectId: string }>()
+const router = useRouter()
 const records = ref<EvaluationRecord[]>([])
 const evidences = ref<Evidence[]>([])
-const exportJobs = ref<ExportJob[]>([])
+const assets = ref<Asset[]>([])
 const auditLogs = ref<AuditLog[]>([])
 const drawerVisible = ref(false)
 const editingRecord = ref<EvaluationRecord | null>(null)
@@ -157,45 +135,54 @@ const generateDialogVisible = ref(false)
 const generateEvidenceId = ref('')
 const deviceTypeOverride = ref('')
 const statusFilter = ref('')
+const deviceFilter = ref('')
 const keywordFilter = ref('')
 
-const recordStatusLabelMap: Record<string, string> = {
-  generated: '待复核',
-  reviewed: '已复核',
-  approved: '已审批',
-  exported: '已导出',
-}
+const recordRows = computed<RecordViewItem[]>(() => {
+  const evidenceMap = new Map(evidences.value.map((item) => [item.id, item]))
+  const assetMap = new Map(assets.value.map((item) => [item.id, item]))
+  return records.value.map((record) => {
+    const firstEvidence = record.evidence_ids.map((id) => evidenceMap.get(id)).find(Boolean)
+    const asset = record.asset_id ? assetMap.get(record.asset_id) : undefined
+    return {
+      ...record,
+      device_name: firstEvidence?.device || asset?.filename || '未绑定设备',
+    }
+  })
+})
 
-const exportStatusLabelMap: Record<string, string> = {
-  completed: '已完成',
-  pending: '处理中',
-  failed: '失败',
-}
+const deviceOptions = computed(() => Array.from(new Set(recordRows.value.map((item) => item.device_name).filter(Boolean))))
+
+const summaryCards = computed<StatsCardItem[]>(() => [
+  { label: '记录总数', value: records.value.length, tip: '当前项目全部测评记录', tone: 'primary' },
+  { label: '待复核', value: records.value.filter((item) => item.status === 'generated').length, tip: '需要先标记复核', tone: 'warning' },
+  { label: '已复核', value: records.value.filter((item) => item.status === 'reviewed').length, tip: '可继续审批', tone: 'success' },
+  { label: '已审批/导出', value: records.value.filter((item) => ['approved', 'exported'].includes(item.status)).length, tip: '进入导出闭环', tone: 'default' },
+])
 
 const filteredRecords = computed(() => {
   const keyword = keywordFilter.value.trim().toLowerCase()
-  return records.value.filter((item) => {
+  return recordRows.value.filter((item) => {
     const matchStatus = !statusFilter.value || item.status === statusFilter.value
+    const matchDevice = !deviceFilter.value || item.device_name === deviceFilter.value
     const matchKeyword =
       !keyword ||
       [item.title, item.template_code, item.item_code]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword))
-    return matchStatus && matchKeyword
+    return matchStatus && matchDevice && matchKeyword
   })
 })
 
-const canCreateExport = computed(() => records.value.length > 0 && records.value.every((item) => ['approved', 'exported'].includes(item.status)))
-
 async function loadData() {
-  const [recordsResult, evidencesResult, exportsResult] = await Promise.all([
+  const [recordsResult, evidencesResult, assetsResult] = await Promise.all([
     listRecords(props.projectId),
     listEvidences(props.projectId),
-    listProjectExports(props.projectId).catch(() => ({ data: [] })),
+    listAssets(props.projectId),
   ])
   records.value = recordsResult.data
   evidences.value = evidencesResult.data
-  exportJobs.value = exportsResult.data
+  assets.value = assetsResult.data
   if (!generateEvidenceId.value) {
     generateEvidenceId.value = evidences.value[0]?.id || ''
   }
@@ -206,28 +193,12 @@ function openEditor(record: EvaluationRecord) {
   drawerVisible.value = true
 }
 
-function resetFilters() {
-  statusFilter.value = ''
-  keywordFilter.value = ''
-}
-
-function getRecordStatusLabel(status: string) {
-  return recordStatusLabelMap[status] || status
-}
-
-function getRecordStatusTagType(status: string) {
-  if (status === 'generated') return 'warning'
-  if (status === 'reviewed') return 'primary'
-  if (status === 'approved') return 'success'
-  return 'info'
-}
-
 function canMarkReviewed(status: string) {
   return status === 'generated'
 }
 
 function getMarkReviewedDisabledReason(status: string) {
-  return canMarkReviewed(status) ? '' : '仅待复核记录可标记已复核'
+  return canMarkReviewed(status) ? '' : '仅待复核记录可标记复核'
 }
 
 function canApprove(status: string) {
@@ -236,21 +207,6 @@ function canApprove(status: string) {
 
 function getApproveDisabledReason(status: string) {
   return canApprove(status) ? '' : '仅已复核记录可审批通过'
-}
-
-function getExportDisabledReason() {
-  if (!records.value.length) return '暂无记录可导出'
-  return '仅全部记录已审批后才可导出'
-}
-
-function getExportStatusLabel(status: string) {
-  return exportStatusLabelMap[status] || status
-}
-
-function getExportStatusTagType(status: string) {
-  if (status === 'completed') return 'success'
-  if (status === 'failed') return 'danger'
-  return 'warning'
 }
 
 async function saveRecord(payload: Record<string, unknown>) {
@@ -286,15 +242,13 @@ async function generateNewRecord() {
   await loadData()
 }
 
-async function createExportJob() {
-  await createProjectExport(props.projectId, { format: 'txt' })
-  ElMessage.success('项目导出成功')
-  await loadData()
-}
-
 async function loadRecordAudit(recordId: string) {
   const { data } = await listRecordAuditLogs(recordId)
   auditLogs.value = data
+}
+
+function go(path: string) {
+  router.push(path)
 }
 
 onMounted(loadData)
@@ -308,25 +262,15 @@ onMounted(loadData)
   gap: 12px;
 }
 
-.filter-form {
+.filter-bar {
   margin-bottom: 16px;
-}
-
-.table-summary {
-  color: #909399;
-  font-size: 13px;
-}
-
-.timeline-comment {
-  color: #909399;
-  margin-top: 4px;
-}
-
-.w-full {
-  width: 100%;
 }
 
 .action-wrapper {
   display: inline-flex;
+}
+
+.w-full {
+  width: 100%;
 }
 </style>

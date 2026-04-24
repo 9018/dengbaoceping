@@ -227,3 +227,43 @@ export interface ProjectSummary {
   recordCount: number
   pendingReviewCount: number
 }
+
+export interface TemplateGenerationDefinition {
+  title_template: string
+  record_template: string
+  fallbacks: Record<string, string>
+  default_review_comment: string
+}
+
+export interface TemplateDefinition {
+  template_code: string
+  name: string
+  template_type: string
+  extension_type: string
+  domain: string
+  description: string
+  field_codes: string[]
+  generation: TemplateGenerationDefinition
+}
+
+export interface FieldRuleDefinition {
+  field_code: string
+  field_group: string
+  field_name: string
+  value_type: string
+  aliases: string[]
+  regex: string[]
+  required: boolean
+  status_when_missing: string
+}
+
+export interface EvaluationItemDefinition {
+  item_code: string
+  template_code: string
+  domain: string
+  level2: string
+  level3: string
+  required_fields: string[]
+  device_types: string[]
+  pass_score: number
+}
