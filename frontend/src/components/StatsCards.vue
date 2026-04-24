@@ -1,6 +1,6 @@
 <template>
-  <el-row :gutter="16">
-    <el-col v-for="item in items" :key="item.label" :xs="24" :sm="12" :md="12" :lg="6">
+  <div class="stats-cards">
+    <div v-for="item in items" :key="item.label" class="stats-cards__item">
       <StatCard
         :label="item.label"
         :value="item.value"
@@ -9,8 +9,8 @@
         :tone="item.tone || 'default'"
         @select="emitSelect(item)"
       />
-    </el-col>
-  </el-row>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -37,3 +37,15 @@ function emitSelect(item: StatsCardItem) {
   emit('select', item)
 }
 </script>
+
+<style scoped>
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.stats-cards__item {
+  min-width: 0;
+}
+</style>

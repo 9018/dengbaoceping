@@ -3,12 +3,12 @@
     <div class="page-stack">
       <el-card>
         <template #header>
-          <div class="toolbar">
-            <div>
+          <div class="card-toolbar">
+            <div class="section-header">
               <div class="section-title">证据选择</div>
-              <div class="section-subtitle">切换证据后，三栏内容会同步刷新。</div>
+              <div class="section-subtitle">切换证据后，左侧上下文、中间 OCR 文本和右侧字段修正表单会同步刷新。</div>
             </div>
-            <el-space>
+            <el-space wrap>
               <el-select v-model="selectedEvidenceId" placeholder="请选择证据" style="width: 360px" @change="loadReviewData">
                 <el-option v-for="item in evidences" :key="item.id" :label="`${item.title} (${item.device || '未绑定设备'})`" :value="item.id" />
               </el-select>
@@ -21,43 +21,51 @@
       <div class="review-grid">
         <el-card class="review-column">
           <template #header>
-            <div>
+            <div class="section-header">
               <div class="section-title">证据文件预览</div>
-              <div class="section-subtitle">当前后端未提供可直接嵌入浏览器的文件地址，先展示元信息和预览占位。</div>
+              <div class="section-subtitle">当前后端未提供可直接嵌入浏览器的文件地址，因此左栏以元信息和流程状态为主。</div>
             </div>
           </template>
           <div class="preview-placeholder">
             <div class="preview-placeholder__icon">PREVIEW</div>
-            <div class="preview-placeholder__text">暂无可用文件预览 URL</div>
+            <div class="preview-placeholder__title">暂无可用文件预览 URL</div>
+            <div class="preview-placeholder__text">当前阶段先围绕证据上下文、OCR 文本与字段修正建立复核闭环。</div>
+          </div>
+          <div class="info-panel review-meta-panel">
+            <div class="panel-label">证据上下文</div>
+            <div class="meta-list">
+              <span>证据标题：{{ currentEvidence?.title || '-' }}</span>
+              <span>关联设备：{{ currentEvidence?.device || '未绑定设备' }}</span>
+              <span>证据类型：{{ currentEvidence?.evidence_type || '-' }}</span>
+              <span>来源标识：{{ currentEvidence?.source_ref || '未填写' }}</span>
+            </div>
           </div>
           <el-descriptions :column="1" border class="meta-descriptions">
-            <el-descriptions-item label="证据标题">{{ currentEvidence?.title || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="关联设备">{{ currentEvidence?.device || '未绑定设备' }}</el-descriptions-item>
-            <el-descriptions-item label="证据类型">{{ currentEvidence?.evidence_type || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="来源标识">{{ currentEvidence?.source_ref || '未填写' }}</el-descriptions-item>
             <el-descriptions-item label="OCR 状态">
               <AppStatusTag kind="ocr" :status="currentEvidence?.ocr_status" />
             </el-descriptions-item>
+            <el-descriptions-item label="OCR Provider">{{ currentEvidence?.ocr_provider || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="更新时间">{{ currentEvidence?.updated_at || '-' }}</el-descriptions-item>
           </el-descriptions>
         </el-card>
 
         <el-card class="review-column">
           <template #header>
-            <div>
+            <div class="section-header">
               <div class="section-title">OCR 文本</div>
-              <div class="section-subtitle">中栏保留原始 OCR 文本，便于与右栏字段修正对照。</div>
+              <div class="section-subtitle">中栏保留原始 OCR 文本，用于和右侧字段修正结果逐项对照。</div>
             </div>
           </template>
-          <el-scrollbar height="720px">
+          <el-scrollbar height="760px">
             <pre class="code-block">{{ ocrText }}</pre>
           </el-scrollbar>
         </el-card>
 
         <el-card class="review-column review-column--wide">
           <template #header>
-            <div>
+            <div class="section-header">
               <div class="section-title">抽取字段与修正表单</div>
-              <div class="section-subtitle">右栏聚焦 corrected_value、复核状态、复核意见与审计查看。</div>
+              <div class="section-subtitle">右栏聚焦 corrected_value、复核状态、复核意见和审计轨迹，是当前复核主战场。</div>
             </div>
           </template>
           <FieldReviewTable :fields="fields" @update="saveField" @review="markFieldReview" @audit="loadFieldAuditLogs" />
@@ -66,9 +74,9 @@
 
       <el-card v-if="auditLogs.length">
         <template #header>
-          <div>
+          <div class="section-header">
             <div class="section-title">字段审计日志</div>
-            <div class="section-subtitle">查看当前选中字段的复核轨迹。</div>
+            <div class="section-subtitle">查看当前字段从保存到复核的轨迹，确保过程可回溯。</div>
           </div>
         </template>
         <el-timeline>
@@ -158,16 +166,9 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
 .review-grid {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) minmax(320px, 1.15fr) minmax(420px, 1.4fr);
+  grid-template-columns: minmax(260px, 0.9fr) minmax(340px, 1.05fr) minmax(430px, 1.45fr);
   gap: 16px;
 }
 
@@ -182,11 +183,13 @@ onMounted(async () => {
 .preview-placeholder {
   display: grid;
   place-items: center;
-  min-height: 220px;
+  min-height: 240px;
   margin-bottom: 16px;
-  border-radius: 16px;
-  border: 1px dashed #cbd5e1;
-  background: linear-gradient(180deg, #f8fafc, #eef4fb);
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px dashed var(--workspace-border-strong);
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(237, 244, 252, 0.98));
+  text-align: center;
 }
 
 .preview-placeholder__icon {
@@ -196,11 +199,24 @@ onMounted(async () => {
   color: #f8fafc;
   font-size: 12px;
   letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.preview-placeholder__title {
+  margin-top: 14px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--workspace-text);
 }
 
 .preview-placeholder__text {
-  margin-top: 12px;
-  color: #64748b;
+  margin-top: 10px;
+  color: var(--workspace-text-muted);
+  line-height: 1.7;
+}
+
+.review-meta-panel {
+  margin-bottom: 16px;
 }
 
 .meta-descriptions {

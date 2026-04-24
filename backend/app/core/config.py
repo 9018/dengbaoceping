@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 from typing import List
 
@@ -23,6 +25,9 @@ class Settings(BaseSettings):
     SNAPSHOT_DIR: str = str(BASE_DIR / "snapshots")
     OCR_PROVIDER: str = "mock"
     OCR_TIMEOUT_SECONDS: int = 30
+    PADDLE_OCR_LANG: str = "ch"
+    PADDLE_OCR_USE_ANGLE_CLS: bool = True
+    PADDLE_OCR_USE_GPU: bool = False
 
     model_config = SettingsConfigDict(
         env_file=str(BASE_DIR / ".env"),

@@ -1,26 +1,37 @@
 <template>
-  <el-drawer v-model="visible" title="编辑测评记录" size="56%">
+  <el-drawer v-model="visible" title="编辑测评记录" size="58%" class="record-edit-drawer">
+    <div class="drawer-summary">
+      <div class="summary-item">
+        <div class="summary-item__label">当前状态</div>
+        <div class="summary-item__value">{{ getStatusLabel('record', form.status) }}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-item__label">编辑重点</div>
+        <div class="summary-item__value">final_content</div>
+      </div>
+    </div>
+
     <div class="drawer-layout">
       <el-card shadow="never">
         <template #header>
           <div>
             <div class="section-title">正文基线</div>
-            <div class="section-subtitle">保留系统生成内容作为对照。</div>
+            <div class="section-subtitle">保留系统生成内容作为对照，避免复核过程丢失原始上下文。</div>
           </div>
         </template>
-        <el-input v-model="form.record_content" type="textarea" :rows="10" />
+        <el-input v-model="form.record_content" type="textarea" :rows="14" />
       </el-card>
 
       <el-card shadow="never">
         <template #header>
           <div>
             <div class="section-title">最终交付内容</div>
-            <div class="section-subtitle">优先编辑 final_content，直接服务复核与导出。</div>
+            <div class="section-subtitle">优先编辑 final_content，并同步维护状态、复核意见和复核人。</div>
           </div>
         </template>
         <el-form label-width="96px">
           <el-form-item label="最终正文">
-            <el-input v-model="form.final_content" type="textarea" :rows="12" />
+            <el-input v-model="form.final_content" type="textarea" :rows="14" />
           </el-form-item>
           <el-form-item label="状态">
             <el-select v-model="form.status" class="w-full">
@@ -89,6 +100,17 @@ watch(
 </script>
 
 <style scoped>
+.record-edit-drawer :deep(.el-drawer__body) {
+  padding-top: 10px;
+}
+
+.drawer-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
 .drawer-layout {
   display: grid;
   grid-template-columns: 1fr 1.2fr;
@@ -106,6 +128,7 @@ watch(
 }
 
 @media (max-width: 1280px) {
+  .drawer-summary,
   .drawer-layout {
     grid-template-columns: 1fr;
   }

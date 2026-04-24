@@ -10,6 +10,10 @@ class OCRAdapterFactory:
     def create(self):
         if settings.OCR_PROVIDER == "mock":
             return MockOCRAdapter()
+        if settings.OCR_PROVIDER == "paddle":
+            from app.services.ocr.paddle_adapter import PaddleOCRAdapter
+
+            return PaddleOCRAdapter()
         if settings.OCR_PROVIDER == "real":
             return RealOCRAdapter()
         raise BadRequestException("OCR_PROVIDER_NOT_SUPPORTED", "未支持的OCR provider配置", settings.OCR_PROVIDER)

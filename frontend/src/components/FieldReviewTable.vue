@@ -25,7 +25,7 @@
 
           <div class="field-card__section">
             <div class="field-card__label">修正值</div>
-            <el-input v-model="editable[field.id].corrected_value" type="textarea" :rows="2" />
+            <el-input v-model="editable[field.id].corrected_value" type="textarea" :rows="3" />
           </div>
 
           <div class="field-card__section field-card__section--inline">
@@ -112,28 +112,33 @@ watch(
   gap: 12px;
 }
 
+.field-group__header {
+  padding: 2px 2px 0;
+}
+
 .field-group__title {
   font-size: 16px;
-  font-weight: 700;
-  color: #111827;
+  font-weight: 800;
+  color: var(--workspace-text);
   text-transform: capitalize;
 }
 
 .field-group__subtitle {
   margin-top: 4px;
-  color: #64748b;
+  color: var(--workspace-text-muted);
   font-size: 13px;
 }
 
 .field-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 14px;
 }
 
 .field-card {
-  border-radius: 16px;
-  border: 1px solid #e5eaf3;
+  border-radius: 18px;
+  border: 1px solid var(--workspace-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 248, 252, 0.98));
 }
 
 .field-card__top {
@@ -145,14 +150,14 @@ watch(
 
 .field-card__name {
   font-size: 15px;
-  font-weight: 700;
-  color: #0f172a;
+  font-weight: 800;
+  color: var(--workspace-text);
 }
 
 .field-card__meta {
   margin-top: 4px;
   font-size: 12px;
-  color: #8a94a6;
+  color: var(--workspace-text-muted);
 }
 
 .field-card__section {
@@ -168,19 +173,20 @@ watch(
 .field-card__label {
   margin-bottom: 8px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--workspace-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
+  font-weight: 700;
 }
 
 .field-card__raw {
-  min-height: 44px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: #f8fafc;
-  border: 1px solid #e5eaf3;
-  line-height: 1.6;
-  color: #1f2937;
+  min-height: 54px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(248, 251, 255, 0.95);
+  border: 1px solid var(--workspace-border);
+  line-height: 1.7;
+  color: var(--workspace-text);
 }
 
 .field-card__select {
@@ -191,6 +197,12 @@ watch(
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 18px;
+}
+
+@media (max-width: 960px) {
+  .field-card__section--inline {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

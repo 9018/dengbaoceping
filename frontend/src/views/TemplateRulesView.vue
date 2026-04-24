@@ -1,13 +1,22 @@
 <template>
   <AppShell title="模板规则页" subtitle="只读展示字段规则、测评项与模板内容，帮助前端与业务语义对齐。">
     <div class="page-stack">
-      <StatsCards :items="summaryCards" />
+      <section class="page-section">
+        <div class="page-header">
+          <div class="page-header__content">
+            <div class="section-kicker">Knowledge Base</div>
+            <div class="section-title">模板与规则知识中心</div>
+            <div class="section-subtitle">当前页面只读展示前端内置的模板、字段规则和测评项定义，用来帮助识别、生成与复核语义对齐。</div>
+          </div>
+        </div>
+        <StatsCards :items="summaryCards" />
+      </section>
 
       <el-row :gutter="16">
         <el-col :xs="24" :xl="8">
           <el-card>
             <template #header>
-              <div>
+              <div class="section-header">
                 <div class="section-title">模板目录</div>
                 <div class="section-subtitle">展示 templates 数量和模板描述。</div>
               </div>
@@ -17,6 +26,7 @@
                 v-for="template in templateDefinitions"
                 :key="template.template_code"
                 class="list-card"
+                :class="{ 'list-card--active': selectedTemplateCode === template.template_code }"
                 type="button"
                 @click="selectedTemplateCode = template.template_code"
               >
@@ -30,7 +40,7 @@
         <el-col :xs="24" :xl="16">
           <el-card v-if="selectedTemplate">
             <template #header>
-              <div>
+              <div class="section-header">
                 <div class="section-title">模板详情</div>
                 <div class="section-subtitle">展示 template 内容、字段集合和默认评语。</div>
               </div>
@@ -45,7 +55,7 @@
               <el-descriptions-item label="字段列表" :span="2">{{ selectedTemplate.field_codes.join('、') }}</el-descriptions-item>
             </el-descriptions>
 
-            <div class="template-blocks">
+            <div class="template-blocks template-blocks--detail">
               <div>
                 <div class="template-blocks__label">Title Template</div>
                 <pre class="code-block">{{ selectedTemplate.generation.title_template }}</pre>
@@ -69,9 +79,9 @@
 
       <el-card>
         <template #header>
-          <div>
+          <div class="section-header">
             <div class="section-title">字段规则</div>
-            <div class="section-subtitle">展示 aliases、regex、required_fields 相关抓手。</div>
+            <div class="section-subtitle">展示 aliases、regex 与缺失状态，帮助复核人员理解抽取底层逻辑。</div>
           </div>
         </template>
         <el-table :data="fieldRules" border>
@@ -98,7 +108,7 @@
 
       <el-card>
         <template #header>
-          <div>
+          <div class="section-header">
             <div class="section-title">测评项定义</div>
             <div class="section-subtitle">展示 evaluation_items 数量与 required_fields、设备类型映射。</div>
           </div>
@@ -148,51 +158,22 @@ const summaryCards = computed<StatsCardItem[]>(() => [
   gap: 12px;
 }
 
-.list-card {
-  padding: 16px;
-  border-radius: 16px;
-  border: 1px solid #dbe5f1;
-  background: #f8fbff;
-  text-align: left;
-  cursor: pointer;
-}
-
-.list-card__title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.list-card__meta {
-  margin-top: 6px;
-  color: #64748b;
-  font-size: 13px;
-}
-
-.template-blocks {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-top: 16px;
+.template-blocks--detail {
+  margin-top: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .template-blocks__label {
   margin-bottom: 8px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--workspace-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-}
-
-.table-code {
-  margin: 0;
-  white-space: pre-wrap;
-  font-size: 12px;
-  line-height: 1.6;
+  font-weight: 700;
 }
 
 @media (max-width: 1280px) {
-  .template-blocks {
+  .template-blocks--detail {
     grid-template-columns: 1fr;
   }
 }

@@ -1,31 +1,36 @@
 <template>
   <AppShell :project-id="projectId" title="导出中心页" subtitle="聚焦导出门槛、导出任务历史和交付文件下载，形成最终交付闭环。">
     <div class="page-stack">
-      <StatsCards :items="summaryCards" />
+      <section class="page-section">
+        <div class="page-header">
+          <div class="page-header__content">
+            <div class="section-kicker">Delivery Hub</div>
+            <div class="section-title">交付出包控制台</div>
+            <div class="section-subtitle">把导出门槛、阻塞项和导出历史收敛到同一页面，确保出包动作具备可审计性。</div>
+          </div>
+          <el-space wrap>
+            <el-button @click="loadData">刷新</el-button>
+            <el-tooltip :disabled="canCreateExport" :content="getExportDisabledReason()" placement="top">
+              <span class="action-wrapper">
+                <el-button type="success" :disabled="!canCreateExport" @click="createExportJob">导出项目结果</el-button>
+              </span>
+            </el-tooltip>
+          </el-space>
+        </div>
+        <StatsCards :items="summaryCards" />
+      </section>
 
       <el-card>
         <template #header>
-          <div class="toolbar">
-            <div>
-              <div class="section-title">导出准备度</div>
-              <div class="section-subtitle">只有全部记录已审批或已导出时，才能创建导出任务。</div>
-            </div>
-            <el-space>
-              <el-button @click="loadData">刷新</el-button>
-              <el-tooltip :disabled="canCreateExport" :content="getExportDisabledReason()" placement="top">
-                <span class="action-wrapper">
-                  <el-button type="success" :disabled="!canCreateExport" @click="createExportJob">导出项目结果</el-button>
-                </span>
-              </el-tooltip>
-            </el-space>
+          <div class="section-header">
+            <div class="section-title">导出准备度</div>
+            <div class="section-subtitle">只有全部记录已审批或已导出时，才能创建导出任务。</div>
           </div>
         </template>
 
         <div class="readiness-panel">
-          <div class="readiness-panel__summary">
-            <div class="readiness-panel__label">当前导出状态</div>
-            <div class="readiness-panel__value">{{ canCreateExport ? '满足导出条件' : '仍有记录待处理' }}</div>
-          </div>
+          <div class="readiness-panel__label">当前导出状态</div>
+          <div class="readiness-panel__value">{{ canCreateExport ? '满足导出条件' : '仍有记录待处理' }}</div>
           <div class="readiness-panel__meta">
             <span>记录总数：{{ records.length }}</span>
             <span>已审批/导出：{{ readyRecordsCount }}</span>
@@ -41,8 +46,13 @@
             </template>
           </el-table-column>
           <el-table-column prop="updated_at" label="更新时间" min-width="180" />
-          <el-table-column label="操作" width="160">
+          <el-table-column label="阻塞说明" min-width="180">
             <template #default="scope">
+              {{ getBlockedHint(scope.row.status) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="160">
+            <template #default>
               <el-button size="small" type="primary" @click="go(`/projects/${projectId}/records`)">去处理</el-button>
             </template>
           </el-table-column>
@@ -51,7 +61,7 @@
 
       <el-card>
         <template #header>
-          <div>
+          <div class="section-header">
             <div class="section-title">导出任务历史</div>
             <div class="section-subtitle">查看导出状态、文件信息和下载入口。</div>
           </div>
@@ -118,6 +128,12 @@ function getExportDisabledReason() {
   return '仍有记录未完成审批，无法导出'
 }
 
+function getBlockedHint(status: string) {
+  if (status === 'generated') return '先进入记录页完成复核。'
+  if (status === 'reviewed') return '还差审批通过，暂时不能导出。'
+  return '当前记录状态尚未满足导出要求。'
+}
+
 async function createExportJob() {
   await createProjectExport(props.projectId, { format: 'txt' })
   ElMessage.success('项目导出成功')
@@ -130,47 +146,3 @@ function go(path: string) {
 
 onMounted(loadData)
 </script>
-
-<style scoped>
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.action-wrapper {
-  display: inline-flex;
-}
-
-.readiness-panel {
-  margin-bottom: 16px;
-  padding: 18px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, #f8fbff, #eef6ff);
-  border: 1px solid #dbe8f7;
-}
-
-.readiness-panel__label {
-  font-size: 12px;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.readiness-panel__value {
-  margin-top: 8px;
-  font-size: 22px;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.readiness-panel__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 16px;
-  margin-top: 10px;
-  color: #64748b;
-  font-size: 13px;
-}
-</style>

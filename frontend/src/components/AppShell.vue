@@ -1,6 +1,6 @@
 <template>
   <el-container class="workspace-shell">
-    <el-aside width="264px" class="workspace-shell__aside">
+    <el-aside width="272px" class="workspace-shell__aside">
       <div class="workspace-shell__brand">
         <div class="workspace-shell__brand-mark">DP</div>
         <div>
@@ -9,15 +9,17 @@
         </div>
       </div>
 
-      <div class="workspace-shell__menu-title">全局导航</div>
-      <el-menu :default-active="activeMenu" router class="workspace-shell__menu">
-        <el-menu-item index="/dashboard">工作台 Dashboard</el-menu-item>
-        <el-menu-item index="/projects">项目列表</el-menu-item>
-        <el-menu-item index="/template-rules">模板规则</el-menu-item>
-      </el-menu>
+      <div class="workspace-shell__nav-block">
+        <div class="workspace-shell__menu-title">全局导航</div>
+        <el-menu :default-active="activeMenu" router class="workspace-shell__menu">
+          <el-menu-item index="/dashboard">工作台 Dashboard</el-menu-item>
+          <el-menu-item index="/projects">项目列表</el-menu-item>
+          <el-menu-item index="/template-rules">模板规则</el-menu-item>
+        </el-menu>
+      </div>
 
-      <template v-if="projectId">
-        <div class="workspace-shell__menu-title">项目操作</div>
+      <div v-if="projectId" class="workspace-shell__nav-block workspace-shell__nav-block--stretch">
+        <div class="workspace-shell__menu-title">项目工作区</div>
         <el-menu :default-active="activeMenu" router class="workspace-shell__menu workspace-shell__menu--project">
           <el-menu-item :index="`/projects/${projectId}`">项目详情</el-menu-item>
           <el-menu-item :index="`/projects/${projectId}/assets`">设备资产</el-menu-item>
@@ -26,35 +28,44 @@
           <el-menu-item :index="`/projects/${projectId}/records`">测评记录</el-menu-item>
           <el-menu-item :index="`/projects/${projectId}/exports`">导出中心</el-menu-item>
         </el-menu>
-      </template>
+      </div>
 
       <div class="workspace-shell__aside-foot">
-        <div class="workspace-shell__aside-caption">流程闭环</div>
-        <div class="workspace-shell__aside-text">项目建档 → 证据采集 → OCR → 字段复核 → 记录复核 → 项目导出</div>
+        <div class="workspace-shell__aside-caption">闭环路径</div>
+        <div class="workspace-shell__aside-title">项目建档 → 证据采集 → OCR → 字段复核 → 记录复核 → 项目导出</div>
+        <div class="workspace-shell__aside-text">以项目为抓手，把采集、识别、审校、导出拉通成一个可交付的测评工作台。</div>
       </div>
     </el-aside>
 
     <el-container>
       <el-header class="workspace-shell__header">
-        <div>
+        <div class="workspace-shell__header-main">
           <div class="workspace-shell__eyebrow">专业 · 清晰 · 可交付</div>
           <div class="workspace-shell__title">{{ title }}</div>
           <div class="workspace-shell__subtitle">{{ resolvedSubtitle }}</div>
         </div>
-        <slot name="header-extra" />
+        <div class="workspace-shell__header-extra">
+          <slot name="header-extra" />
+        </div>
       </el-header>
 
       <div v-if="currentProject" class="workspace-shell__project-bar">
         <div class="workspace-shell__project-main">
-          <div class="workspace-shell__project-name">{{ currentProject.name }}</div>
+          <div class="workspace-shell__project-head">
+            <div>
+              <div class="workspace-shell__project-label">当前项目</div>
+              <div class="workspace-shell__project-name">{{ currentProject.name }}</div>
+            </div>
+            <div class="workspace-shell__project-tags">
+              <AppStatusTag kind="project" :status="currentProject.status" />
+              <el-tag type="info" effect="plain" round>项目上下文已对齐</el-tag>
+            </div>
+          </div>
           <div class="workspace-shell__project-meta">
             <span>项目编码：{{ currentProject.code || '未设置' }}</span>
             <span>项目类型：{{ currentProject.project_type }}</span>
+            <span>最近更新：{{ currentProject.updated_at || '-' }}</span>
           </div>
-        </div>
-        <div class="workspace-shell__project-tags">
-          <AppStatusTag kind="project" :status="currentProject.status" />
-          <el-tag type="info" effect="plain" round>当前项目</el-tag>
         </div>
       </div>
 
@@ -131,16 +142,16 @@ watch(
 <style scoped>
 .workspace-shell {
   min-height: 100vh;
-  background: #f3f6fb;
+  background: var(--workspace-bg);
 }
 
 .workspace-shell__aside {
   display: flex;
   flex-direction: column;
-  padding: 20px 16px;
-  background: linear-gradient(180deg, #0f172a 0%, #111c34 100%);
-  color: #e5eefb;
-  border-right: 1px solid rgba(148, 163, 184, 0.12);
+  padding: 22px 16px 18px;
+  background: linear-gradient(180deg, var(--workspace-sidebar) 0%, var(--workspace-sidebar-soft) 100%);
+  color: #dbe7f7;
+  border-right: 1px solid var(--workspace-sidebar-border);
 }
 
 .workspace-shell__brand {
@@ -151,34 +162,46 @@ watch(
 }
 
 .workspace-shell__brand-mark {
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   display: grid;
   place-items: center;
   border-radius: 14px;
   background: linear-gradient(135deg, #2563eb, #14b8a6);
   color: #eff6ff;
   font-weight: 800;
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.22);
 }
 
 .workspace-shell__brand-title {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 800;
   color: #f8fafc;
 }
 
 .workspace-shell__brand-subtitle {
   margin-top: 4px;
   font-size: 12px;
-  color: #94a3b8;
+  color: #8ea3c3;
+}
+
+.workspace-shell__nav-block {
+  margin-bottom: 18px;
+}
+
+.workspace-shell__nav-block--stretch {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .workspace-shell__menu-title {
-  margin: 10px 8px 8px;
+  margin: 0 8px 10px;
   font-size: 12px;
-  color: #64748b;
+  color: #7f93b2;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  font-weight: 700;
 }
 
 .workspace-shell__menu {
@@ -187,13 +210,14 @@ watch(
 }
 
 :deep(.workspace-shell__menu .el-menu-item) {
+  height: 44px;
   margin-bottom: 6px;
   border-radius: 12px;
-  color: #cbd5e1;
+  color: #d3deee;
 }
 
 :deep(.workspace-shell__menu .el-menu-item.is-active) {
-  background: rgba(37, 99, 235, 0.16);
+  background: rgba(37, 99, 235, 0.2);
   color: #eff6ff;
 }
 
@@ -206,82 +230,114 @@ watch(
 }
 
 .workspace-shell__aside-foot {
-  margin-top: 20px;
-  padding: 16px;
-  border-radius: 18px;
-  background: rgba(15, 23, 42, 0.55);
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(8, 15, 28, 0.42);
   border: 1px solid rgba(148, 163, 184, 0.12);
 }
 
 .workspace-shell__aside-caption {
   font-size: 12px;
-  color: #93c5fd;
+  color: #8fc7ff;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.workspace-shell__aside-title {
+  margin-top: 10px;
+  line-height: 1.7;
+  font-weight: 700;
+  color: #f8fbff;
 }
 
 .workspace-shell__aside-text {
-  margin-top: 8px;
-  font-size: 13px;
+  margin-top: 10px;
   line-height: 1.7;
-  color: #cbd5e1;
+  color: #b8c7db;
+  font-size: 13px;
 }
 
 .workspace-shell__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  padding: 24px 28px 18px;
+  gap: 18px;
+  padding: 28px 32px 18px;
   height: auto;
-  background: #f3f6fb;
+  background: transparent;
+}
+
+.workspace-shell__header-main {
+  max-width: 760px;
+}
+
+.workspace-shell__header-extra {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .workspace-shell__eyebrow {
   font-size: 12px;
-  font-weight: 700;
-  color: #2563eb;
+  font-weight: 800;
+  color: var(--workspace-primary);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
 }
 
 .workspace-shell__title {
-  margin-top: 6px;
-  font-size: 28px;
+  margin-top: 8px;
+  font-size: 30px;
+  line-height: 1.15;
   font-weight: 800;
-  color: #111827;
+  color: var(--workspace-text);
 }
 
 .workspace-shell__subtitle {
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: 14px;
-  color: #64748b;
+  line-height: 1.7;
+  color: var(--workspace-text-muted);
 }
 
 .workspace-shell__project-bar {
-  margin: 0 28px;
-  padding: 18px 20px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #ffffff, #f8fbff);
-  border: 1px solid #dbe5f3;
+  margin: 0 32px;
+  padding: 20px 22px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(237, 245, 255, 0.96));
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  box-shadow: var(--workspace-shadow-soft);
+}
+
+.workspace-shell__project-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 16px;
+}
+
+.workspace-shell__project-label {
+  font-size: 12px;
+  color: var(--workspace-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
 }
 
 .workspace-shell__project-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: #0f172a;
+  margin-top: 8px;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--workspace-text);
 }
 
 .workspace-shell__project-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 10px 16px;
-  margin-top: 8px;
-  color: #64748b;
+  margin-top: 12px;
+  color: var(--workspace-text-secondary);
   font-size: 13px;
 }
 
@@ -289,11 +345,12 @@ watch(
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .workspace-shell__main {
-  padding: 20px 28px 28px;
-  background: #f3f6fb;
+  padding: 20px 32px 32px;
+  background: transparent;
 }
 
 .workspace-shell__content {
@@ -302,10 +359,28 @@ watch(
   gap: 16px;
 }
 
-@media (max-width: 1200px) {
-  .workspace-shell__project-bar {
+@media (max-width: 1280px) {
+  .workspace-shell__header,
+  .workspace-shell__project-head {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 960px) {
+  .workspace-shell {
+    display: block;
+  }
+
+  .workspace-shell__aside {
+    width: 100%;
+  }
+
+  .workspace-shell__header,
+  .workspace-shell__project-bar,
+  .workspace-shell__main {
+    margin: 0;
+    padding-inline: 20px;
   }
 }
 </style>

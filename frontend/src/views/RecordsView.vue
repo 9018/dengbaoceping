@@ -1,43 +1,52 @@
 <template>
   <AppShell :project-id="projectId" title="测评记录页" subtitle="按设备和状态聚焦记录复核，编辑 final_content 并推进审批闭环。">
     <div class="page-stack">
-      <StatsCards :items="summaryCards" />
+      <section class="page-section">
+        <div class="page-header">
+          <div class="page-header__content">
+            <div class="section-kicker">Record Review</div>
+            <div class="section-title">测评记录审批工作区</div>
+            <div class="section-subtitle">以项目范围为基础，叠加设备与状态筛选，聚焦 final_content 修订与状态流转。</div>
+          </div>
+          <el-space wrap>
+            <el-button @click="loadData">刷新</el-button>
+            <el-button type="primary" @click="generateDialogVisible = true">生成测评记录</el-button>
+            <el-button type="success" @click="go(`/projects/${projectId}/exports`)">进入导出中心</el-button>
+          </el-space>
+        </div>
+        <StatsCards :items="summaryCards" />
+      </section>
 
       <el-card>
         <template #header>
-          <div class="toolbar">
-            <div>
-              <div class="section-title">记录生成与筛选</div>
-              <div class="section-subtitle">以项目范围为基础，叠加设备与状态筛选，聚焦 final_content 修订。</div>
-            </div>
-            <el-space>
-              <el-button @click="loadData">刷新</el-button>
-              <el-button type="primary" @click="generateDialogVisible = true">生成测评记录</el-button>
-              <el-button type="success" @click="go(`/projects/${projectId}/exports`)">进入导出中心</el-button>
-            </el-space>
+          <div class="section-header">
+            <div class="section-title">记录生成与筛选</div>
+            <div class="section-subtitle">把设备筛选、状态筛选、快速复核和审批动作收敛到同一主表格。</div>
           </div>
         </template>
 
-        <el-form inline class="filter-bar">
-          <el-form-item label="设备筛选">
-            <el-select v-model="deviceFilter" clearable placeholder="全部设备" style="width: 220px">
-              <el-option v-for="device in deviceOptions" :key="device" :label="device" :value="device" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="状态筛选">
-            <el-select v-model="statusFilter" clearable placeholder="全部状态" style="width: 180px">
-              <el-option v-for="status in recordStatusOptions" :key="status" :label="getStatusLabel('record', status)" :value="status" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="关键词">
-            <el-input v-model="keywordFilter" clearable placeholder="搜索标题/模板/测评项" style="width: 260px" />
-          </el-form-item>
-        </el-form>
+        <div class="page-filter-bar">
+          <el-form inline>
+            <el-form-item label="设备筛选">
+              <el-select v-model="deviceFilter" clearable placeholder="全部设备" style="width: 220px">
+                <el-option v-for="device in deviceOptions" :key="device" :label="device" :value="device" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="状态筛选">
+              <el-select v-model="statusFilter" clearable placeholder="全部状态" style="width: 180px">
+                <el-option v-for="status in recordStatusOptions" :key="status" :label="getStatusLabel('record', status)" :value="status" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="关键词">
+              <el-input v-model="keywordFilter" clearable placeholder="搜索标题/模板/测评项" style="width: 260px" />
+            </el-form-item>
+          </el-form>
+        </div>
 
         <el-table :data="filteredRecords" border>
           <el-table-column prop="title" label="记录标题" min-width="200" />
           <el-table-column prop="device_name" label="设备" min-width="160" />
-          <el-table-column label="状态" width="120">
+          <el-table-column label="状态" width="130">
             <template #default="scope">
               <AppStatusTag kind="record" :status="scope.row.status" />
             </template>
@@ -45,6 +54,11 @@
           <el-table-column prop="match_score" label="匹配得分" width="120" />
           <el-table-column prop="template_code" label="模板编码" width="170" />
           <el-table-column prop="item_code" label="测评项编码" width="170" />
+          <el-table-column label="审批建议" min-width="180">
+            <template #default="scope">
+              {{ getRecordHint(scope.row.status) }}
+            </template>
+          </el-table-column>
           <el-table-column prop="final_content" label="最终正文" min-width="280" show-overflow-tooltip />
           <el-table-column label="操作" min-width="420" fixed="right">
             <template #default="scope">
@@ -69,9 +83,9 @@
 
       <el-card v-if="auditLogs.length">
         <template #header>
-          <div>
+          <div class="section-header">
             <div class="section-title">记录审计日志</div>
-            <div class="section-subtitle">查看当前记录的复核轨迹。</div>
+            <div class="section-subtitle">查看当前记录的复核轨迹和审批动作。</div>
           </div>
         </template>
         <el-timeline>
@@ -193,6 +207,13 @@ function openEditor(record: EvaluationRecord) {
   drawerVisible.value = true
 }
 
+function getRecordHint(status: string) {
+  if (status === 'generated') return '先检查 final_content，再标记复核。'
+  if (status === 'reviewed') return '复核完成后可继续审批通过。'
+  if (status === 'approved') return '已满足导出门槛，等待出包。'
+  return '记录已进入导出闭环。'
+}
+
 function canMarkReviewed(status: string) {
   return status === 'generated'
 }
@@ -253,24 +274,3 @@ function go(path: string) {
 
 onMounted(loadData)
 </script>
-
-<style scoped>
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.filter-bar {
-  margin-bottom: 16px;
-}
-
-.action-wrapper {
-  display: inline-flex;
-}
-
-.w-full {
-  width: 100%;
-}
-</style>

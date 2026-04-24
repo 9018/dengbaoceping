@@ -1,43 +1,52 @@
 <template>
   <AppShell :project-id="projectId" title="证据中心页" subtitle="围绕证据采集、OCR、字段抽取与进入复核构建专业工作流。">
     <div class="page-stack">
-      <StatsCards :items="summaryCards" />
+      <section class="page-section">
+        <div class="page-header">
+          <div class="page-header__content">
+            <div class="section-kicker">Evidence Pipeline</div>
+            <div class="section-title">证据流水线中心</div>
+            <div class="section-subtitle">统一查看证据元信息、识别状态、抽取入口和下一步动作，避免工作流断点。</div>
+          </div>
+          <el-space wrap>
+            <el-button @click="loadEvidences">刷新</el-button>
+            <el-button type="primary" @click="dialogVisible = true">上传证据</el-button>
+          </el-space>
+        </div>
+        <StatsCards :items="summaryCards" />
+      </section>
 
       <el-card>
         <template #header>
-          <div class="toolbar">
-            <div>
-              <div class="section-title">证据流水线</div>
-              <div class="section-subtitle">统一查看证据元信息、识别状态与抽取入口。</div>
-            </div>
-            <el-space>
-              <el-button @click="loadEvidences">刷新</el-button>
-              <el-button type="primary" @click="dialogVisible = true">上传证据</el-button>
-            </el-space>
+          <div class="section-header">
+            <div class="section-title">证据流水线</div>
+            <div class="section-subtitle">按 OCR 样例、抽取模板与关键词快速筛选证据，并从当前状态直接进入下一步动作。</div>
           </div>
         </template>
 
-        <el-form inline class="filter-bar">
-          <el-form-item label="OCR 样例">
-            <el-select v-model="selectedSampleId" style="width: 240px">
-              <el-option v-for="sample in ocrSampleOptions" :key="sample" :label="sample" :value="sample" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="抽取模板">
-            <el-select v-model="selectedTemplateCode" style="width: 240px">
-              <el-option v-for="code in templateCodeOptions" :key="code" :label="code" :value="code" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="关键词">
-            <el-input v-model="keyword" clearable placeholder="搜索证据标题、设备、摘要" style="width: 280px" />
-          </el-form-item>
-        </el-form>
+        <div class="page-filter-bar">
+          <el-form inline>
+            <el-form-item label="OCR 样例">
+              <el-select v-model="selectedSampleId" style="width: 240px">
+                <el-option v-for="sample in ocrSampleOptions" :key="sample" :label="sample" :value="sample" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="抽取模板">
+              <el-select v-model="selectedTemplateCode" style="width: 240px">
+                <el-option v-for="code in templateCodeOptions" :key="code" :label="code" :value="code" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="关键词">
+              <el-input v-model="keyword" clearable placeholder="搜索证据标题、设备、摘要" style="width: 280px" />
+            </el-form-item>
+          </el-form>
+        </div>
 
         <el-table :data="filteredEvidences" border>
           <el-table-column prop="title" label="证据标题" min-width="200" />
           <el-table-column prop="device" label="关联设备" min-width="140" />
           <el-table-column prop="evidence_type" label="类型" width="120" />
-          <el-table-column label="OCR 状态" width="120">
+          <el-table-column label="OCR 状态" width="130">
             <template #default="scope">
               <AppStatusTag kind="ocr" :status="scope.row.ocr_status" />
             </template>
@@ -45,6 +54,11 @@
           <el-table-column label="OCR Provider" width="140">
             <template #default="scope">
               {{ scope.row.ocr_provider || '-' }}
+            </template>
+          </el-table-column>
+          <el-table-column label="下一步动作" min-width="180">
+            <template #default="scope">
+              {{ getPipelineHint(scope.row) }}
             </template>
           </el-table-column>
           <el-table-column prop="summary" label="摘要" min-width="240" show-overflow-tooltip />
@@ -130,6 +144,12 @@ function getReviewEntryLabel(evidence: Evidence) {
   return canExtractFields(evidence) ? '进入识别复核' : '识别复核'
 }
 
+function getPipelineHint(evidence: Evidence) {
+  if (evidence.ocr_status !== 'completed') return '先执行 OCR，补齐识别结果。'
+  if (!evidence.text_content) return '当前 OCR 文本为空，需确认识别结果。'
+  return '可以继续字段抽取并进入识别复核。'
+}
+
 async function submitUpload(payload: Record<string, unknown>) {
   if (!payload.file) {
     ElMessage.warning('请选择证据文件')
@@ -165,20 +185,3 @@ async function removeEvidence(evidenceId: string) {
 
 onMounted(loadEvidences)
 </script>
-
-<style scoped>
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.filter-bar {
-  margin-bottom: 16px;
-}
-
-.action-wrapper {
-  display: inline-flex;
-}
-</style>

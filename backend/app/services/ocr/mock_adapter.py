@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, UTC
 
 from app.core.exceptions import BadRequestException
+from app.services.ocr.base import OCRLine, OCRResult
 
 
 MOCK_OCR_SAMPLES: dict[str, dict] = {
@@ -69,18 +70,44 @@ MOCK_OCR_SAMPLES: dict[str, dict] = {
 
 
 class MockOCRAdapter:
-    def run(self, *, evidence_id: str, filename: str, file_path: str, sample_id: str | None = None) -> dict:
+    def run(self, *, evidence_id: str, filename: str, file_path: str, sample_id: str | None = None) -> OCRResult:
         resolved_sample = sample_id or self._infer_sample_id(filename)
         payload = MOCK_OCR_SAMPLES.get(resolved_sample)
         if not payload:
             raise BadRequestException("MOCK_OCR_SAMPLE_NOT_FOUND", "指定的mock OCR样例不存在")
+
+        lines = self._build_lines(payload)
+        full_text = "\n".join(line["text"] for line in lines if line["text"])
         return {
             **payload,
+            "full_text": full_text,
+            "lines": lines,
             "evidence_id": evidence_id,
             "filename": filename,
             "file_path": file_path,
             "processed_at": datetime.now(UTC).isoformat(),
+            "error": None,
         }
+
+    def _build_lines(self, payload: dict) -> list[OCRLine]:
+        text = str(payload.get("full_text") or "")
+        confidence = self._get_default_confidence(payload)
+        return [
+            {
+                "text": line,
+                "confidence": confidence,
+                "bbox": [],
+            }
+            for line in text.splitlines()
+            if line.strip()
+        ]
+
+    def _get_default_confidence(self, payload: dict) -> float | None:
+        pages = payload.get("pages") or []
+        if not pages:
+            return None
+        value = pages[0].get("confidence")
+        return float(value) if value is not None else None
 
     def _infer_sample_id(self, filename: str) -> str:
         lower_name = filename.lower()

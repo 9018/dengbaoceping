@@ -1,56 +1,78 @@
 <template>
   <AppShell :project-id="projectId" title="项目详情" subtitle="以项目为中心查看范围、状态、阶段进度和关键工作入口。">
     <div class="page-stack">
-      <StatsCards :items="statsItems" @select="handleStatsSelect" />
+      <section class="page-section">
+        <div class="page-header">
+          <div class="page-header__content">
+            <div class="section-kicker">Project Workbench</div>
+            <div class="section-title">单项目总控台</div>
+            <div class="section-subtitle">把项目概览、阶段推进、关键入口和交付抓手汇聚到同一页面，减少来回跳转成本。</div>
+          </div>
+          <el-space wrap>
+            <el-button @click="loadData">刷新</el-button>
+            <el-button type="primary" @click="go(`/projects/${projectId}/evidences`)">进入证据中心</el-button>
+          </el-space>
+        </div>
+        <StatsCards :items="statsItems" @select="handleStatsSelect" />
+      </section>
 
-      <el-row :gutter="16">
-        <el-col :xs="24" :xl="15">
-          <el-card>
-            <template #header>
-              <div class="toolbar">
-                <div>
-                  <div class="section-title">项目概览</div>
-                  <div class="section-subtitle">查看基础信息和当前阶段，拉通项目维度的交付抓手。</div>
-                </div>
-                <el-space>
-                  <el-button @click="loadData">刷新</el-button>
-                  <el-button type="primary" @click="go(`/projects/${projectId}/evidences`)">进入证据中心</el-button>
-                </el-space>
-              </div>
-            </template>
+      <section class="page-grid-2">
+        <el-card>
+          <template #header>
+            <div class="section-header">
+              <div class="section-title">项目概览</div>
+              <div class="section-subtitle">查看基础信息、项目状态和当前交付上下文。</div>
+            </div>
+          </template>
 
-            <el-descriptions :column="2" border>
-              <el-descriptions-item label="项目名称">{{ project?.name || '-' }}</el-descriptions-item>
-              <el-descriptions-item label="项目编码">{{ project?.code || '-' }}</el-descriptions-item>
-              <el-descriptions-item label="项目类型">{{ project?.project_type || '-' }}</el-descriptions-item>
-              <el-descriptions-item label="项目状态">
+          <div class="workspace-summary">
+            <div class="summary-item">
+              <div class="summary-item__label">项目名称</div>
+              <div class="summary-item__value summary-item__value--text">{{ project?.name || '-' }}</div>
+              <div class="summary-item__meta">编码：{{ project?.code || '未设置' }}</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-item__label">项目状态</div>
+              <div class="summary-item__value summary-item__value--tag">
                 <AppStatusTag v-if="project" kind="project" :status="project.status" />
                 <span v-else>-</span>
-              </el-descriptions-item>
-              <el-descriptions-item label="项目说明" :span="2">{{ project?.description || '暂无说明' }}</el-descriptions-item>
-            </el-descriptions>
-          </el-card>
-        </el-col>
-        <el-col :xs="24" :xl="9">
-          <el-card>
-            <template #header>
-              <div>
-                <div class="section-title">流程推进</div>
-                <div class="section-subtitle">按当前数据状态识别项目所在阶段。</div>
               </div>
-            </template>
-            <el-steps direction="vertical" :active="workflowActive" finish-status="success">
-              <el-step v-for="step in workflowSteps" :key="step" :title="step" />
-            </el-steps>
-          </el-card>
-        </el-col>
-      </el-row>
+              <div class="summary-item__meta">项目类型：{{ project?.project_type || '-' }}</div>
+            </div>
+          </div>
+
+          <el-descriptions :column="2" border class="detail-descriptions">
+            <el-descriptions-item label="项目名称">{{ project?.name || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="项目编码">{{ project?.code || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="项目类型">{{ project?.project_type || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="当前阶段">{{ workflowStepLabel }}</el-descriptions-item>
+            <el-descriptions-item label="项目说明" :span="2">{{ project?.description || '暂无说明' }}</el-descriptions-item>
+          </el-descriptions>
+        </el-card>
+
+        <el-card>
+          <template #header>
+            <div class="section-header">
+              <div class="section-title">流程推进</div>
+              <div class="section-subtitle">按当前数据状态识别项目所处阶段和下一步动作。</div>
+            </div>
+          </template>
+
+          <div class="flow-grid">
+            <div v-for="(step, index) in workflowSteps" :key="step" class="flow-step" :class="{ 'flow-step--active': workflowActive >= index }">
+              <div class="flow-step__index">{{ index + 1 }}</div>
+              <div class="flow-step__title">{{ step }}</div>
+              <div class="flow-step__meta">{{ getStepHint(index) }}</div>
+            </div>
+          </div>
+        </el-card>
+      </section>
 
       <el-card>
         <template #header>
-          <div>
+          <div class="section-header">
             <div class="section-title">工作台入口</div>
-            <div class="section-subtitle">按角色和阶段进入对应工作区。</div>
+            <div class="section-subtitle">按角色和阶段进入对应工作区，确保每一步都有明确抓手。</div>
           </div>
         </template>
         <div class="entry-grid">
@@ -107,6 +129,8 @@ const workflowActive = computed(() => {
   return 0
 })
 
+const workflowStepLabel = computed(() => workflowSteps[Math.min(workflowActive.value, workflowSteps.length - 1)] || '项目建档')
+
 const quickEntries = computed(() => [
   { title: '设备资产页', description: '维护项目内设备资产、来源和入库状态。', to: `/projects/${props.projectId}/assets` },
   { title: '证据中心页', description: '上传证据并执行 OCR、字段抽取。', to: `/projects/${props.projectId}/evidences` },
@@ -135,6 +159,15 @@ async function loadData() {
   }
 }
 
+function getStepHint(index: number) {
+  if (index === 0) return project.value ? '项目已完成建档，可继续推进资产与证据。' : '先完成项目建档。'
+  if (index === 1) return `${assets.value.length} 项资产已进入台账。`
+  if (index === 2) return `${evidences.value.filter((item) => item.ocr_status !== 'completed').length} 份证据仍待 OCR。`
+  if (index === 3) return `${evidences.value.length} 份证据可进入字段复核。`
+  if (index === 4) return `${records.value.filter((item) => !['approved', 'exported'].includes(item.status)).length} 条记录待处理。`
+  return '全部记录审批通过后即可进入项目导出。'
+}
+
 function go(path: string) {
   router.push(path)
 }
@@ -148,37 +181,21 @@ onMounted(loadData)
 </script>
 
 <style scoped>
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+.detail-descriptions {
+  margin-top: 18px;
 }
 
-.entry-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
+.summary-item__value--text {
+  font-size: 20px;
+  line-height: 1.3;
 }
 
-.entry-card {
-  padding: 18px;
-  border-radius: 18px;
-  border: 1px solid #dbe5f1;
-  background: linear-gradient(180deg, #ffffff, #f8fbff);
-  text-align: left;
-  cursor: pointer;
-}
-
-.entry-card__title {
+.summary-item__value--tag {
   font-size: 16px;
-  font-weight: 700;
-  color: #0f172a;
 }
 
-.entry-card__desc {
-  margin-top: 8px;
-  color: #64748b;
-  line-height: 1.6;
+.flow-step--active {
+  border-color: rgba(37, 99, 235, 0.22);
+  background: linear-gradient(180deg, rgba(239, 246, 255, 0.98), rgba(247, 250, 252, 0.98));
 }
 </style>

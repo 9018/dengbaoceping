@@ -102,12 +102,37 @@ npm run dev
 - `UPLOAD_DIR`：上传文件目录
 - `EXPORT_DIR`：导出文件目录
 - `SNAPSHOT_DIR`：快照目录
-- `OCR_PROVIDER`：`mock` 或 `real`
+- `OCR_PROVIDER`：`mock`、`paddle` 或 `real`
 - `OCR_TIMEOUT_SECONDS`：OCR 超时时间
+- `PADDLE_OCR_LANG`：PaddleOCR 语言配置，默认 `ch`
+- `PADDLE_OCR_USE_ANGLE_CLS`：是否启用方向分类器
+- `PADDLE_OCR_USE_GPU`：是否启用 GPU
 
 前端样例文件：`frontend/.env.example`
 
 - `VITE_API_BASE_URL`：前端访问后端 API 的基础地址
+
+## OCR provider 说明
+
+- 默认 `OCR_PROVIDER=mock`，适合本地开发和 CI。
+- `OCR_PROVIDER=paddle` 时，会读取真实上传文件并执行 PaddleOCR。
+- `OCR_PROVIDER=real` 仍保留为占位 provider，当前会返回 `REAL_OCR_NOT_CONFIGURED`。
+- PaddleOCR 结果统一至少包含：`provider`、`status`、`full_text`、`lines`、`processed_at`。
+- `lines` 中每项结构为：`{ text, confidence, bbox }`。
+- `full_text` 由 `lines[].text` 拼接得到，下游字段抽取继续依赖 `text_content/full_text` 即可工作。
+- Paddle 运行期失败会返回结构化失败结果并持久化到 `ocr_result_json`，不会因为识别异常直接把接口打崩。
+
+### Paddle 安装提示
+
+`backend/requirements.txt` 已补充 Paddle 依赖，但 Paddle 版本兼容性受平台影响较大。首次在新环境安装时，建议优先在后端虚拟环境中单独验证：
+
+```bash
+cd backend
+source .venv/bin/activate
+python -c "from paddleocr import PaddleOCR; print('paddle ready')"
+```
+
+首次 OCR 调用会触发 PaddleOCR 引擎初始化，耗时通常显著高于热启动；当前实现已在进程内缓存引擎，后续调用不会重复初始化。
 
 ## 规则文件说明
 
@@ -141,10 +166,19 @@ source .venv/bin/activate
 pytest -q
 ```
 
+如果只验证 OCR 链路，可执行：
+
+```bash
+cd backend
+source .venv/bin/activate
+pytest -q tests/test_evidences_api.py tests/services/test_paddle_adapter.py
+```
+
 测试至少覆盖：
 
 - 项目管理
 - 证据上传
+- OCR
 - 字段抽取
 - 记录生成
 - 导出

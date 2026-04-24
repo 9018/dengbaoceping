@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from app.core.config import settings
+from app.services.ocr.paddle_adapter import PaddleOCRAdapter
 
 
 def create_project(client):
@@ -90,6 +91,9 @@ def test_run_ocr_and_extract_fields(client):
     ocr_result = ocr_result_resp.json()["data"]
     assert ocr_result["sample_id"] == "firewall_basic"
     assert ocr_result["status"] == "completed"
+    assert ocr_result["lines"]
+    assert ocr_result["full_text"] == "\n".join(item["text"] for item in ocr_result["lines"])
+    assert set(ocr_result["lines"][0]) == {"text", "confidence", "bbox"}
 
     extract_resp = client.post(
         f"/api/v1/evidences/{evidence_id}/extract-fields",
@@ -128,6 +132,75 @@ def test_run_ocr_with_invalid_sample_returns_400(client):
     resp = client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={"sample_id": "missing-sample"})
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "MOCK_OCR_SAMPLE_NOT_FOUND"
+
+
+def test_run_paddle_ocr_success_with_stubbed_engine(client, monkeypatch):
+    previous_provider = settings.OCR_PROVIDER
+    settings.OCR_PROVIDER = "paddle"
+    PaddleOCRAdapter.reset_engine()
+
+    class FakeEngine:
+        def ocr(self, file_path, cls=True):
+            return [
+                [
+                    [[[0, 0], [10, 0], [10, 10], [0, 10]], ("设备名称：FW-01", 0.99)],
+                    [[[0, 12], [10, 12], [10, 22], [0, 22]], ("管理IP：10.0.0.1", 0.97)],
+                ]
+            ]
+
+    monkeypatch.setattr(PaddleOCRAdapter, "_create_engine", classmethod(lambda cls: FakeEngine()))
+
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "real-image.png")
+
+    resp = client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={})
+    settings.OCR_PROVIDER = previous_provider
+    PaddleOCRAdapter.reset_engine()
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["data"]["ocr_status"] == "completed"
+    assert body["data"]["ocr_provider"] == "paddle_ocr"
+    assert body["data"]["text_content"] == "设备名称：FW-01\n管理IP：10.0.0.1"
+
+    result_resp = client.get(f"/api/v1/evidences/{evidence_id}/ocr-result")
+    assert result_resp.status_code == 200
+    result = result_resp.json()["data"]
+    assert result["lines"][0]["bbox"] == [[0, 0], [10, 0], [10, 10], [0, 10]]
+    assert result["full_text"] == "\n".join(item["text"] for item in result["lines"])
+    assert result["error"] is None
+
+
+def test_run_paddle_ocr_failure_returns_structured_result(client, monkeypatch):
+    previous_provider = settings.OCR_PROVIDER
+    settings.OCR_PROVIDER = "paddle"
+    PaddleOCRAdapter.reset_engine()
+
+    class FakeEngine:
+        def ocr(self, file_path, cls=True):
+            raise RuntimeError("engine boom")
+
+    monkeypatch.setattr(PaddleOCRAdapter, "_create_engine", classmethod(lambda cls: FakeEngine()))
+
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "broken-image.png")
+
+    resp = client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={})
+    settings.OCR_PROVIDER = previous_provider
+    PaddleOCRAdapter.reset_engine()
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["data"]["ocr_status"] == "failed"
+    assert body["data"]["ocr_provider"] == "paddle_ocr"
+    assert body["data"]["text_content"] == ""
+
+    result_resp = client.get(f"/api/v1/evidences/{evidence_id}/ocr-result")
+    assert result_resp.status_code == 200
+    result = result_resp.json()["data"]
+    assert result["status"] == "failed"
+    assert result["error"]["code"] == "PADDLE_OCR_RUN_FAILED"
+    assert result["lines"] == []
 
 
 @pytest.mark.skipif(settings.OCR_PROVIDER != "real", reason="仅在真实OCR provider配置下验证占位返回")

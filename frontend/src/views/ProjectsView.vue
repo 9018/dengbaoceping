@@ -1,43 +1,59 @@
 <template>
   <AppShell title="项目列表" subtitle="以项目为中心统一进入设备、证据、复核、记录与导出流程。">
     <div class="page-stack">
-      <StatsCards :items="summaryCards" @select="handleStatSelect" />
+      <section class="page-section">
+        <div class="page-header">
+          <div class="page-header__content">
+            <div class="section-kicker">Project Registry</div>
+            <div class="section-title">项目台账中心</div>
+            <div class="section-subtitle">统一维护项目范围、状态和工作台入口，确保项目建档到导出全链路都能被拉通。</div>
+          </div>
+          <el-space wrap>
+            <el-button @click="refresh">刷新</el-button>
+            <el-button type="primary" @click="openCreate">新建项目</el-button>
+          </el-space>
+        </div>
+        <StatsCards :items="summaryCards" @select="handleStatSelect" />
+      </section>
 
       <el-card>
         <template #header>
-          <div class="toolbar">
-            <div>
+          <div class="card-toolbar">
+            <div class="section-header">
               <div class="section-title">项目管理</div>
-              <div class="section-subtitle">统一维护项目台账、状态和工作台入口。</div>
+              <div class="section-subtitle">按状态与关键词筛选项目，主入口保持“进入工作台”，让项目推进路径一眼可见。</div>
             </div>
-            <el-space>
-              <el-button @click="refresh">刷新</el-button>
-              <el-button type="primary" @click="openCreate">新建项目</el-button>
-            </el-space>
           </div>
         </template>
 
-        <el-form inline class="filter-bar">
-          <el-form-item label="状态">
-            <el-select v-model="statusFilter" clearable placeholder="全部状态" style="width: 180px">
-              <el-option v-for="status in projectStatusOptions" :key="status" :label="getStatusLabel('project', status)" :value="status" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="关键词">
-            <el-input v-model="keyword" clearable placeholder="搜索项目名称、编码、说明" style="width: 280px" />
-          </el-form-item>
-        </el-form>
+        <div class="page-filter-bar">
+          <el-form inline>
+            <el-form-item label="状态">
+              <el-select v-model="statusFilter" clearable placeholder="全部状态" style="width: 180px">
+                <el-option v-for="status in projectStatusOptions" :key="status" :label="getStatusLabel('project', status)" :value="status" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="关键词">
+              <el-input v-model="keyword" clearable placeholder="搜索项目名称、编码、说明" style="width: 280px" />
+            </el-form-item>
+          </el-form>
+        </div>
 
         <el-table :data="filteredProjects" border>
           <el-table-column prop="name" label="项目名称" min-width="200" />
           <el-table-column prop="code" label="项目编码" min-width="140" />
           <el-table-column prop="project_type" label="项目类型" min-width="160" />
-          <el-table-column label="状态" width="120">
+          <el-table-column label="状态" width="130">
             <template #default="scope">
               <AppStatusTag kind="project" :status="scope.row.status" />
             </template>
           </el-table-column>
-          <el-table-column prop="description" label="项目说明" min-width="260" show-overflow-tooltip />
+          <el-table-column prop="description" label="项目说明" min-width="280" show-overflow-tooltip />
+          <el-table-column label="工作建议" min-width="180">
+            <template #default="scope">
+              {{ getProjectHint(scope.row.status) }}
+            </template>
+          </el-table-column>
           <el-table-column prop="updated_at" label="更新时间" min-width="180" />
           <el-table-column label="操作" min-width="280" fixed="right">
             <template #default="scope">
@@ -87,8 +103,8 @@ const keyword = ref('')
 
 const summaryCards = computed<StatsCardItem[]>(() => [
   { label: '项目总数', value: projects.value.length, tip: '全部项目台账', to: '/projects', tone: 'primary' },
-  { label: '进行中', value: projects.value.filter((item) => item.status === 'active').length, tip: '当前重点交付项目', to: '/projects', tone: 'success' },
-  { label: '草稿', value: projects.value.filter((item) => item.status === 'draft').length, tip: '待继续推进', to: '/projects', tone: 'warning' },
+  { label: '执行中', value: projects.value.filter((item) => item.status === 'active').length, tip: '当前重点交付项目', to: '/projects', tone: 'success' },
+  { label: '草稿中', value: projects.value.filter((item) => item.status === 'draft').length, tip: '待继续推进', to: '/projects', tone: 'warning' },
   { label: '已归档', value: projects.value.filter((item) => item.status === 'archived').length, tip: '已完成闭环', to: '/projects', tone: 'default' },
 ])
 
@@ -146,6 +162,12 @@ function goDetail(projectId: string) {
   router.push(`/projects/${projectId}`)
 }
 
+function getProjectHint(status: string) {
+  if (status === 'draft') return '先补齐项目说明与证据范围。'
+  if (status === 'active') return '持续推进识别、复核与导出闭环。'
+  return '当前项目已完成交付，可追溯历史。'
+}
+
 async function removeProject(projectId: string) {
   await deleteProject(projectId)
   ElMessage.success('项目已删除')
@@ -159,16 +181,3 @@ function handleStatSelect(item: StatsCardItem) {
 
 onMounted(refresh)
 </script>
-
-<style scoped>
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.filter-bar {
-  margin-bottom: 16px;
-}
-</style>

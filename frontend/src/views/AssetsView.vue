@@ -1,43 +1,57 @@
 <template>
   <AppShell :project-id="projectId" title="设备资产页" subtitle="面向测评项目统一维护资产台账、来源、路径和入库状态。">
     <div class="page-stack">
-      <StatsCards :items="summaryCards" />
+      <section class="page-section">
+        <div class="page-header">
+          <div class="page-header__content">
+            <div class="section-kicker">Asset Registry</div>
+            <div class="section-title">资产台账工作区</div>
+            <div class="section-subtitle">统一维护设备名称、分类、来源和入库状态，让资产层信息与后续证据链路保持对齐。</div>
+          </div>
+          <el-space wrap>
+            <el-button @click="loadAssets">刷新</el-button>
+            <el-button type="primary" @click="openCreate">新增设备</el-button>
+          </el-space>
+        </div>
+        <StatsCards :items="summaryCards" />
+      </section>
 
       <el-card>
         <template #header>
-          <div class="toolbar">
-            <div>
-              <div class="section-title">设备资产列表</div>
-              <div class="section-subtitle">统一维护设备名称、分类、路径和入库状态。</div>
-            </div>
-            <el-space>
-              <el-button @click="loadAssets">刷新</el-button>
-              <el-button type="primary" @click="openCreate">新增设备</el-button>
-            </el-space>
+          <div class="section-header">
+            <div class="section-title">设备资产列表</div>
+            <div class="section-subtitle">按状态和关键词筛选资产，聚焦台账完整性和入库质量。</div>
           </div>
         </template>
 
-        <el-form inline class="filter-bar">
-          <el-form-item label="状态">
-            <el-select v-model="statusFilter" clearable placeholder="全部状态" style="width: 180px">
-              <el-option v-for="status in assetStatusOptions" :key="status" :label="getStatusLabel('asset', status)" :value="status" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="关键词">
-            <el-input v-model="keyword" clearable placeholder="搜索设备名称、分类、来源" style="width: 280px" />
-          </el-form-item>
-        </el-form>
+        <div class="page-filter-bar">
+          <el-form inline>
+            <el-form-item label="状态">
+              <el-select v-model="statusFilter" clearable placeholder="全部状态" style="width: 180px">
+                <el-option v-for="status in assetStatusOptions" :key="status" :label="getStatusLabel('asset', status)" :value="status" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="关键词">
+              <el-input v-model="keyword" clearable placeholder="搜索设备名称、分类、来源" style="width: 280px" />
+            </el-form-item>
+          </el-form>
+        </div>
 
         <el-table :data="filteredAssets" border>
           <el-table-column prop="filename" label="设备名称/文件名" min-width="180" />
           <el-table-column prop="category_label" label="分类" min-width="140" />
           <el-table-column prop="relative_path" label="相对路径" min-width="220" show-overflow-tooltip />
-          <el-table-column label="状态" width="120">
+          <el-table-column label="状态" width="130">
             <template #default="scope">
               <AppStatusTag kind="asset" :status="scope.row.ingest_status" />
             </template>
           </el-table-column>
           <el-table-column prop="source" label="来源" width="140" />
+          <el-table-column label="工作建议" min-width="180">
+            <template #default="scope">
+              {{ getAssetHint(scope.row.ingest_status) }}
+            </template>
+          </el-table-column>
           <el-table-column prop="updated_at" label="更新时间" min-width="180" />
           <el-table-column label="操作" width="220" fixed="right">
             <template #default="scope">
@@ -104,6 +118,12 @@ async function loadAssets() {
   assets.value = data
 }
 
+function getAssetHint(status: string) {
+  if (status === 'pending') return '建议补齐来源、路径或入库信息。'
+  if (status === 'processed') return '资产已可用于后续证据和记录链路。'
+  return '需要优先排查失败原因。'
+}
+
 function openCreate() {
   dialogMode.value = 'create'
   editingAsset.value = null
@@ -136,16 +156,3 @@ async function removeAsset(assetId: string) {
 
 onMounted(loadAssets)
 </script>
-
-<style scoped>
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.filter-bar {
-  margin-bottom: 16px;
-}
-</style>
