@@ -1,12 +1,12 @@
 <template>
-  <AppShell :project-id="projectId" title="测评记录页" subtitle="按设备和状态聚焦记录复核，编辑 final_content 并推进审批闭环。">
+  <AppShell :project-id="projectId" title="测评记录页" subtitle="按设备和状态聚焦记录复核，查看候选匹配、原因和缺失字段，再推进审批闭环。">
     <div class="page-stack">
       <section class="page-section">
         <div class="page-header">
           <div class="page-header__content">
             <div class="section-kicker">Record Review</div>
             <div class="section-title">测评记录审批工作区</div>
-            <div class="section-subtitle">以项目范围为基础，叠加设备与状态筛选，聚焦 final_content 修订与状态流转。</div>
+            <div class="section-subtitle">在同一工作区查看最佳匹配、Top 3 候选项、匹配原因与缺失字段，并支持人工改选候选项重生成。</div>
           </div>
           <el-space wrap>
             <el-button @click="loadData">刷新</el-button>
@@ -21,7 +21,7 @@
         <template #header>
           <div class="section-header">
             <div class="section-title">记录生成与筛选</div>
-            <div class="section-subtitle">把设备筛选、状态筛选、快速复核和审批动作收敛到同一主表格。</div>
+            <div class="section-subtitle">把设备筛选、状态筛选、候选项解释和审批动作收敛到同一主表格。</div>
           </div>
         </template>
 
@@ -46,17 +46,34 @@
         <el-table :data="filteredRecords" border>
           <el-table-column prop="title" label="记录标题" min-width="200" />
           <el-table-column prop="device_name" label="设备" min-width="160" />
-          <el-table-column label="状态" width="130">
+          <el-table-column label="状态" width="140">
             <template #default="scope">
               <AppStatusTag kind="record" :status="scope.row.status" />
             </template>
           </el-table-column>
           <el-table-column prop="match_score" label="匹配得分" width="120" />
           <el-table-column prop="template_code" label="模板编码" width="170" />
-          <el-table-column prop="item_code" label="测评项编码" width="170" />
-          <el-table-column label="审批建议" min-width="180">
+          <el-table-column prop="item_code" label="测评项编码" width="190" />
+          <el-table-column label="Top 3 候选" min-width="280">
             <template #default="scope">
-              {{ getRecordHint(scope.row.status) }}
+              <el-space wrap>
+                <el-tag v-for="candidate in getTopCandidates(scope.row)" :key="`${candidate.item_code}-${candidate.template_code}`" size="small">
+                  {{ candidate.item_code }} / {{ candidate.score }}
+                </el-tag>
+              </el-space>
+            </template>
+          </el-table-column>
+          <el-table-column label="缺失字段" min-width="220">
+            <template #default="scope">
+              <el-space wrap>
+                <el-tag v-for="field in getMissingFields(scope.row)" :key="field" type="danger" size="small">{{ field }}</el-tag>
+                <span v-if="!getMissingFields(scope.row).length">-</span>
+              </el-space>
+            </template>
+          </el-table-column>
+          <el-table-column label="匹配原因" min-width="280" show-overflow-tooltip>
+            <template #default="scope">
+              {{ getReasonSummary(scope.row) }}
             </template>
           </el-table-column>
           <el-table-column prop="final_content" label="最终正文" min-width="280" show-overflow-tooltip />
@@ -96,10 +113,10 @@
         </el-timeline>
       </el-card>
 
-      <RecordEditDrawer v-model="drawerVisible" :record="editingRecord" @save="saveRecord" />
+      <RecordEditDrawer v-model="drawerVisible" :record="editingRecord" @save="saveRecord" @regenerate="regenerateFromCandidate" />
 
-      <el-dialog v-model="generateDialogVisible" title="生成测评记录" width="520px">
-        <el-form label-width="110px">
+      <el-dialog v-model="generateDialogVisible" title="生成测评记录" width="560px">
+        <el-form label-width="120px">
           <el-form-item label="证据">
             <el-select v-model="generateEvidenceId" placeholder="请选择证据" class="w-full">
               <el-option v-for="item in evidences" :key="item.id" :label="item.title" :value="item.id" />
@@ -107,6 +124,9 @@
           </el-form-item>
           <el-form-item label="设备类型覆盖">
             <el-input v-model="deviceTypeOverride" />
+          </el-form-item>
+          <el-form-item label="手动测评项">
+            <el-input v-model="selectedItemCode" placeholder="可选，直接指定 item_code" />
           </el-form-item>
         </el-form>
         <template #footer>
@@ -131,7 +151,7 @@ import { listEvidences } from '@/api/evidences'
 import { generateRecord, listRecordAuditLogs, listRecords, reviewRecord, updateRecord } from '@/api/records'
 import { recordStatusOptions } from '@/utils/constants'
 import { getStatusLabel } from '@/utils/status'
-import type { Asset, AuditLog, EvaluationRecord, Evidence } from '@/types/domain'
+import type { Asset, AuditLog, EvaluationRecord, Evidence, MatchCandidate, MatchReasons } from '@/types/domain'
 
 interface RecordViewItem extends EvaluationRecord {
   device_name: string
@@ -148,6 +168,7 @@ const editingRecord = ref<EvaluationRecord | null>(null)
 const generateDialogVisible = ref(false)
 const generateEvidenceId = ref('')
 const deviceTypeOverride = ref('')
+const selectedItemCode = ref('')
 const statusFilter = ref('')
 const deviceFilter = ref('')
 const keywordFilter = ref('')
@@ -169,7 +190,7 @@ const deviceOptions = computed(() => Array.from(new Set(recordRows.value.map((it
 
 const summaryCards = computed<StatsCardItem[]>(() => [
   { label: '记录总数', value: records.value.length, tip: '当前项目全部测评记录', tone: 'primary' },
-  { label: '待复核', value: records.value.filter((item) => item.status === 'generated').length, tip: '需要先标记复核', tone: 'warning' },
+  { label: '待复核', value: records.value.filter((item) => ['generated', 'generated_low_confidence'].includes(item.status)).length, tip: '需要先检查匹配结果', tone: 'warning' },
   { label: '已复核', value: records.value.filter((item) => item.status === 'reviewed').length, tip: '可继续审批', tone: 'success' },
   { label: '已审批/导出', value: records.value.filter((item) => ['approved', 'exported'].includes(item.status)).length, tip: '进入导出闭环', tone: 'default' },
 ])
@@ -207,19 +228,31 @@ function openEditor(record: EvaluationRecord) {
   drawerVisible.value = true
 }
 
-function getRecordHint(status: string) {
-  if (status === 'generated') return '先检查 final_content，再标记复核。'
-  if (status === 'reviewed') return '复核完成后可继续审批通过。'
-  if (status === 'approved') return '已满足导出门槛，等待出包。'
-  return '记录已进入导出闭环。'
+function getReasons(record: EvaluationRecord): MatchReasons {
+  const reasons = record.match_reasons
+  return reasons && typeof reasons === 'object' ? (reasons as MatchReasons) : {}
+}
+
+function getTopCandidates(record: EvaluationRecord): MatchCandidate[] {
+  return Array.isArray(record.match_candidates) ? (record.match_candidates as MatchCandidate[]) : []
+}
+
+function getMissingFields(record: EvaluationRecord): string[] {
+  const reasons = getReasons(record)
+  return Array.isArray(reasons.missing_required_fields) ? reasons.missing_required_fields : []
+}
+
+function getReasonSummary(record: EvaluationRecord) {
+  const reasons = getReasons(record)
+  return Array.isArray(reasons.summary) && reasons.summary.length ? reasons.summary.slice(0, 3).join('；') : '—'
 }
 
 function canMarkReviewed(status: string) {
-  return status === 'generated'
+  return status === 'generated' || status === 'generated_low_confidence'
 }
 
 function getMarkReviewedDisabledReason(status: string) {
-  return canMarkReviewed(status) ? '' : '仅待复核记录可标记复核'
+  return canMarkReviewed(status) ? '' : '仅待复核或低置信度记录可标记复核'
 }
 
 function canApprove(status: string) {
@@ -234,6 +267,18 @@ async function saveRecord(payload: Record<string, unknown>) {
   if (!editingRecord.value) return
   await updateRecord(editingRecord.value.id, payload)
   ElMessage.success('记录更新成功')
+  drawerVisible.value = false
+  await loadData()
+}
+
+async function regenerateFromCandidate(payload: { selected_item_code?: string | null }) {
+  if (!editingRecord.value) return
+  await generateRecord(editingRecord.value.project_id, {
+    evidence_id: editingRecord.value.evidence_ids[0],
+    selected_item_code: payload.selected_item_code || null,
+    force_regenerate: true,
+  })
+  ElMessage.success('已按候选项重生成记录')
   drawerVisible.value = false
   await loadData()
 }
@@ -256,6 +301,7 @@ async function generateNewRecord() {
   await generateRecord(props.projectId, {
     evidence_id: generateEvidenceId.value,
     device_type_override: deviceTypeOverride.value || null,
+    selected_item_code: selectedItemCode.value || null,
     force_regenerate: false,
   })
   ElMessage.success('测评记录生成成功')

@@ -46,6 +46,12 @@
             </el-descriptions-item>
             <el-descriptions-item label="OCR Provider">{{ currentEvidence?.ocr_provider || '-' }}</el-descriptions-item>
             <el-descriptions-item label="更新时间">{{ currentEvidence?.updated_at || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="当前匹配记录">
+              {{ relatedRecord?.item_code || '尚未生成记录' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="缺失字段提示">
+              {{ relatedRecordMissingFields.length ? relatedRecordMissingFields.join('，') : '无' }}
+            </el-descriptions-item>
           </el-descriptions>
         </el-card>
 
@@ -99,7 +105,8 @@ import AppStatusTag from '@/components/AppStatusTag.vue'
 import FieldReviewTable from '@/components/FieldReviewTable.vue'
 import { getOcrResult, listEvidenceFields, listEvidences } from '@/api/evidences'
 import { listFieldAuditLogs, reviewField, updateField } from '@/api/fields'
-import type { AuditLog, Evidence, ExtractedField } from '@/types/domain'
+import { listRecords } from '@/api/records'
+import type { AuditLog, Evidence, EvaluationRecord, ExtractedField, MatchReasons } from '@/types/domain'
 
 const props = defineProps<{ projectId: string; evidenceId?: string }>()
 const route = useRoute()
@@ -108,8 +115,16 @@ const selectedEvidenceId = ref('')
 const ocrText = ref('')
 const fields = ref<ExtractedField[]>([])
 const auditLogs = ref<AuditLog[]>([])
+const records = ref<EvaluationRecord[]>([])
 
 const currentEvidence = computed(() => evidences.value.find((item) => item.id === selectedEvidenceId.value) || null)
+const relatedRecord = computed(() => records.value.find((item) => item.evidence_ids.includes(selectedEvidenceId.value)) || null)
+const relatedRecordMissingFields = computed(() => {
+  const reasons = relatedRecord.value?.match_reasons
+  if (!reasons || typeof reasons !== 'object') return []
+  const missing = (reasons as MatchReasons).missing_required_fields
+  return Array.isArray(missing) ? missing : []
+})
 
 async function loadEvidencesData() {
   const { data } = await listEvidences(props.projectId)
@@ -124,12 +139,14 @@ async function loadReviewData() {
     fields.value = []
     return
   }
-  const [ocrResult, fieldsResult] = await Promise.all([
+  const [ocrResult, fieldsResult, recordsResult] = await Promise.all([
     getOcrResult(selectedEvidenceId.value).catch(() => ({ data: { full_text: '该证据尚未完成 OCR。' } })),
     listEvidenceFields(selectedEvidenceId.value).catch(() => ({ data: [] })),
+    listRecords(props.projectId).catch(() => ({ data: [] })),
   ])
   ocrText.value = ocrResult.data.full_text || JSON.stringify(ocrResult.data, null, 2)
   fields.value = fieldsResult.data
+  records.value = recordsResult.data
   auditLogs.value = []
 }
 

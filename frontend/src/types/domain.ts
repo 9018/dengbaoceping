@@ -156,6 +156,49 @@ export interface FieldReviewPayload {
   reviewed_by?: string | null
 }
 
+export interface MatchFieldSnapshot {
+  field_code: string
+  field_name: string
+  value: string | null
+  status: string | null
+}
+
+export interface MatchReasons {
+  summary?: string[]
+  matched_required_fields?: string[]
+  missing_required_fields?: string[]
+  matched_optional_fields?: string[]
+  missing_optional_fields?: string[]
+  matched_negative_fields?: string[]
+  clean_negative_fields?: string[]
+  matched_template_fields?: string[]
+  missing_template_fields?: string[]
+  device_type?: string | null
+  device_type_reason?: string
+  required_fields_score?: number
+  optional_fields_score?: number
+  negative_fields_score?: number
+  template_coverage?: number
+  device_type_score?: number
+  pass_score?: number
+  domain?: string | null
+  level2?: string | null
+  level3?: string | null
+  selected?: MatchReasons
+  best_match_item_code?: string | null
+  selection_mode?: string
+}
+
+export interface MatchCandidate {
+  item_code: string | null
+  template_code: string | null
+  score: number | null
+  pass_score: number | null
+  missing_fields: string[]
+  matched_fields: MatchFieldSnapshot[]
+  reasons: MatchReasons
+}
+
 export interface EvaluationRecord extends Timestamped {
   id: string
   project_id: string
@@ -164,13 +207,14 @@ export interface EvaluationRecord extends Timestamped {
   title: string | null
   record_content: string | null
   final_content: string | null
-  matched_fields_json: unknown
+  matched_fields_json: MatchFieldSnapshot[] | Record<string, unknown> | null
+  match_candidates: MatchCandidate[] | Record<string, unknown> | null
   status: string
   review_comment: string | null
   reviewed_by: string | null
   reviewed_at: string | null
   match_score: number | null
-  match_reasons: unknown
+  match_reasons: MatchReasons | Record<string, unknown> | null
   template_code: string | null
   item_code: string | null
 }
@@ -178,6 +222,8 @@ export interface EvaluationRecord extends Timestamped {
 export interface RecordGeneratePayload {
   evidence_id: string
   device_type_override?: string | null
+  selected_item_code?: string | null
+  selected_template_code?: string | null
   force_regenerate?: boolean
 }
 

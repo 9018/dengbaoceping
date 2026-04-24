@@ -6,9 +6,14 @@
     "level2": "边界防护",
     "level3": "检查安全设备基础配置是否完整",
     "required_fields": ["device_name", "device_ip", "os_version"],
+    "optional_fields": ["device_model"],
+    "negative_fields": [],
     "device_types": ["firewall"],
     "match_weights": {
-      "required_fields": 0.7,
+      "required_fields": 0.65,
+      "optional_fields": 0.0,
+      "negative_fields": 0.0,
+      "template_coverage": 0.05,
       "device_type": 0.3
     },
     "pass_score": 0.6
@@ -20,9 +25,14 @@
     "level2": "主机安全",
     "level3": "检查主机基础信息与补丁信息",
     "required_fields": ["hostname", "os_name", "patch_level"],
+    "optional_fields": [],
+    "negative_fields": [],
     "device_types": ["server", "host"],
     "match_weights": {
-      "required_fields": 0.8,
+      "required_fields": 0.65,
+      "optional_fields": 0.0,
+      "negative_fields": 0.0,
+      "template_coverage": 0.15,
       "device_type": 0.2
     },
     "pass_score": 0.65
@@ -34,10 +44,243 @@
     "level2": "访问控制",
     "level3": "检查安全策略配置项",
     "required_fields": ["policy_name", "source_zone", "destination_zone", "action"],
+    "optional_fields": [],
+    "negative_fields": [],
     "device_types": ["firewall"],
     "match_weights": {
-      "required_fields": 0.75,
+      "required_fields": 0.6,
+      "optional_fields": 0.0,
+      "negative_fields": 0.0,
+      "template_coverage": 0.15,
       "device_type": 0.25
+    },
+    "pass_score": 0.7
+  },
+  {
+    "item_code": "host_password_policy_check",
+    "template_code": "host_password_policy",
+    "domain": "host_security",
+    "level2": "身份鉴别",
+    "level3": "检查口令复杂度与账户锁定策略",
+    "required_fields": ["password_min_length", "password_complexity", "account_lockout_threshold", "default_account_status"],
+    "optional_fields": ["hostname", "password_max_age", "account_lockout_duration", "login_failure_action"],
+    "negative_fields": [],
+    "device_types": ["server", "host"],
+    "match_weights": {
+      "required_fields": 0.55,
+      "optional_fields": 0.2,
+      "negative_fields": 0.0,
+      "template_coverage": 0.05,
+      "device_type": 0.2
+    },
+    "pass_score": 0.7
+  },
+  {
+    "item_code": "host_access_control_check",
+    "template_code": "host_access_control",
+    "domain": "host_security",
+    "level2": "访问控制",
+    "level3": "检查主机远程登录与账户控制配置",
+    "required_fields": ["remote_login_allowed", "ssh_root_login", "admin_account_count", "unused_account_status"],
+    "optional_fields": ["hostname", "rdp_enabled"],
+    "negative_fields": [],
+    "device_types": ["server", "host"],
+    "match_weights": {
+      "required_fields": 0.6,
+      "optional_fields": 0.2,
+      "negative_fields": 0.0,
+      "template_coverage": 0.05,
+      "device_type": 0.2
+    },
+    "pass_score": 0.65
+  },
+  {
+    "item_code": "host_audit_config_check",
+    "template_code": "host_audit_config",
+    "domain": "host_security",
+    "level2": "安全审计",
+    "level3": "检查审计与时间同步配置是否完整",
+    "required_fields": ["audit_enabled", "login_log_enabled", "operation_log_enabled", "log_retention_days"],
+    "optional_fields": ["hostname", "syslog_server", "ntp_server", "time_sync_enabled"],
+    "negative_fields": [],
+    "device_types": ["server", "host"],
+    "match_weights": {
+      "required_fields": 0.55,
+      "optional_fields": 0.2,
+      "negative_fields": 0.0,
+      "template_coverage": 0.05,
+      "device_type": 0.2
+    },
+    "pass_score": 0.7
+  },
+  {
+    "item_code": "host_malware_protection_check",
+    "template_code": "host_malware_protection",
+    "domain": "host_security",
+    "level2": "恶意代码防范",
+    "level3": "检查防病毒与基线加固配置",
+    "required_fields": ["antivirus_installed", "realtime_protection_enabled", "virus_database_version", "baseline_check_status"],
+    "optional_fields": ["hostname", "patch_status", "unnecessary_service_status", "high_risk_port", "weak_password_check", "last_scan_time"],
+    "negative_fields": [],
+    "device_types": ["server", "host"],
+    "match_weights": {
+      "required_fields": 0.55,
+      "optional_fields": 0.2,
+      "negative_fields": 0.0,
+      "template_coverage": 0.05,
+      "device_type": 0.2
+    },
+    "pass_score": 0.7
+  },
+  {
+    "item_code": "identity_password_policy_check",
+    "template_code": "identity_password_policy",
+    "domain": "host_security",
+    "level2": "身份鉴别",
+    "level3": "检查口令长度、复杂度与有效期配置",
+    "required_fields": ["password_min_length", "password_complexity"],
+    "optional_fields": ["hostname", "password_max_age", "default_account_status"],
+    "negative_fields": ["weak_password_check"],
+    "device_types": ["server", "host"],
+    "match_weights": {
+      "required_fields": 0.3,
+      "optional_fields": 0.15,
+      "negative_fields": 0.1,
+      "template_coverage": 0.05,
+      "device_type": 0.1
+    },
+    "pass_score": 0.68
+  },
+  {
+    "item_code": "identity_account_lockout_check",
+    "template_code": "identity_account_lockout",
+    "domain": "host_security",
+    "level2": "身份鉴别",
+    "level3": "检查账户锁定阈值与失败处置策略",
+    "required_fields": ["account_lockout_threshold", "account_lockout_duration"],
+    "optional_fields": ["hostname", "login_failure_action", "default_account_status"],
+    "negative_fields": ["weak_password_check"],
+    "device_types": ["server", "host"],
+    "match_weights": {
+      "required_fields": 0.3,
+      "optional_fields": 0.15,
+      "negative_fields": 0.1,
+      "template_coverage": 0.05,
+      "device_type": 0.1
+    },
+    "pass_score": 0.68
+  },
+  {
+    "item_code": "access_remote_login_check",
+    "template_code": "access_remote_login",
+    "domain": "host_security",
+    "level2": "访问控制",
+    "level3": "检查远程登录与特权登录控制措施",
+    "required_fields": ["remote_login_allowed", "ssh_root_login"],
+    "optional_fields": ["hostname", "rdp_enabled", "admin_account_count", "unused_account_status"],
+    "negative_fields": [],
+    "device_types": ["server", "host"],
+    "match_weights": {
+      "required_fields": 0.25,
+      "optional_fields": 0.15,
+      "negative_fields": 0.0,
+      "template_coverage": 0.05,
+      "device_type": 0.1
+    },
+    "pass_score": 0.66
+  },
+  {
+    "item_code": "access_security_policy_check",
+    "template_code": "access_security_policy",
+    "domain": "network_security",
+    "level2": "访问控制",
+    "level3": "检查边界访问控制与安全策略执行情况",
+    "required_fields": ["policy_name", "source_zone", "destination_zone", "action"],
+    "optional_fields": ["firewall_policy_name", "source_address", "destination_address", "service_port"],
+    "negative_fields": ["deny_all_policy"],
+    "device_types": ["firewall"],
+    "match_weights": {
+      "required_fields": 0.3,
+      "optional_fields": 0.15,
+      "negative_fields": 0.1,
+      "template_coverage": 0.05,
+      "device_type": 0.1
+    },
+    "pass_score": 0.72
+  },
+  {
+    "item_code": "audit_log_enable_check",
+    "template_code": "audit_log_enable",
+    "domain": "host_security",
+    "level2": "安全审计",
+    "level3": "检查主机审计、登录日志与操作日志开启情况",
+    "required_fields": ["audit_enabled", "login_log_enabled", "operation_log_enabled"],
+    "optional_fields": ["hostname", "syslog_server", "time_sync_enabled"],
+    "negative_fields": [],
+    "device_types": ["server", "host"],
+    "match_weights": {
+      "required_fields": 0.35,
+      "optional_fields": 0.1,
+      "negative_fields": 0.0,
+      "template_coverage": 0.05,
+      "device_type": 0.1
+    },
+    "pass_score": 0.7
+  },
+  {
+    "item_code": "audit_log_retention_check",
+    "template_code": "audit_log_retention",
+    "domain": "host_security",
+    "level2": "安全审计",
+    "level3": "检查日志留存周期与集中留存配置",
+    "required_fields": ["log_retention_days"],
+    "optional_fields": ["hostname", "syslog_server", "ntp_server", "time_sync_enabled"],
+    "negative_fields": [],
+    "device_types": ["server", "host"],
+    "match_weights": {
+      "required_fields": 0.2,
+      "optional_fields": 0.1,
+      "negative_fields": 0.0,
+      "template_coverage": 0.05,
+      "device_type": 0.1
+    },
+    "pass_score": 0.68
+  },
+  {
+    "item_code": "intrusion_patch_service_check",
+    "template_code": "intrusion_patch_service",
+    "domain": "host_security",
+    "level2": "入侵防范",
+    "level3": "检查补丁、弱口令与高危服务暴露情况",
+    "required_fields": ["patch_status", "unnecessary_service_status"],
+    "optional_fields": ["hostname", "high_risk_port", "weak_password_check", "baseline_check_status"],
+    "negative_fields": ["remote_login_allowed"],
+    "device_types": ["server", "host"],
+    "match_weights": {
+      "required_fields": 0.4,
+      "optional_fields": 0.2,
+      "negative_fields": 0.05,
+      "template_coverage": 0.15,
+      "device_type": 0.2
+    },
+    "pass_score": 0.68
+  },
+  {
+    "item_code": "malware_antivirus_check",
+    "template_code": "malware_antivirus",
+    "domain": "host_security",
+    "level2": "恶意代码防范",
+    "level3": "检查防病毒、实时防护与病毒库更新状态",
+    "required_fields": ["antivirus_installed", "realtime_protection_enabled", "virus_database_version"],
+    "optional_fields": ["hostname", "baseline_check_status", "last_scan_time"],
+    "negative_fields": ["weak_password_check"],
+    "device_types": ["server", "host"],
+    "match_weights": {
+      "required_fields": 0.3,
+      "optional_fields": 0.1,
+      "negative_fields": 0.05,
+      "template_coverage": 0.05,
+      "device_type": 0.1
     },
     "pass_score": 0.7
   }

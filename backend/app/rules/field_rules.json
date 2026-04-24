@@ -4,8 +4,19 @@
     "field_group": "basic",
     "field_name": "device_name",
     "value_type": "text",
-    "aliases": ["设备名称", "设备名", "主机名称", "主机名"],
-    "synonyms": ["设备名称", "设备名", "主机名称", "主机名", "名称"],
+    "aliases": [
+      "设备名称",
+      "设备名",
+      "主机名称",
+      "主机名"
+    ],
+    "synonyms": [
+      "设备名称",
+      "设备名",
+      "主机名称",
+      "主机名",
+      "名称"
+    ],
     "regex": [
       "(?:设备名称|设备名|主机名称|主机名|名称)\\s*[:：]\\s*(?P<value>[^\\n]+)"
     ],
@@ -36,8 +47,19 @@
     "field_group": "basic",
     "field_name": "device_ip",
     "value_type": "text",
-    "aliases": ["管理IP", "设备IP", "IP地址", "管理地址"],
-    "synonyms": ["管理IP", "设备IP", "IP地址", "管理地址", "IP"],
+    "aliases": [
+      "管理IP",
+      "设备IP",
+      "IP地址",
+      "管理地址"
+    ],
+    "synonyms": [
+      "管理IP",
+      "设备IP",
+      "IP地址",
+      "管理地址",
+      "IP"
+    ],
     "regex": [
       "(?:管理IP|设备IP|IP地址|管理地址|IP)\\s*[:：]\\s*(?P<value>[0-9OIl\\.]+)"
     ],
@@ -63,8 +85,18 @@
     "field_group": "system",
     "field_name": "os_version",
     "value_type": "text",
-    "aliases": ["系统版本", "软件版本", "版本号", "版本"],
-    "synonyms": ["系统版本", "软件版本", "版本号", "版本"],
+    "aliases": [
+      "系统版本",
+      "软件版本",
+      "版本号",
+      "版本"
+    ],
+    "synonyms": [
+      "系统版本",
+      "软件版本",
+      "版本号",
+      "版本"
+    ],
     "regex": [
       "(?:系统版本|软件版本|版本号|版本)\\s*[:：]\\s*(?P<value>[^\\n]+)"
     ],
@@ -85,8 +117,16 @@
     "field_group": "system",
     "field_name": "device_model",
     "value_type": "text",
-    "aliases": ["设备型号", "型号", "产品型号"],
-    "synonyms": ["设备型号", "型号", "产品型号"],
+    "aliases": [
+      "设备型号",
+      "型号",
+      "产品型号"
+    ],
+    "synonyms": [
+      "设备型号",
+      "型号",
+      "产品型号"
+    ],
     "regex": [
       "(?:设备型号|产品型号|型号)\\s*[:：]\\s*(?P<value>[^\\n]+)"
     ],
@@ -107,8 +147,17 @@
     "field_group": "basic",
     "field_name": "hostname",
     "value_type": "text",
-    "aliases": ["主机名", "主机名称", "计算机名"],
-    "synonyms": ["主机名", "主机名称", "计算机名", "设备名称"],
+    "aliases": [
+      "主机名",
+      "主机名称",
+      "计算机名"
+    ],
+    "synonyms": [
+      "主机名",
+      "主机名称",
+      "计算机名",
+      "设备名称"
+    ],
     "regex": [
       "(?:主机名|主机名称|计算机名)\\s*[:：]\\s*(?P<value>[^\\n]+)"
     ],
@@ -132,8 +181,16 @@
     "field_group": "system",
     "field_name": "os_name",
     "value_type": "text",
-    "aliases": ["操作系统", "系统名称", "OS"],
-    "synonyms": ["操作系统", "系统名称", "OS"],
+    "aliases": [
+      "操作系统",
+      "系统名称",
+      "OS"
+    ],
+    "synonyms": [
+      "操作系统",
+      "系统名称",
+      "OS"
+    ],
     "regex": [
       "(?:操作系统|系统名称|OS)\\s*[:：]\\s*(?P<value>[^\\n]+)"
     ],
@@ -154,8 +211,16 @@
     "field_group": "system",
     "field_name": "patch_level",
     "value_type": "text",
-    "aliases": ["补丁级别", "补丁版本", "更新版本"],
-    "synonyms": ["补丁级别", "补丁版本", "更新版本"],
+    "aliases": [
+      "补丁级别",
+      "补丁版本",
+      "更新版本"
+    ],
+    "synonyms": [
+      "补丁级别",
+      "补丁版本",
+      "更新版本"
+    ],
     "regex": [
       "(?:补丁级别|补丁版本|更新版本)\\s*[:：]\\s*(?P<value>[^\\n]+)"
     ],
@@ -176,8 +241,16 @@
     "field_group": "policy",
     "field_name": "policy_name",
     "value_type": "text",
-    "aliases": ["策略名称", "安全策略", "策略名"],
-    "synonyms": ["策略名称", "安全策略", "策略名"],
+    "aliases": [
+      "策略名称",
+      "安全策略",
+      "策略名"
+    ],
+    "synonyms": [
+      "策略名称",
+      "安全策略",
+      "策略名"
+    ],
     "regex": [
       "(?:策略名称|安全策略|策略名)\\s*[:：]\\s*(?P<value>[^\\n]+)"
     ],
@@ -198,10 +271,18 @@
     "field_group": "policy",
     "field_name": "source_zone",
     "value_type": "text",
-    "aliases": ["源区域", "源安全域", "源区"],
-    "synonyms": ["源区域", "源安全域", "源区"],
+    "aliases": [
+      "源区域",
+      "源安全域",
+      "源区"
+    ],
+    "synonyms": [
+      "源区域",
+      "源安全域",
+      "源区"
+    ],
     "regex": [
-      "(?:源区域|源安全域|源区)\\s*[:：]\\s*(?P<value>[^\\n]+)"
+      "(?:源区域|源安全域|源区)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
     ],
     "normalize": {
       "trim": true,
@@ -220,10 +301,18 @@
     "field_group": "policy",
     "field_name": "destination_zone",
     "value_type": "text",
-    "aliases": ["目的区域", "目标区域", "目的安全域"],
-    "synonyms": ["目的区域", "目标区域", "目的安全域"],
+    "aliases": [
+      "目的区域",
+      "目标区域",
+      "目的安全域"
+    ],
+    "synonyms": [
+      "目的区域",
+      "目标区域",
+      "目的安全域"
+    ],
     "regex": [
-      "(?:目的区域|目标区域|目的安全域)\\s*[:：]\\s*(?P<value>[^\\n]+)"
+      "(?:目的区域|目标区域|目的安全域)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
     ],
     "normalize": {
       "trim": true,
@@ -242,8 +331,18 @@
     "field_group": "policy",
     "field_name": "action",
     "value_type": "text",
-    "aliases": ["动作", "操作", "行为"],
-    "synonyms": ["动作", "操作", "行为", "允许", "拒绝"],
+    "aliases": [
+      "动作",
+      "操作",
+      "行为"
+    ],
+    "synonyms": [
+      "动作",
+      "操作",
+      "行为",
+      "允许",
+      "拒绝"
+    ],
     "regex": [
       "(?:动作|操作|行为)\\s*[:：]\\s*(?P<value>[^\\n]+)"
     ],
@@ -268,8 +367,16 @@
     "field_group": "network",
     "field_name": "management_ip",
     "value_type": "text",
-    "aliases": ["管理IP", "管理地址", "管理口IP"],
-    "synonyms": ["管理IP", "管理地址", "管理口IP"],
+    "aliases": [
+      "管理IP",
+      "管理地址",
+      "管理口IP"
+    ],
+    "synonyms": [
+      "管理IP",
+      "管理地址",
+      "管理口IP"
+    ],
     "regex": [
       "(?:管理IP|管理地址|管理口IP)\\s*[:：]\\s*(?P<value>[0-9OIl\\.]+)"
     ],
@@ -295,8 +402,14 @@
     "field_group": "network",
     "field_name": "subnet_mask",
     "value_type": "text",
-    "aliases": ["子网掩码", "掩码"],
-    "synonyms": ["子网掩码", "掩码"],
+    "aliases": [
+      "子网掩码",
+      "掩码"
+    ],
+    "synonyms": [
+      "子网掩码",
+      "掩码"
+    ],
     "regex": [
       "(?:子网掩码|掩码)\\s*[:：]\\s*(?P<value>[0-9OIl\\.]+)"
     ],
@@ -322,8 +435,14 @@
     "field_group": "network",
     "field_name": "gateway",
     "value_type": "text",
-    "aliases": ["默认网关", "网关"],
-    "synonyms": ["默认网关", "网关"],
+    "aliases": [
+      "默认网关",
+      "网关"
+    ],
+    "synonyms": [
+      "默认网关",
+      "网关"
+    ],
     "regex": [
       "(?:默认网关|网关)\\s*[:：]\\s*(?P<value>[0-9OIl\\.]+)"
     ],
@@ -341,6 +460,2118 @@
       }
     },
     "priority": 66,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "password_min_length",
+    "field_group": "identity_auth",
+    "field_name": "password_min_length",
+    "value_type": "number",
+    "aliases": [
+      "最小密码长度",
+      "密码最小长度",
+      "密码长度最小值",
+      "Minimum password length"
+    ],
+    "synonyms": [
+      "最小密码长度",
+      "密码最小长度",
+      "密码长度最小值",
+      "密码长度不少于",
+      "Minimum password length"
+    ],
+    "regex": [
+      "(?:最小密码长度|密码最小长度|密码长度最小值|Minimum password length)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[0-9OIl]+)\\s*(?:位|个字符|字符)?",
+      "密码长度(?:至少|不少于)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[0-9OIl]+)\\s*(?:位|个字符|字符)?"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": "."
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 94,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "password_complexity",
+    "field_group": "identity_auth",
+    "field_name": "password_complexity",
+    "value_type": "text",
+    "aliases": [
+      "密码复杂度",
+      "密码复杂性要求",
+      "Password must meet complexity requirements"
+    ],
+    "synonyms": [
+      "密码复杂度",
+      "复杂度要求",
+      "复杂性要求",
+      "Password must meet complexity requirements"
+    ],
+    "regex": [
+      "(?:密码复杂度|密码复杂性要求|复杂度要求|Password must meet complexity requirements)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)",
+      "密码必须包含\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "大写字母、小写字母、数字和特殊字符": "upper+lower+digit+special",
+        "大写字母、小写字母、数字、特殊字符": "upper+lower+digit+special",
+        "大小写字母、数字和特殊字符": "upper+lower+digit+special",
+        "数字、字母及特殊字符": "digit+letter+special"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 93,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "password_max_age",
+    "field_group": "identity_auth",
+    "field_name": "password_max_age",
+    "value_type": "number",
+    "aliases": [
+      "密码最长使用期限",
+      "密码最大使用期限",
+      "密码有效期",
+      "Maximum password age"
+    ],
+    "synonyms": [
+      "密码最长使用期限",
+      "密码最大使用期限",
+      "密码有效期",
+      "Maximum password age"
+    ],
+    "regex": [
+      "(?:密码最长使用期限|密码最大使用期限|密码有效期|Maximum password age)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[0-9OIl]+)\\s*(?:天|日|days?)?",
+      "密码(?:最长|最大)使用期限\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[0-9OIl]+)\\s*(?:天|日|days?)?"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": "."
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 92,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "account_lockout_threshold",
+    "field_group": "identity_auth",
+    "field_name": "account_lockout_threshold",
+    "value_type": "number",
+    "aliases": [
+      "账户锁定阈值",
+      "帐户锁定阈值",
+      "登录失败次数阈值",
+      "Account lockout threshold"
+    ],
+    "synonyms": [
+      "账户锁定阈值",
+      "帐户锁定阈值",
+      "登录失败次数阈值",
+      "Account lockout threshold"
+    ],
+    "regex": [
+      "(?:账户锁定阈值|帐户锁定阈值|登录失败次数阈值|Account lockout threshold)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[0-9OIl]+)\\s*(?:次)?",
+      "(?:登录失败|认证失败)(?:达到|超过)?\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[0-9OIl]+)\\s*(?:次)?"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": "."
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 91,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "account_lockout_duration",
+    "field_group": "identity_auth",
+    "field_name": "account_lockout_duration",
+    "value_type": "number",
+    "aliases": [
+      "账户锁定时间",
+      "帐户锁定时间",
+      "锁定持续时间",
+      "Account lockout duration"
+    ],
+    "synonyms": [
+      "账户锁定时间",
+      "帐户锁定时间",
+      "锁定持续时间",
+      "Account lockout duration"
+    ],
+    "regex": [
+      "(?:账户锁定时间|帐户锁定时间|锁定持续时间|Account lockout duration)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[0-9OIl]+)\\s*(?:分钟|分|min|minutes?)?",
+      "锁定(?:持续)?时间\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[0-9OIl]+)\\s*(?:分钟|分|min|minutes?)?"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": "."
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 90,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "login_failure_action",
+    "field_group": "identity_auth",
+    "field_name": "login_failure_action",
+    "value_type": "text",
+    "aliases": [
+      "登录失败处理",
+      "登录失败动作",
+      "失败处理措施"
+    ],
+    "synonyms": [
+      "登录失败处理",
+      "登录失败动作",
+      "失败处理措施",
+      "锁定",
+      "告警",
+      "记录"
+    ],
+    "regex": [
+      "(?:登录失败处理|登录失败动作|失败处理措施)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)",
+      "(?:认证失败|登录失败)后\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "已启用": "enabled",
+        "启用": "enabled",
+        "开启": "enabled",
+        "开": "enabled",
+        "是": "enabled",
+        "允许": "allow",
+        "可用": "enabled",
+        "已开启": "enabled",
+        "enable": "enabled",
+        "enabled": "enabled",
+        "Enable": "enabled",
+        "Enabled": "enabled",
+        "未启用": "disabled",
+        "禁用": "disabled",
+        "关闭": "disabled",
+        "关": "disabled",
+        "否": "disabled",
+        "不允许": "disabled",
+        "不可用": "disabled",
+        "已关闭": "disabled",
+        "disable": "disabled",
+        "disabled": "disabled",
+        "Disable": "disabled",
+        "Disabled": "disabled",
+        "锁定": "lock",
+        "锁定账户": "lock",
+        "锁定账号": "lock",
+        "lock": "lock",
+        "locked": "lock",
+        "告警": "alert",
+        "报警": "alert",
+        "alert": "alert",
+        "记录": "log",
+        "记录日志": "log",
+        "log": "log",
+        "拒绝": "deny",
+        "阻断": "deny",
+        "deny": "deny",
+        "allow": "allow",
+        "保留": "retain",
+        "retain": "retain"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 89,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "default_account_status",
+    "field_group": "identity_auth",
+    "field_name": "default_account_status",
+    "value_type": "text",
+    "aliases": [
+      "默认账户状态",
+      "缺省账户状态",
+      "默认账号状态",
+      "内置账户状态"
+    ],
+    "synonyms": [
+      "默认账户状态",
+      "缺省账户状态",
+      "默认账号状态",
+      "内置账户状态"
+    ],
+    "regex": [
+      "(?:默认账户状态|缺省账户状态|默认账号状态|内置账户状态)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)",
+      "(?:guest|administrator|admin)(?:账户|账号)?状态\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "已启用": "enabled",
+        "启用": "enabled",
+        "开启": "enabled",
+        "开": "enabled",
+        "是": "enabled",
+        "允许": "enabled",
+        "可用": "enabled",
+        "已开启": "enabled",
+        "enable": "enabled",
+        "enabled": "enabled",
+        "Enable": "enabled",
+        "Enabled": "enabled",
+        "未启用": "disabled",
+        "禁用": "disabled",
+        "关闭": "disabled",
+        "关": "disabled",
+        "否": "disabled",
+        "不允许": "disabled",
+        "不可用": "disabled",
+        "已关闭": "disabled",
+        "disable": "disabled",
+        "disabled": "disabled",
+        "Disable": "disabled",
+        "Disabled": "disabled"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 88,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "admin_account_count",
+    "field_group": "access_control",
+    "field_name": "admin_account_count",
+    "value_type": "number",
+    "aliases": [
+      "管理员账户数量",
+      "管理员账号数量",
+      "管理账户数"
+    ],
+    "synonyms": [
+      "管理员账户数量",
+      "管理员账号数量",
+      "管理账户数"
+    ],
+    "regex": [
+      "(?:管理员账户数量|管理员账号数量|管理账户数)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[0-9OIl]+)\\s*(?:个)?"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": "."
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 87,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "unused_account_status",
+    "field_group": "access_control",
+    "field_name": "unused_account_status",
+    "value_type": "text",
+    "aliases": [
+      "长期未用账户状态",
+      "未使用账户状态",
+      "闲置账户状态"
+    ],
+    "synonyms": [
+      "长期未用账户状态",
+      "未使用账户状态",
+      "闲置账户状态"
+    ],
+    "regex": [
+      "(?:长期未用账户状态|未使用账户状态|闲置账户状态)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "已启用": "enabled",
+        "启用": "enabled",
+        "开启": "enabled",
+        "开": "enabled",
+        "是": "enabled",
+        "允许": "enabled",
+        "可用": "enabled",
+        "已开启": "enabled",
+        "enable": "enabled",
+        "enabled": "enabled",
+        "Enable": "enabled",
+        "Enabled": "enabled",
+        "未启用": "disabled",
+        "禁用": "disabled",
+        "关闭": "disabled",
+        "关": "disabled",
+        "否": "disabled",
+        "不允许": "disabled",
+        "不可用": "disabled",
+        "已关闭": "disabled",
+        "disable": "disabled",
+        "disabled": "disabled",
+        "Disable": "disabled",
+        "Disabled": "disabled"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 86,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "remote_login_allowed",
+    "field_group": "access_control",
+    "field_name": "remote_login_allowed",
+    "value_type": "bool",
+    "aliases": [
+      "允许远程登录",
+      "远程登录是否允许",
+      "Remote login"
+    ],
+    "synonyms": [
+      "允许远程登录",
+      "远程登录是否允许",
+      "Remote login"
+    ],
+    "regex": [
+      "(?:允许远程登录|远程登录是否允许|Remote login)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)",
+      "是否允许远程登录\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "已启用": "enabled",
+        "启用": "enabled",
+        "开启": "enabled",
+        "开": "enabled",
+        "是": "enabled",
+        "允许": "enabled",
+        "可用": "enabled",
+        "已开启": "enabled",
+        "enable": "enabled",
+        "enabled": "enabled",
+        "Enable": "enabled",
+        "Enabled": "enabled",
+        "未启用": "disabled",
+        "禁用": "disabled",
+        "关闭": "disabled",
+        "关": "disabled",
+        "否": "disabled",
+        "不允许": "disabled",
+        "不可用": "disabled",
+        "已关闭": "disabled",
+        "disable": "disabled",
+        "disabled": "disabled",
+        "Disable": "disabled",
+        "Disabled": "disabled",
+        "yes": "enabled",
+        "Yes": "enabled",
+        "YES": "enabled",
+        "no": "disabled",
+        "No": "disabled",
+        "NO": "disabled"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 85,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "ssh_root_login",
+    "field_group": "access_control",
+    "field_name": "ssh_root_login",
+    "value_type": "bool",
+    "aliases": [
+      "PermitRootLogin",
+      "SSH root登录",
+      "root远程登录"
+    ],
+    "synonyms": [
+      "PermitRootLogin",
+      "SSH root登录",
+      "root远程登录",
+      "ssh root login"
+    ],
+    "regex": [
+      "(?:PermitRootLogin|SSH root登录|root远程登录)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)",
+      "root(?:用户)?(?:远程|SSH)登录\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "已启用": "enabled",
+        "启用": "enabled",
+        "开启": "enabled",
+        "开": "enabled",
+        "是": "enabled",
+        "允许": "enabled",
+        "可用": "enabled",
+        "已开启": "enabled",
+        "enable": "enabled",
+        "enabled": "enabled",
+        "Enable": "enabled",
+        "Enabled": "enabled",
+        "未启用": "disabled",
+        "禁用": "disabled",
+        "关闭": "disabled",
+        "关": "disabled",
+        "否": "disabled",
+        "不允许": "disabled",
+        "不可用": "disabled",
+        "已关闭": "disabled",
+        "disable": "disabled",
+        "disabled": "disabled",
+        "Disable": "disabled",
+        "Disabled": "disabled",
+        "yes": "enabled",
+        "Yes": "enabled",
+        "YES": "enabled",
+        "no": "disabled",
+        "No": "disabled",
+        "NO": "disabled"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 84,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "rdp_enabled",
+    "field_group": "access_control",
+    "field_name": "rdp_enabled",
+    "value_type": "bool",
+    "aliases": [
+      "远程桌面",
+      "RDP",
+      "远程桌面服务状态"
+    ],
+    "synonyms": [
+      "远程桌面",
+      "RDP",
+      "远程桌面服务状态"
+    ],
+    "regex": [
+      "(?:远程桌面服务状态|远程桌面|RDP)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)",
+      "RDP(?:服务)?\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "已启用": "enabled",
+        "启用": "enabled",
+        "开启": "enabled",
+        "开": "enabled",
+        "是": "enabled",
+        "允许": "enabled",
+        "可用": "enabled",
+        "已开启": "enabled",
+        "enable": "enabled",
+        "enabled": "enabled",
+        "Enable": "enabled",
+        "Enabled": "enabled",
+        "未启用": "disabled",
+        "禁用": "disabled",
+        "关闭": "disabled",
+        "关": "disabled",
+        "否": "disabled",
+        "不允许": "disabled",
+        "不可用": "disabled",
+        "已关闭": "disabled",
+        "disable": "disabled",
+        "disabled": "disabled",
+        "Disable": "disabled",
+        "Disabled": "disabled",
+        "yes": "enabled",
+        "Yes": "enabled",
+        "YES": "enabled",
+        "no": "disabled",
+        "No": "disabled",
+        "NO": "disabled"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 83,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "access_policy_name",
+    "field_group": "access_control",
+    "field_name": "access_policy_name",
+    "value_type": "text",
+    "aliases": [
+      "访问控制策略名称",
+      "访问策略名称",
+      "访问控制规则名称"
+    ],
+    "synonyms": [
+      "访问控制策略名称",
+      "访问策略名称",
+      "访问控制规则名称"
+    ],
+    "regex": [
+      "(?:访问控制策略名称|访问策略名称|访问控制规则名称)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": "."
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 82,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "source_address",
+    "field_group": "access_control",
+    "field_name": "source_address",
+    "value_type": "text",
+    "aliases": [
+      "源地址",
+      "源IP地址",
+      "源地址对象"
+    ],
+    "synonyms": [
+      "源地址",
+      "源IP地址",
+      "源地址对象"
+    ],
+    "regex": [
+      "(?:源地址|源IP地址|源地址对象)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[0-9OIlA-Fa-f\\.:/_-]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": "."
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 81,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "destination_address",
+    "field_group": "access_control",
+    "field_name": "destination_address",
+    "value_type": "text",
+    "aliases": [
+      "目的地址",
+      "目标地址",
+      "目的IP地址"
+    ],
+    "synonyms": [
+      "目的地址",
+      "目标地址",
+      "目的IP地址"
+    ],
+    "regex": [
+      "(?:目的地址|目标地址|目的IP地址)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[0-9OIlA-Fa-f\\.:/_-]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": "."
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 80,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "service_port",
+    "field_group": "access_control",
+    "field_name": "service_port",
+    "value_type": "text",
+    "aliases": [
+      "服务端口",
+      "目的端口",
+      "端口"
+    ],
+    "synonyms": [
+      "服务端口",
+      "目的端口",
+      "端口",
+      "tcp/udp端口"
+    ],
+    "regex": [
+      "(?:服务端口|目的端口|tcp/udp端口)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[0-9OIl]{1,5}(?:\\s*(?:/|,|，|-)\\s*[0-9OIl]{1,5})*)",
+      "端口\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[0-9OIl]{1,5}(?:\\s*(?:/|,|，|-)\\s*[0-9OIl]{1,5})*)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": "."
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 79,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "audit_enabled",
+    "field_group": "audit",
+    "field_name": "audit_enabled",
+    "value_type": "bool",
+    "aliases": [
+      "审计功能状态",
+      "审计启用状态",
+      "安全审计"
+    ],
+    "synonyms": [
+      "审计功能状态",
+      "审计启用状态",
+      "安全审计"
+    ],
+    "regex": [
+      "(?:审计功能状态|审计启用状态|安全审计)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "已启用": "enabled",
+        "启用": "enabled",
+        "开启": "enabled",
+        "开": "enabled",
+        "是": "enabled",
+        "允许": "enabled",
+        "可用": "enabled",
+        "已开启": "enabled",
+        "enable": "enabled",
+        "enabled": "enabled",
+        "Enable": "enabled",
+        "Enabled": "enabled",
+        "未启用": "disabled",
+        "禁用": "disabled",
+        "关闭": "disabled",
+        "关": "disabled",
+        "否": "disabled",
+        "不允许": "disabled",
+        "不可用": "disabled",
+        "已关闭": "disabled",
+        "disable": "disabled",
+        "disabled": "disabled",
+        "Disable": "disabled",
+        "Disabled": "disabled",
+        "yes": "enabled",
+        "Yes": "enabled",
+        "YES": "enabled",
+        "no": "disabled",
+        "No": "disabled",
+        "NO": "disabled"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 78,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "login_log_enabled",
+    "field_group": "audit",
+    "field_name": "login_log_enabled",
+    "value_type": "bool",
+    "aliases": [
+      "登录日志",
+      "登录审计日志",
+      "登录事件日志"
+    ],
+    "synonyms": [
+      "登录日志",
+      "登录审计日志",
+      "登录事件日志"
+    ],
+    "regex": [
+      "(?:登录日志|登录审计日志|登录事件日志)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "已启用": "enabled",
+        "启用": "enabled",
+        "开启": "enabled",
+        "开": "enabled",
+        "是": "enabled",
+        "允许": "enabled",
+        "可用": "enabled",
+        "已开启": "enabled",
+        "enable": "enabled",
+        "enabled": "enabled",
+        "Enable": "enabled",
+        "Enabled": "enabled",
+        "未启用": "disabled",
+        "禁用": "disabled",
+        "关闭": "disabled",
+        "关": "disabled",
+        "否": "disabled",
+        "不允许": "disabled",
+        "不可用": "disabled",
+        "已关闭": "disabled",
+        "disable": "disabled",
+        "disabled": "disabled",
+        "Disable": "disabled",
+        "Disabled": "disabled",
+        "yes": "enabled",
+        "Yes": "enabled",
+        "YES": "enabled",
+        "no": "disabled",
+        "No": "disabled",
+        "NO": "disabled"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 77,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "operation_log_enabled",
+    "field_group": "audit",
+    "field_name": "operation_log_enabled",
+    "value_type": "bool",
+    "aliases": [
+      "操作日志",
+      "操作审计日志",
+      "管理操作日志"
+    ],
+    "synonyms": [
+      "操作日志",
+      "操作审计日志",
+      "管理操作日志"
+    ],
+    "regex": [
+      "(?:操作日志|操作审计日志|管理操作日志)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "已启用": "enabled",
+        "启用": "enabled",
+        "开启": "enabled",
+        "开": "enabled",
+        "是": "enabled",
+        "允许": "enabled",
+        "可用": "enabled",
+        "已开启": "enabled",
+        "enable": "enabled",
+        "enabled": "enabled",
+        "Enable": "enabled",
+        "Enabled": "enabled",
+        "未启用": "disabled",
+        "禁用": "disabled",
+        "关闭": "disabled",
+        "关": "disabled",
+        "否": "disabled",
+        "不允许": "disabled",
+        "不可用": "disabled",
+        "已关闭": "disabled",
+        "disable": "disabled",
+        "disabled": "disabled",
+        "Disable": "disabled",
+        "Disabled": "disabled",
+        "yes": "enabled",
+        "Yes": "enabled",
+        "YES": "enabled",
+        "no": "disabled",
+        "No": "disabled",
+        "NO": "disabled"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 76,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "log_retention_days",
+    "field_group": "audit",
+    "field_name": "log_retention_days",
+    "value_type": "number",
+    "aliases": [
+      "日志保留时间",
+      "日志留存天数",
+      "日志保存期限"
+    ],
+    "synonyms": [
+      "日志保留时间",
+      "日志留存天数",
+      "日志保存期限"
+    ],
+    "regex": [
+      "(?:日志保留时间|日志留存天数|日志保存期限)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[0-9OIl]+)\\s*(?:天|日|days?)?",
+      "日志至少保留\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[0-9OIl]+)\\s*(?:天|日|days?)?"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": "."
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 75,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "syslog_server",
+    "field_group": "audit",
+    "field_name": "syslog_server",
+    "value_type": "text",
+    "aliases": [
+      "Syslog服务器",
+      "日志服务器",
+      "syslog server"
+    ],
+    "synonyms": [
+      "Syslog服务器",
+      "日志服务器",
+      "syslog server"
+    ],
+    "regex": [
+      "(?:Syslog服务器|日志服务器|syslog server)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[0-9OIlA-Fa-f\\.:/_-]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": "."
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 74,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "ntp_server",
+    "field_group": "audit",
+    "field_name": "ntp_server",
+    "value_type": "text",
+    "aliases": [
+      "NTP服务器",
+      "时间服务器",
+      "ntp server"
+    ],
+    "synonyms": [
+      "NTP服务器",
+      "时间服务器",
+      "ntp server"
+    ],
+    "regex": [
+      "(?:NTP服务器|时间服务器|ntp server)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[0-9OIlA-Fa-f\\.:/_-]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": "."
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 73,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "time_sync_enabled",
+    "field_group": "audit",
+    "field_name": "time_sync_enabled",
+    "value_type": "bool",
+    "aliases": [
+      "时间同步状态",
+      "时钟同步状态",
+      "NTP同步"
+    ],
+    "synonyms": [
+      "时间同步状态",
+      "时钟同步状态",
+      "NTP同步"
+    ],
+    "regex": [
+      "(?:时间同步状态|时钟同步状态|NTP同步)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "已启用": "enabled",
+        "启用": "enabled",
+        "开启": "enabled",
+        "开": "enabled",
+        "是": "enabled",
+        "允许": "enabled",
+        "可用": "enabled",
+        "已开启": "enabled",
+        "enable": "enabled",
+        "enabled": "enabled",
+        "Enable": "enabled",
+        "Enabled": "enabled",
+        "未启用": "disabled",
+        "禁用": "disabled",
+        "关闭": "disabled",
+        "关": "disabled",
+        "否": "disabled",
+        "不允许": "disabled",
+        "不可用": "disabled",
+        "已关闭": "disabled",
+        "disable": "disabled",
+        "disabled": "disabled",
+        "Disable": "disabled",
+        "Disabled": "disabled",
+        "yes": "enabled",
+        "Yes": "enabled",
+        "YES": "enabled",
+        "no": "disabled",
+        "No": "disabled",
+        "NO": "disabled"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 72,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "patch_status",
+    "field_group": "intrusion_prevention",
+    "field_name": "patch_status",
+    "value_type": "text",
+    "aliases": [
+      "补丁状态",
+      "系统补丁状态",
+      "更新状态"
+    ],
+    "synonyms": [
+      "补丁状态",
+      "系统补丁状态",
+      "更新状态"
+    ],
+    "regex": [
+      "(?:补丁状态|系统补丁状态|更新状态)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "已启用": "enabled",
+        "启用": "enabled",
+        "开启": "enabled",
+        "开": "enabled",
+        "是": "enabled",
+        "允许": "enabled",
+        "可用": "enabled",
+        "已开启": "enabled",
+        "enable": "enabled",
+        "enabled": "enabled",
+        "Enable": "enabled",
+        "Enabled": "enabled",
+        "未启用": "disabled",
+        "禁用": "disabled",
+        "关闭": "disabled",
+        "关": "disabled",
+        "否": "disabled",
+        "不允许": "disabled",
+        "不可用": "disabled",
+        "已关闭": "disabled",
+        "disable": "disabled",
+        "disabled": "disabled",
+        "Disable": "disabled",
+        "Disabled": "disabled",
+        "最新": "up_to_date",
+        "已更新": "up_to_date",
+        "up-to-date": "up_to_date",
+        "up to date": "up_to_date",
+        "up_to_date": "up_to_date",
+        "未更新": "outdated",
+        "缺失": "outdated",
+        "未安装": "missing",
+        "outdated": "outdated",
+        "missing": "missing"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 71,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "unnecessary_service_status",
+    "field_group": "intrusion_prevention",
+    "field_name": "unnecessary_service_status",
+    "value_type": "text",
+    "aliases": [
+      "非必要服务状态",
+      "不必要服务状态",
+      "高危服务状态"
+    ],
+    "synonyms": [
+      "非必要服务状态",
+      "不必要服务状态",
+      "高危服务状态"
+    ],
+    "regex": [
+      "(?:非必要服务状态|不必要服务状态|高危服务状态)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "已启用": "enabled",
+        "启用": "enabled",
+        "开启": "enabled",
+        "开": "enabled",
+        "是": "enabled",
+        "允许": "enabled",
+        "可用": "enabled",
+        "已开启": "enabled",
+        "enable": "enabled",
+        "enabled": "enabled",
+        "Enable": "enabled",
+        "Enabled": "enabled",
+        "未启用": "disabled",
+        "禁用": "disabled",
+        "关闭": "disabled",
+        "关": "disabled",
+        "否": "disabled",
+        "不允许": "disabled",
+        "不可用": "disabled",
+        "已关闭": "disabled",
+        "disable": "disabled",
+        "disabled": "disabled",
+        "Disable": "disabled",
+        "Disabled": "disabled"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 70,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "high_risk_port",
+    "field_group": "intrusion_prevention",
+    "field_name": "high_risk_port",
+    "value_type": "text",
+    "aliases": [
+      "高危端口",
+      "高风险端口",
+      "危险端口"
+    ],
+    "synonyms": [
+      "高危端口",
+      "高风险端口",
+      "危险端口"
+    ],
+    "regex": [
+      "(?:高危端口|高风险端口|危险端口)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[0-9OIl]{1,5}(?:\\s*(?:/|,|，|-)\\s*[0-9OIl]{1,5})*)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": "."
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 69,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "weak_password_check",
+    "field_group": "intrusion_prevention",
+    "field_name": "weak_password_check",
+    "value_type": "bool",
+    "aliases": [
+      "弱口令检查",
+      "弱密码检查",
+      "弱口令检测"
+    ],
+    "synonyms": [
+      "弱口令检查",
+      "弱密码检查",
+      "弱口令检测"
+    ],
+    "regex": [
+      "(?:弱口令检查|弱密码检查|弱口令检测)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "已启用": "enabled",
+        "启用": "enabled",
+        "开启": "enabled",
+        "开": "enabled",
+        "是": "enabled",
+        "允许": "enabled",
+        "可用": "enabled",
+        "已开启": "enabled",
+        "enable": "enabled",
+        "enabled": "enabled",
+        "Enable": "enabled",
+        "Enabled": "enabled",
+        "未启用": "disabled",
+        "禁用": "disabled",
+        "关闭": "disabled",
+        "关": "disabled",
+        "否": "disabled",
+        "不允许": "disabled",
+        "不可用": "disabled",
+        "已关闭": "disabled",
+        "disable": "disabled",
+        "disabled": "disabled",
+        "Disable": "disabled",
+        "Disabled": "disabled",
+        "yes": "enabled",
+        "Yes": "enabled",
+        "YES": "enabled",
+        "no": "disabled",
+        "No": "disabled",
+        "NO": "disabled"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 68,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "baseline_check_status",
+    "field_group": "intrusion_prevention",
+    "field_name": "baseline_check_status",
+    "value_type": "text",
+    "aliases": [
+      "基线检查状态",
+      "安全基线检查",
+      "配置基线检查"
+    ],
+    "synonyms": [
+      "基线检查状态",
+      "安全基线检查",
+      "配置基线检查"
+    ],
+    "regex": [
+      "(?:基线检查状态|安全基线检查|配置基线检查)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "已启用": "enabled",
+        "启用": "enabled",
+        "开启": "enabled",
+        "开": "enabled",
+        "是": "enabled",
+        "允许": "enabled",
+        "可用": "enabled",
+        "已开启": "enabled",
+        "enable": "enabled",
+        "enabled": "enabled",
+        "Enable": "enabled",
+        "Enabled": "enabled",
+        "未启用": "disabled",
+        "禁用": "disabled",
+        "关闭": "disabled",
+        "关": "disabled",
+        "否": "disabled",
+        "不允许": "disabled",
+        "不可用": "disabled",
+        "已关闭": "disabled",
+        "disable": "disabled",
+        "disabled": "disabled",
+        "Disable": "disabled",
+        "Disabled": "disabled"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 67,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "antivirus_installed",
+    "field_group": "malware_protection",
+    "field_name": "antivirus_installed",
+    "value_type": "bool",
+    "aliases": [
+      "已安装杀毒软件",
+      "杀毒软件安装状态",
+      "防病毒软件已安装"
+    ],
+    "synonyms": [
+      "已安装杀毒软件",
+      "杀毒软件安装状态",
+      "防病毒软件已安装"
+    ],
+    "regex": [
+      "(?:已安装杀毒软件|杀毒软件安装状态|防病毒软件已安装)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "已启用": "enabled",
+        "启用": "enabled",
+        "开启": "enabled",
+        "开": "enabled",
+        "是": "enabled",
+        "允许": "enabled",
+        "可用": "enabled",
+        "已开启": "enabled",
+        "enable": "enabled",
+        "enabled": "enabled",
+        "Enable": "enabled",
+        "Enabled": "enabled",
+        "未启用": "disabled",
+        "禁用": "disabled",
+        "关闭": "disabled",
+        "关": "disabled",
+        "否": "disabled",
+        "不允许": "disabled",
+        "不可用": "disabled",
+        "已关闭": "disabled",
+        "disable": "disabled",
+        "disabled": "disabled",
+        "Disable": "disabled",
+        "Disabled": "disabled",
+        "yes": "enabled",
+        "Yes": "enabled",
+        "YES": "enabled",
+        "no": "disabled",
+        "No": "disabled",
+        "NO": "disabled"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 66,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "realtime_protection_enabled",
+    "field_group": "malware_protection",
+    "field_name": "realtime_protection_enabled",
+    "value_type": "bool",
+    "aliases": [
+      "实时防护状态",
+      "实时保护状态",
+      "实时监控状态"
+    ],
+    "synonyms": [
+      "实时防护状态",
+      "实时保护状态",
+      "实时监控状态"
+    ],
+    "regex": [
+      "(?:实时防护状态|实时保护状态|实时监控状态)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "已启用": "enabled",
+        "启用": "enabled",
+        "开启": "enabled",
+        "开": "enabled",
+        "是": "enabled",
+        "允许": "enabled",
+        "可用": "enabled",
+        "已开启": "enabled",
+        "enable": "enabled",
+        "enabled": "enabled",
+        "Enable": "enabled",
+        "Enabled": "enabled",
+        "未启用": "disabled",
+        "禁用": "disabled",
+        "关闭": "disabled",
+        "关": "disabled",
+        "否": "disabled",
+        "不允许": "disabled",
+        "不可用": "disabled",
+        "已关闭": "disabled",
+        "disable": "disabled",
+        "disabled": "disabled",
+        "Disable": "disabled",
+        "Disabled": "disabled",
+        "yes": "enabled",
+        "Yes": "enabled",
+        "YES": "enabled",
+        "no": "disabled",
+        "No": "disabled",
+        "NO": "disabled"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 65,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "virus_database_version",
+    "field_group": "malware_protection",
+    "field_name": "virus_database_version",
+    "value_type": "text",
+    "aliases": [
+      "病毒库版本",
+      "病毒定义版本",
+      "特征库版本"
+    ],
+    "synonyms": [
+      "病毒库版本",
+      "病毒定义版本",
+      "特征库版本"
+    ],
+    "regex": [
+      "(?:病毒库版本|病毒定义版本|特征库版本)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": "."
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 64,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "last_scan_time",
+    "field_group": "malware_protection",
+    "field_name": "last_scan_time",
+    "value_type": "text",
+    "aliases": [
+      "最近扫描时间",
+      "最后扫描时间",
+      "上次扫描时间"
+    ],
+    "synonyms": [
+      "最近扫描时间",
+      "最后扫描时间",
+      "上次扫描时间"
+    ],
+    "regex": [
+      "(?:最近扫描时间|最后扫描时间|上次扫描时间)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": "."
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 63,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "firewall_policy_name",
+    "field_group": "boundary_protection",
+    "field_name": "firewall_policy_name",
+    "value_type": "text",
+    "aliases": [
+      "防火墙策略名称",
+      "防火墙安全策略名称",
+      "策略名称"
+    ],
+    "synonyms": [
+      "防火墙策略名称",
+      "防火墙安全策略名称",
+      "策略名称"
+    ],
+    "regex": [
+      "(?:防火墙策略名称|防火墙安全策略名称)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": "."
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 62,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "nat_enabled",
+    "field_group": "boundary_protection",
+    "field_name": "nat_enabled",
+    "value_type": "bool",
+    "aliases": [
+      "NAT状态",
+      "NAT启用状态",
+      "地址转换状态"
+    ],
+    "synonyms": [
+      "NAT状态",
+      "NAT启用状态",
+      "地址转换状态"
+    ],
+    "regex": [
+      "(?:NAT状态|NAT启用状态|地址转换状态)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "已启用": "enabled",
+        "启用": "enabled",
+        "开启": "enabled",
+        "开": "enabled",
+        "是": "enabled",
+        "允许": "enabled",
+        "可用": "enabled",
+        "已开启": "enabled",
+        "enable": "enabled",
+        "enabled": "enabled",
+        "Enable": "enabled",
+        "Enabled": "enabled",
+        "未启用": "disabled",
+        "禁用": "disabled",
+        "关闭": "disabled",
+        "关": "disabled",
+        "否": "disabled",
+        "不允许": "disabled",
+        "不可用": "disabled",
+        "已关闭": "disabled",
+        "disable": "disabled",
+        "disabled": "disabled",
+        "Disable": "disabled",
+        "Disabled": "disabled",
+        "yes": "enabled",
+        "Yes": "enabled",
+        "YES": "enabled",
+        "no": "disabled",
+        "No": "disabled",
+        "NO": "disabled"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 61,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "deny_all_policy",
+    "field_group": "boundary_protection",
+    "field_name": "deny_all_policy",
+    "value_type": "bool",
+    "aliases": [
+      "默认拒绝策略",
+      "拒绝所有策略",
+      "deny all policy"
+    ],
+    "synonyms": [
+      "默认拒绝策略",
+      "拒绝所有策略",
+      "deny all policy"
+    ],
+    "regex": [
+      "(?:默认拒绝策略|拒绝所有策略|deny all policy)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": ".",
+        "已启用": "enabled",
+        "启用": "enabled",
+        "开启": "enabled",
+        "开": "enabled",
+        "是": "enabled",
+        "允许": "enabled",
+        "可用": "enabled",
+        "已开启": "enabled",
+        "enable": "enabled",
+        "enabled": "enabled",
+        "Enable": "enabled",
+        "Enabled": "enabled",
+        "未启用": "disabled",
+        "禁用": "disabled",
+        "关闭": "disabled",
+        "关": "disabled",
+        "否": "disabled",
+        "不允许": "disabled",
+        "不可用": "disabled",
+        "已关闭": "disabled",
+        "disable": "disabled",
+        "disabled": "disabled",
+        "Disable": "disabled",
+        "Disabled": "disabled",
+        "yes": "enabled",
+        "Yes": "enabled",
+        "YES": "enabled",
+        "no": "disabled",
+        "No": "disabled",
+        "NO": "disabled"
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 60,
+    "required": false,
+    "status_when_missing": "missing"
+  },
+  {
+    "field_code": "security_zone",
+    "field_group": "boundary_protection",
+    "field_name": "security_zone",
+    "value_type": "text",
+    "aliases": [
+      "安全域",
+      "安全区域",
+      "区域名称"
+    ],
+    "synonyms": [
+      "安全域",
+      "安全区域",
+      "区域名称"
+    ],
+    "regex": [
+      "(?:安全域|安全区域|区域名称)\\s*(?:[:：=＝]|\\s)\\s*(?P<value>[^\\n]+)"
+    ],
+    "normalize": {
+      "trim": true,
+      "collapse_spaces": true,
+      "replace": {
+        "：": ":",
+        "＝": "=",
+        "（": "(",
+        "）": ")",
+        "，": ",",
+        "。": "."
+      }
+    },
+    "ocr_tolerance": {
+      "enabled": true,
+      "char_map": {
+        "O": "0",
+        "o": "0",
+        "I": "1",
+        "l": "1"
+      }
+    },
+    "priority": 59,
     "required": false,
     "status_when_missing": "missing"
   }

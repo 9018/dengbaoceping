@@ -34,6 +34,7 @@ const statusRegistry: Record<StatusKind, Record<string, StatusMeta>> = {
   },
   record: {
     generated: { label: '待复核', type: 'warning' },
+    generated_low_confidence: { label: '低置信度', type: 'danger' },
     reviewed: { label: '已复核', type: 'primary' },
     approved: { label: '已审批', type: 'success' },
     exported: { label: '已导出', type: 'info' },

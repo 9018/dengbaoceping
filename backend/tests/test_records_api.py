@@ -94,6 +94,7 @@ def test_generate_record_with_missing_field_fallback(client):
     assert "[待补充: action]" in data["record_content"]
     assert "缺失字段: action" in data["review_comment"]
     assert data["match_score"] < 0.7
+    assert "缺失字段: action" in data["match_reasons"]["summary"]
 
 
 def test_generate_record_with_low_score_override_device_type(client):
@@ -113,6 +114,158 @@ def test_generate_record_with_low_score_override_device_type(client):
     assert "匹配得分低于阈值" in data["review_comment"]
     assert data["match_reasons"]["device_type_reason"].startswith("设备类型冲突")
 
+
+def test_generate_record_low_confidence_without_missing_fields(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "host-malware-low-confidence.txt")
+    run_extract_flow(client, evidence_id, "host_malware_protection", "host_malware_protection")
+
+    resp = client.post(
+        f"/api/v1/projects/{project_id}/records/generate",
+        json={
+            "evidence_id": evidence_id,
+            "selected_item_code": "malware_antivirus_check",
+        },
+    )
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["item_code"] == "malware_antivirus_check"
+    assert data["status"] == "generated_low_confidence"
+    assert data["match_score"] < 0.7
+    assert "匹配得分低于阈值" in data["review_comment"]
+    assert data["match_reasons"]["missing_required_fields"] == []
+    assert data["match_reasons"]["selection_mode"] == "manual_item"
+
+
+def test_generate_record_password_policy_match(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "windows-password-policy.txt")
+    run_extract_flow(client, evidence_id, "windows_password_policy", "host_password_policy")
+
+    resp = client.post(
+        f"/api/v1/projects/{project_id}/records/generate",
+        json={"evidence_id": evidence_id},
+    )
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["item_code"] == "host_password_policy_check"
+    assert data["template_code"] == "host_password_policy"
+    assert data["status"] == "generated"
+    assert "WIN-SRV-01" in data["title"]
+    assert "最小密码长度为12" in data["record_content"]
+    assert data["match_score"] >= 0.7
+    assert len(data["matched_fields_json"]) == 4
+
+
+def test_generate_record_access_control_match(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "linux-access-control.txt")
+    run_extract_flow(client, evidence_id, "linux_access_control", "host_access_control")
+
+    resp = client.post(
+        f"/api/v1/projects/{project_id}/records/generate",
+        json={"evidence_id": evidence_id},
+    )
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["item_code"] == "host_access_control_check"
+    assert data["template_code"] == "host_access_control"
+    assert data["status"] == "generated"
+    assert "SRV-LINUX-01" in data["title"]
+    assert "远程登录状态为enabled" in data["record_content"]
+    assert "管理员账户数量为2" in data["record_content"]
+    assert data["match_score"] >= 0.65
+    assert len(data["matched_fields_json"]) == 4
+
+
+def test_generate_record_audit_config_match(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "host-audit-config.txt")
+    run_extract_flow(client, evidence_id, "host_audit_config", "host_audit_config")
+
+    resp = client.post(
+        f"/api/v1/projects/{project_id}/records/generate",
+        json={"evidence_id": evidence_id},
+    )
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["item_code"] == "host_audit_config_check"
+    assert data["template_code"] == "host_audit_config"
+    assert data["status"] == "generated"
+    assert "SRV-AUDIT-01" in data["title"]
+    assert "日志保留时间为180天" in data["record_content"]
+    assert data["match_score"] >= 0.7
+    assert len(data["matched_fields_json"]) == 4
+
+
+def test_generate_record_malware_protection_match(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "host-malware-protection.txt")
+    run_extract_flow(client, evidence_id, "host_malware_protection", "host_malware_protection")
+
+    resp = client.post(
+        f"/api/v1/projects/{project_id}/records/generate",
+        json={"evidence_id": evidence_id},
+    )
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["item_code"] == "host_malware_protection_check"
+    assert data["template_code"] == "host_malware_protection"
+    assert data["status"] == "generated"
+    assert "SRV-AV-01" in data["title"]
+    assert "防病毒软件安装状态为enabled" in data["record_content"]
+    assert "病毒库版本为V1.2.3" in data["record_content"]
+    assert data["match_score"] >= 0.7
+    assert len(data["matched_fields_json"]) == 4
+
+
+def test_generate_record_returns_top_candidates_sorted(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "windows-password-policy-ranking.txt")
+    run_extract_flow(client, evidence_id, "windows_password_policy", "host_password_policy")
+
+    resp = client.post(
+        f"/api/v1/projects/{project_id}/records/generate",
+        json={"evidence_id": evidence_id},
+    )
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    candidates = data["match_candidates"]
+    assert len(candidates) == 3
+    assert candidates[0]["item_code"] == "host_password_policy_check"
+    assert candidates[0]["score"] >= candidates[1]["score"] >= candidates[2]["score"]
+    assert candidates[1]["item_code"] in {"identity_password_policy_check", "identity_account_lockout_check"}
+    assert "命中 required field: password_min_length" in candidates[0]["reasons"]["summary"]
+
+
+def test_generate_record_supports_manual_candidate_selection(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "windows-password-policy-manual.txt")
+    run_extract_flow(client, evidence_id, "windows_password_policy", "host_password_policy")
+
+    auto_resp = client.post(
+        f"/api/v1/projects/{project_id}/records/generate",
+        json={"evidence_id": evidence_id},
+    )
+    assert auto_resp.status_code == 201
+    auto_data = auto_resp.json()["data"]
+    assert auto_data["item_code"] == "host_password_policy_check"
+
+    manual_resp = client.post(
+        f"/api/v1/projects/{project_id}/records/generate",
+        json={
+            "evidence_id": evidence_id,
+            "selected_item_code": "identity_password_policy_check",
+            "force_regenerate": True,
+        },
+    )
+    assert manual_resp.status_code == 201
+    manual_data = manual_resp.json()["data"]
+    assert manual_data["item_code"] == "identity_password_policy_check"
+    assert manual_data["template_code"] == "identity_password_policy"
+    assert manual_data["match_reasons"]["selection_mode"] == "manual_item"
+    assert manual_data["match_reasons"]["best_match_item_code"] == "host_password_policy_check"
+    assert "人工选择候选项生成" in manual_data["review_comment"]
 
 
 def test_record_update_rejects_direct_export_from_reviewed(client):
@@ -138,3 +291,7 @@ def test_record_update_rejects_direct_export_from_reviewed(client):
     )
     assert update_resp.status_code == 400
     assert update_resp.json()["error"]["code"] == "INVALID_RECORD_STATUS_TRANSITION"
+
+
+def test_records_storage_path_is_under_project_backend_dir():
+    assert Path(settings.BASE_DIR).name == "backend"

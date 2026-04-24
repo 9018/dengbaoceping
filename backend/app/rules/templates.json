@@ -94,5 +94,354 @@
       },
       "default_review_comment": "系统自动生成，请人工复核安全策略配置。"
     }
+  },
+  {
+    "template_code": "host_password_policy",
+    "name": "主机口令策略抽取模板",
+    "template_type": "built_in_extraction",
+    "extension_type": "evidence_fields",
+    "domain": "host_security",
+    "description": "用于 Windows 与 Linux 主机口令策略证据的字段抽取",
+    "field_codes": [
+      "hostname",
+      "password_min_length",
+      "password_complexity",
+      "password_max_age",
+      "account_lockout_threshold",
+      "account_lockout_duration",
+      "login_failure_action",
+      "default_account_status"
+    ],
+    "generation": {
+      "title_template": "{hostname} 身份鉴别检查记录",
+      "record_template": "经核查，主机名称为{hostname}，最小密码长度为{password_min_length}，密码复杂度为{password_complexity}，账户锁定阈值为{account_lockout_threshold}，默认账户状态为{default_account_status}。",
+      "fallbacks": {
+        "hostname": "待补充主机名称",
+        "password_min_length": "待补充最小密码长度",
+        "password_complexity": "待补充密码复杂度",
+        "account_lockout_threshold": "待补充锁定阈值",
+        "default_account_status": "待补充默认账户状态"
+      },
+      "default_review_comment": "系统自动生成，请人工复核主机口令策略配置。"
+    }
+  },
+  {
+    "template_code": "host_access_control",
+    "name": "主机访问控制抽取模板",
+    "template_type": "built_in_extraction",
+    "extension_type": "evidence_fields",
+    "domain": "host_security",
+    "description": "用于主机远程接入与账户控制证据的字段抽取",
+    "field_codes": [
+      "hostname",
+      "remote_login_allowed",
+      "ssh_root_login",
+      "rdp_enabled",
+      "admin_account_count",
+      "unused_account_status"
+    ],
+    "generation": {
+      "title_template": "{hostname} 访问控制检查记录",
+      "record_template": "经核查，主机名称为{hostname}，远程登录状态为{remote_login_allowed}，SSH root 登录状态为{ssh_root_login}，管理员账户数量为{admin_account_count}，长期未用账户状态为{unused_account_status}。",
+      "fallbacks": {
+        "hostname": "待补充主机名称",
+        "remote_login_allowed": "待补充远程登录状态",
+        "ssh_root_login": "待补充SSH root登录状态",
+        "admin_account_count": "待补充管理员账户数量",
+        "unused_account_status": "待补充长期未用账户状态"
+      },
+      "default_review_comment": "系统自动生成，请人工复核主机访问控制配置。"
+    }
+  },
+  {
+    "template_code": "host_audit_config",
+    "name": "主机安全审计抽取模板",
+    "template_type": "built_in_extraction",
+    "extension_type": "evidence_fields",
+    "domain": "host_security",
+    "description": "用于主机安全审计与时间同步证据的字段抽取",
+    "field_codes": [
+      "hostname",
+      "audit_enabled",
+      "login_log_enabled",
+      "operation_log_enabled",
+      "log_retention_days",
+      "syslog_server",
+      "ntp_server",
+      "time_sync_enabled"
+    ],
+    "generation": {
+      "title_template": "{hostname} 安全审计检查记录",
+      "record_template": "经核查，主机名称为{hostname}，审计功能状态为{audit_enabled}，登录日志状态为{login_log_enabled}，操作日志状态为{operation_log_enabled}，日志保留时间为{log_retention_days}天。",
+      "fallbacks": {
+        "hostname": "待补充主机名称",
+        "audit_enabled": "待补充审计功能状态",
+        "login_log_enabled": "待补充登录日志状态",
+        "operation_log_enabled": "待补充操作日志状态",
+        "log_retention_days": "待补充日志保留时间"
+      },
+      "default_review_comment": "系统自动生成，请人工复核主机安全审计配置。"
+    }
+  },
+  {
+    "template_code": "host_malware_protection",
+    "name": "主机恶意代码防范抽取模板",
+    "template_type": "built_in_extraction",
+    "extension_type": "evidence_fields",
+    "domain": "host_security",
+    "description": "用于主机恶意代码防范与基线加固证据的字段抽取",
+    "field_codes": [
+      "hostname",
+      "patch_status",
+      "unnecessary_service_status",
+      "high_risk_port",
+      "weak_password_check",
+      "baseline_check_status",
+      "antivirus_installed",
+      "realtime_protection_enabled",
+      "virus_database_version",
+      "last_scan_time"
+    ],
+    "generation": {
+      "title_template": "{hostname} 恶意代码防范检查记录",
+      "record_template": "经核查，主机名称为{hostname}，防病毒软件安装状态为{antivirus_installed}，实时防护状态为{realtime_protection_enabled}，病毒库版本为{virus_database_version}，基线检查状态为{baseline_check_status}。",
+      "fallbacks": {
+        "hostname": "待补充主机名称",
+        "antivirus_installed": "待补充防病毒软件安装状态",
+        "realtime_protection_enabled": "待补充实时防护状态",
+        "virus_database_version": "待补充病毒库版本",
+        "baseline_check_status": "待补充基线检查状态"
+      },
+      "default_review_comment": "系统自动生成，请人工复核主机恶意代码防范配置。"
+    }
+  },
+  {
+    "template_code": "identity_password_policy",
+    "name": "身份鉴别-口令策略模板",
+    "template_type": "built_in_generation",
+    "extension_type": "evaluation_record",
+    "domain": "host_security",
+    "description": "用于口令长度、复杂度和有效期检查记录生成",
+    "field_codes": [
+      "hostname",
+      "password_min_length",
+      "password_complexity",
+      "password_max_age",
+      "default_account_status"
+    ],
+    "generation": {
+      "title_template": "{hostname} 口令策略检查记录",
+      "record_template": "经核查，主机名称为{hostname}，最小密码长度为{password_min_length}，密码复杂度为{password_complexity}，密码有效期为{password_max_age}，默认账户状态为{default_account_status}。",
+      "fallbacks": {
+        "hostname": "待补充主机名称",
+        "password_min_length": "待补充最小密码长度",
+        "password_complexity": "待补充密码复杂度",
+        "password_max_age": "待补充密码有效期",
+        "default_account_status": "待补充默认账户状态"
+      },
+      "default_review_comment": "系统自动生成，请人工复核口令策略配置。"
+    }
+  },
+  {
+    "template_code": "identity_account_lockout",
+    "name": "身份鉴别-账户锁定模板",
+    "template_type": "built_in_generation",
+    "extension_type": "evaluation_record",
+    "domain": "host_security",
+    "description": "用于账户锁定阈值、锁定时长与失败处置检查记录生成",
+    "field_codes": [
+      "hostname",
+      "account_lockout_threshold",
+      "account_lockout_duration",
+      "login_failure_action",
+      "default_account_status"
+    ],
+    "generation": {
+      "title_template": "{hostname} 账户锁定检查记录",
+      "record_template": "经核查，主机名称为{hostname}，账户锁定阈值为{account_lockout_threshold}，锁定时长为{account_lockout_duration}，登录失败处理动作为{login_failure_action}，默认账户状态为{default_account_status}。",
+      "fallbacks": {
+        "hostname": "待补充主机名称",
+        "account_lockout_threshold": "待补充锁定阈值",
+        "account_lockout_duration": "待补充锁定时长",
+        "login_failure_action": "待补充失败处理动作",
+        "default_account_status": "待补充默认账户状态"
+      },
+      "default_review_comment": "系统自动生成，请人工复核账户锁定策略。"
+    }
+  },
+  {
+    "template_code": "access_remote_login",
+    "name": "访问控制-远程登录模板",
+    "template_type": "built_in_generation",
+    "extension_type": "evaluation_record",
+    "domain": "host_security",
+    "description": "用于主机远程登录与特权登录控制检查记录生成",
+    "field_codes": [
+      "hostname",
+      "remote_login_allowed",
+      "ssh_root_login",
+      "rdp_enabled",
+      "admin_account_count",
+      "unused_account_status"
+    ],
+    "generation": {
+      "title_template": "{hostname} 远程登录检查记录",
+      "record_template": "经核查，主机名称为{hostname}，远程登录状态为{remote_login_allowed}，SSH root 登录状态为{ssh_root_login}，RDP 状态为{rdp_enabled}，管理员账户数量为{admin_account_count}，长期未用账户状态为{unused_account_status}。",
+      "fallbacks": {
+        "hostname": "待补充主机名称",
+        "remote_login_allowed": "待补充远程登录状态",
+        "ssh_root_login": "待补充SSH root登录状态",
+        "rdp_enabled": "待补充RDP状态",
+        "admin_account_count": "待补充管理员账户数量",
+        "unused_account_status": "待补充长期未用账户状态"
+      },
+      "default_review_comment": "系统自动生成，请人工复核远程登录控制配置。"
+    }
+  },
+  {
+    "template_code": "access_security_policy",
+    "name": "访问控制-安全策略模板",
+    "template_type": "built_in_generation",
+    "extension_type": "evaluation_record",
+    "domain": "network_security",
+    "description": "用于边界访问控制与安全策略检查记录生成",
+    "field_codes": [
+      "policy_name",
+      "source_zone",
+      "destination_zone",
+      "action",
+      "source_address",
+      "destination_address",
+      "service_port",
+      "deny_all_policy"
+    ],
+    "generation": {
+      "title_template": "{policy_name} 访问控制检查记录",
+      "record_template": "经核查，策略名称为{policy_name}，源区域为{source_zone}，目的区域为{destination_zone}，动作配置为{action}，源地址为{source_address}，目的地址为{destination_address}，服务端口为{service_port}。",
+      "fallbacks": {
+        "policy_name": "待补充策略名称",
+        "source_zone": "待补充源区域",
+        "destination_zone": "待补充目的区域",
+        "action": "[待补充: action]",
+        "source_address": "待补充源地址",
+        "destination_address": "待补充目的地址",
+        "service_port": "待补充服务端口"
+      },
+      "default_review_comment": "系统自动生成，请人工复核安全策略与访问控制配置。"
+    }
+  },
+  {
+    "template_code": "audit_log_enable",
+    "name": "安全审计-日志开启模板",
+    "template_type": "built_in_generation",
+    "extension_type": "evaluation_record",
+    "domain": "host_security",
+    "description": "用于审计、登录日志与操作日志开启情况记录生成",
+    "field_codes": [
+      "hostname",
+      "audit_enabled",
+      "login_log_enabled",
+      "operation_log_enabled",
+      "syslog_server",
+      "time_sync_enabled"
+    ],
+    "generation": {
+      "title_template": "{hostname} 日志开启检查记录",
+      "record_template": "经核查，主机名称为{hostname}，审计功能状态为{audit_enabled}，登录日志状态为{login_log_enabled}，操作日志状态为{operation_log_enabled}，日志集中转发地址为{syslog_server}，时间同步状态为{time_sync_enabled}。",
+      "fallbacks": {
+        "hostname": "待补充主机名称",
+        "audit_enabled": "待补充审计功能状态",
+        "login_log_enabled": "待补充登录日志状态",
+        "operation_log_enabled": "待补充操作日志状态",
+        "syslog_server": "待补充日志集中转发地址",
+        "time_sync_enabled": "待补充时间同步状态"
+      },
+      "default_review_comment": "系统自动生成，请人工复核日志开启配置。"
+    }
+  },
+  {
+    "template_code": "audit_log_retention",
+    "name": "安全审计-日志留存模板",
+    "template_type": "built_in_generation",
+    "extension_type": "evaluation_record",
+    "domain": "host_security",
+    "description": "用于日志留存周期与集中留存检查记录生成",
+    "field_codes": [
+      "hostname",
+      "log_retention_days",
+      "syslog_server",
+      "ntp_server",
+      "time_sync_enabled"
+    ],
+    "generation": {
+      "title_template": "{hostname} 日志留存检查记录",
+      "record_template": "经核查，主机名称为{hostname}，日志保留时间为{log_retention_days}天，日志集中转发地址为{syslog_server}，时间同步服务器为{ntp_server}，时间同步状态为{time_sync_enabled}。",
+      "fallbacks": {
+        "hostname": "待补充主机名称",
+        "log_retention_days": "待补充日志保留时间",
+        "syslog_server": "待补充日志集中转发地址",
+        "ntp_server": "待补充时间同步服务器",
+        "time_sync_enabled": "待补充时间同步状态"
+      },
+      "default_review_comment": "系统自动生成，请人工复核日志留存配置。"
+    }
+  },
+  {
+    "template_code": "intrusion_patch_service",
+    "name": "入侵防范-补丁与服务模板",
+    "template_type": "built_in_generation",
+    "extension_type": "evaluation_record",
+    "domain": "host_security",
+    "description": "用于补丁、弱口令与高危服务暴露检查记录生成",
+    "field_codes": [
+      "hostname",
+      "patch_status",
+      "unnecessary_service_status",
+      "high_risk_port",
+      "weak_password_check",
+      "baseline_check_status"
+    ],
+    "generation": {
+      "title_template": "{hostname} 入侵防范检查记录",
+      "record_template": "经核查，主机名称为{hostname}，补丁状态为{patch_status}，不必要服务状态为{unnecessary_service_status}，高危端口情况为{high_risk_port}，弱口令检查结果为{weak_password_check}，基线检查状态为{baseline_check_status}。",
+      "fallbacks": {
+        "hostname": "待补充主机名称",
+        "patch_status": "待补充补丁状态",
+        "unnecessary_service_status": "待补充不必要服务状态",
+        "high_risk_port": "待补充高危端口情况",
+        "weak_password_check": "待补充弱口令检查结果",
+        "baseline_check_status": "待补充基线检查状态"
+      },
+      "default_review_comment": "系统自动生成，请人工复核补丁与服务暴露情况。"
+    }
+  },
+  {
+    "template_code": "malware_antivirus",
+    "name": "恶意代码防范-防病毒模板",
+    "template_type": "built_in_generation",
+    "extension_type": "evaluation_record",
+    "domain": "host_security",
+    "description": "用于防病毒、实时防护与病毒库更新检查记录生成",
+    "field_codes": [
+      "hostname",
+      "antivirus_installed",
+      "realtime_protection_enabled",
+      "virus_database_version",
+      "baseline_check_status",
+      "last_scan_time"
+    ],
+    "generation": {
+      "title_template": "{hostname} 防病毒检查记录",
+      "record_template": "经核查，主机名称为{hostname}，防病毒软件安装状态为{antivirus_installed}，实时防护状态为{realtime_protection_enabled}，病毒库版本为{virus_database_version}，基线检查状态为{baseline_check_status}，最近一次扫描时间为{last_scan_time}。",
+      "fallbacks": {
+        "hostname": "待补充主机名称",
+        "antivirus_installed": "待补充防病毒软件安装状态",
+        "realtime_protection_enabled": "待补充实时防护状态",
+        "virus_database_version": "待补充病毒库版本",
+        "baseline_check_status": "待补充基线检查状态",
+        "last_scan_time": "待补充最近扫描时间"
+      },
+      "default_review_comment": "系统自动生成，请人工复核防病毒与实时防护配置。"
+    }
   }
 ]

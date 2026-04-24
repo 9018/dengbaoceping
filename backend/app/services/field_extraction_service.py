@@ -81,11 +81,8 @@ class FieldExtractionService:
         }
 
     def _normalize_document(self, text: str, rule: dict[str, Any]) -> str:
-        result = text
-        replace_map = rule.get("normalize", {}).get("replace", {})
-        for src, dst in replace_map.items():
-            result = result.replace(src, dst)
-        return result
+        replace_map = rule.get("normalize", {}).get("document_replace", {})
+        return self._apply_replacements(text, replace_map)
 
     def _normalize_value(self, value: str, rule: dict[str, Any]) -> Any:
         result = value.strip()
@@ -95,11 +92,28 @@ class FieldExtractionService:
         if tolerance.get("enabled"):
             char_map = tolerance.get("char_map", {})
             for src, dst in char_map.items():
-                result = result.replace(src, dst)
+                if self._should_apply_char_replacement(result, src, dst):
+                    result = result.replace(src, dst)
         replace_map = rule.get("normalize", {}).get("replace", {})
-        for src, dst in replace_map.items():
+        exact_match = replace_map.get(result)
+        if exact_match is not None:
+            return exact_match.strip()
+        return self._apply_replacements(result, replace_map).strip()
+
+    def _apply_replacements(self, value: str, replace_map: dict[str, str]) -> str:
+        result = value
+        for src, dst in sorted(replace_map.items(), key=lambda item: len(item[0]), reverse=True):
+            if src == dst or src == result:
+                continue
             result = result.replace(src, dst)
-        return result.strip()
+        return result
+
+    def _should_apply_char_replacement(self, value: str, src: str, dst: str) -> bool:
+        if src in {"O", "o"} and any(char.isdigit() for char in value):
+            return True
+        if src in {"I", "l"} and any(char.isdigit() for char in value):
+            return True
+        return False
 
     def _to_number(self, value: Any) -> float | None:
         if value is None:

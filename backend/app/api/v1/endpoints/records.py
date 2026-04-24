@@ -19,6 +19,8 @@ def generate_record(project_id: str, payload: RecordGenerateRequest, db: Session
         payload.evidence_id,
         payload.device_type_override,
         payload.force_regenerate,
+        payload.selected_item_code,
+        payload.selected_template_code,
     )
     return success_response(RecordRead.model_validate(record), "测评记录生成成功")
 

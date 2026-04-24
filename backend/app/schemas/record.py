@@ -10,6 +10,8 @@ from app.schemas.common import TimestampSchema
 class RecordGenerateRequest(BaseModel):
     evidence_id: str = Field(..., description="证据ID")
     device_type_override: str | None = Field(default=None, description="设备类型覆盖值")
+    selected_item_code: str | None = Field(default=None, description="人工选择的测评项编码")
+    selected_template_code: str | None = Field(default=None, description="人工选择的模板编码")
     force_regenerate: bool = Field(default=False, description="是否强制重新生成")
 
 
@@ -37,6 +39,7 @@ class RecordRead(TimestampSchema):
     record_content: str | None
     final_content: str | None
     matched_fields_json: dict | list | None
+    match_candidates: dict | list | None
     status: str
     review_comment: str | None
     reviewed_by: str | None
@@ -60,6 +63,7 @@ class RecordRead(TimestampSchema):
                 "record_content": obj.record_text,
                 "final_content": obj.final_content,
                 "matched_fields_json": obj.matched_fields_json,
+                "match_candidates": obj.match_candidates_json,
                 "status": obj.status,
                 "review_comment": obj.review_comment,
                 "reviewed_by": obj.reviewed_by,

@@ -1,7 +1,7 @@
 export const projectStatusOptions = ['draft', 'active', 'archived']
 export const assetStatusOptions = ['pending', 'processed', 'failed']
 export const fieldStatusOptions = ['missing', 'extracted', 'reviewed', 'corrected', 'rejected']
-export const recordStatusOptions = ['generated', 'reviewed', 'approved', 'exported']
+export const recordStatusOptions = ['generated', 'generated_low_confidence', 'reviewed', 'approved', 'exported']
 export const reviewStatusOptions = ['reviewed', 'corrected', 'rejected']
 export const recordReviewStatusOptions = ['reviewed', 'approved', 'exported']
 export const exportStatusOptions = ['pending', 'completed', 'failed']

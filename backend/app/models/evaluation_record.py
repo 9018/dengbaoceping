@@ -17,6 +17,7 @@ class EvaluationRecord(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     template_code: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True, comment="模板编码")
     item_code: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True, comment="测评条目编码")
     matched_fields_json: Mapped[dict | list | None] = mapped_column(JSON, nullable=True, comment="命中字段快照JSON")
+    match_candidates_json: Mapped[dict | list | None] = mapped_column(JSON, nullable=True, comment="候选匹配结果JSON")
     match_reasons_json: Mapped[dict | list | None] = mapped_column(JSON, nullable=True, comment="匹配原因JSON")
     match_score: Mapped[float | None] = mapped_column(Float, nullable=True, comment="匹配得分")
     review_comment: Mapped[str | None] = mapped_column(Text, nullable=True, comment="复核意见")

@@ -33,10 +33,25 @@ class RuleLoader:
 
     def load_evaluation_items(self):
         items = self._load_json("evaluation_items.json")
+        required_keys = {
+            "item_code",
+            "template_code",
+            "required_fields",
+            "optional_fields",
+            "negative_fields",
+            "device_types",
+            "match_weights",
+            "pass_score",
+        }
+        required_weight_keys = {"required_fields", "optional_fields", "negative_fields", "template_coverage", "device_type"}
         for item in items:
-            missing_keys = {"item_code", "template_code", "required_fields", "device_types", "match_weights", "pass_score"} - set(item.keys())
+            missing_keys = required_keys - set(item.keys())
             if missing_keys:
                 raise BadRequestException("INVALID_EVALUATION_ITEM_RULE", "测评条目规则定义不完整", sorted(missing_keys))
+            weights = item.get("match_weights") or {}
+            missing_weight_keys = required_weight_keys - set(weights.keys())
+            if missing_weight_keys:
+                raise BadRequestException("INVALID_EVALUATION_ITEM_WEIGHT_RULE", "测评条目评分权重定义不完整", sorted(missing_weight_keys))
         return items
 
     def load_templates(self):

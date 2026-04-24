@@ -15,9 +15,10 @@ from app.services.matching_service import MatchingService
 from app.services.template_service import TemplateService
 
 
-ALLOWED_RECORD_STATUS = {"generated", "reviewed", "approved", "exported"}
+ALLOWED_RECORD_STATUS = {"generated", "generated_low_confidence", "reviewed", "approved", "exported"}
 RECORD_STATUS_TRANSITIONS = {
     "generated": {"generated", "reviewed"},
+    "generated_low_confidence": {"generated_low_confidence", "reviewed"},
     "reviewed": {"reviewed", "approved"},
     "approved": {"approved", "exported"},
     "exported": {"exported"},
@@ -40,6 +41,8 @@ class RecordService:
         evidence_id: str,
         device_type_override: str | None = None,
         force_regenerate: bool = False,
+        selected_item_code: str | None = None,
+        selected_template_code: str | None = None,
     ) -> EvaluationRecord:
         self._ensure_project_exists(db, project_id)
         evidence = self.evidence_repository.get(db, evidence_id)
@@ -58,20 +61,28 @@ class RecordService:
                 return existing
 
         match_result = self.matching_service.match(fields, device_type_override)
-        best_match = match_result.get("best_match")
-        if not best_match:
+        selected_match = self.matching_service.select_candidate(match_result, selected_item_code, selected_template_code)
+        if not selected_match:
             raise BadRequestException("EVALUATION_ITEM_NOT_MATCHED", "未找到可匹配的测评条目")
 
         rendered = self.template_service.render(
-            best_match["template_code"],
+            selected_match["template_code"],
             match_result["field_map"],
-            best_match["missing_fields"],
+            selected_match["missing_fields"],
         )
-        needs_review = bool(best_match["missing_fields"]) or best_match["score"] < best_match["pass_score"]
+        needs_review = bool(selected_match["missing_fields"])
+        low_confidence = selected_match["score"] < selected_match["pass_score"]
         status = "reviewed" if needs_review else "generated"
+        if low_confidence and not needs_review:
+            status = "generated_low_confidence"
+        elif low_confidence:
+            status = "reviewed"
+
         review_comment = rendered["review_comment"]
-        if best_match["score"] < best_match["pass_score"]:
-            review_comment = f"{review_comment} 匹配得分低于阈值: {best_match['score']} < {best_match['pass_score']}。".strip()
+        if low_confidence:
+            review_comment = f"{review_comment} 匹配得分低于阈值: {selected_match['score']} < {selected_match['pass_score']}。".strip()
+        if selected_item_code or selected_template_code:
+            review_comment = f"{review_comment} 本次按人工选择候选项生成。".strip()
 
         if force_regenerate:
             existing = self.record_repository.get_by_project_and_evidence(db, project_id, evidence_id)
@@ -83,14 +94,21 @@ class RecordService:
             project_id=project_id,
             asset_id=evidence.asset_id,
             title=rendered["title"],
-            template_code=best_match["template_code"],
-            item_code=best_match["item_code"],
-            matched_fields_json=best_match["matched_fields"],
-            match_reasons_json=best_match["reasons"],
-            match_score=best_match["score"],
+            template_code=selected_match["template_code"],
+            item_code=selected_match["item_code"],
+            matched_fields_json=selected_match["matched_fields"],
+            match_candidates_json=self._serialize_candidates(match_result.get("top_candidates") or []),
+            match_reasons_json={
+                **selected_match["reasons"],
+                "selected": selected_match["reasons"],
+                "best_match_item_code": match_result.get("best_match", {}).get("item_code") if match_result.get("best_match") else None,
+                "selection_mode": self._resolve_selection_mode(selected_item_code, selected_template_code),
+                "device_type": match_result.get("device_type"),
+            },
+            match_score=selected_match["score"],
             review_comment=review_comment,
-            indicator_l2=best_match.get("level2"),
-            indicator_l3=best_match.get("level3"),
+            indicator_l2=selected_match.get("level2"),
+            indicator_l3=selected_match.get("level3"),
             record_text=rendered["record_content"],
             final_content=rendered["record_content"],
             status=status,
@@ -99,7 +117,7 @@ class RecordService:
         self.record_repository.create(db, record)
         self.record_repository.add_evidence_link(db, record.id, evidence_id, relation_type="source")
         self.field_repository.clear_record_by_evidence(db, evidence_id)
-        self.field_repository.attach_record(db, record.id, best_match["matched_field_ids"])
+        self.field_repository.attach_record(db, record.id, selected_match["matched_field_ids"])
         db.commit()
         db.refresh(record)
         return record
@@ -196,3 +214,26 @@ class RecordService:
                 reviewed_by=reviewed_by,
             ),
         )
+
+    def _serialize_candidates(self, candidates: list[dict]) -> list[dict]:
+        serialized = []
+        for candidate in candidates:
+            serialized.append(
+                {
+                    "item_code": candidate.get("item_code"),
+                    "template_code": candidate.get("template_code"),
+                    "score": candidate.get("score"),
+                    "pass_score": candidate.get("pass_score"),
+                    "missing_fields": candidate.get("missing_fields"),
+                    "matched_fields": candidate.get("matched_fields"),
+                    "reasons": candidate.get("reasons"),
+                }
+            )
+        return serialized
+
+    def _resolve_selection_mode(self, selected_item_code: str | None, selected_template_code: str | None) -> str:
+        if selected_item_code:
+            return "manual_item"
+        if selected_template_code:
+            return "manual_template"
+        return "best_match"
