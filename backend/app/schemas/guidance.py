@@ -37,6 +37,32 @@ class GuidanceHistoryLinkRead(BaseModel):
     sheet_name: str
 
 
+class GuidanceEvidenceHistoryRead(BaseModel):
+    history_record_id: str
+    sheet_name: str
+    asset_name: str | None
+    asset_type: str | None
+    compliance_status: str | None
+    match_score: float
+    match_reason: dict
+
+
+class GuidanceMatchReasonsRead(BaseModel):
+    summary: list[str] = []
+    matched_guidance_id: str | None = None
+    guidance_code: str | None = None
+    section_title: str | None = None
+    section_path: str | None = None
+    score: float | None = None
+    score_breakdown: dict | None = None
+    signals: dict | None = None
+    history_count: int = 0
+    top_history: list[GuidanceEvidenceHistoryRead] = []
+    confirmed_guidance_id: str | None = None
+    confirmed_guidance_code: str | None = None
+    confirmed_section_title: str | None = None
+
+
 class GuidanceHistoryLinkResult(BaseModel):
     guidance_item_id: str
     linked_count: int

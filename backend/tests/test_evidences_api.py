@@ -6,10 +6,43 @@ from app.core.config import settings
 from app.services.ocr.paddle_adapter import PaddleOCRAdapter
 
 
+@pytest.fixture(autouse=True)
+def restore_ocr_provider():
+    previous_provider = settings.OCR_PROVIDER
+    settings.OCR_PROVIDER = "mock"
+    PaddleOCRAdapter.reset_engine()
+    yield
+    settings.OCR_PROVIDER = previous_provider
+    PaddleOCRAdapter.reset_engine()
+
+
 def create_project(client):
     resp = client.post(
         "/api/v1/projects",
         json={"code": "PJT-EVD", "name": "证据项目", "project_type": "等级保护测评", "status": "draft"},
+    )
+    assert resp.status_code == 201
+    return resp.json()["data"]["id"]
+
+
+def create_asset(
+    client,
+    project_id: str,
+    *,
+    filename: str,
+    category: str = "device",
+    category_label: str = "设备资产",
+    primary_ip: str | None = None,
+) -> str:
+    resp = client.post(
+        f"/api/v1/projects/{project_id}/assets",
+        json={
+            "category": category,
+            "category_label": category_label,
+            "filename": filename,
+            "primary_ip": primary_ip,
+            "relative_path": f"assets/{filename}.txt",
+        },
     )
     assert resp.status_code == 201
     return resp.json()["data"]["id"]
@@ -65,6 +98,21 @@ def test_evidence_upload_and_delete(client):
     assert missing_resp.json()["error"]["code"] == "EVIDENCE_NOT_FOUND"
 
 
+def test_upload_same_file_twice_creates_two_evidences(client):
+    project_id = create_project(client)
+
+    first_id = upload_evidence(client, project_id, "same-file.txt")
+    second_id = upload_evidence(client, project_id, "same-file.txt")
+
+    assert first_id != second_id
+
+    list_resp = client.get(f"/api/v1/projects/{project_id}/evidences")
+    assert list_resp.status_code == 200
+    body = list_resp.json()
+    assert body["meta"]["total"] == 2
+    assert [item["title"] for item in body["data"]] == ["配置截图", "配置截图"]
+
+
 def test_upload_evidence_under_missing_project(client):
     resp = client.post(
         "/api/v1/projects/missing-project/evidences/upload",
@@ -116,6 +164,143 @@ def test_run_ocr_and_extract_fields(client):
     assert list_fields_body["meta"]["total"] == 4
 
 
+def test_match_asset_hits_asset_name(client):
+    project_id = create_project(client)
+    create_asset(client, project_id, filename="FW-01", category="firewall", category_label="防火墙")
+    evidence_id = upload_evidence(client, project_id, "firewall_basic.txt")
+
+    client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={"sample_id": "firewall_basic"})
+    client.post(f"/api/v1/evidences/{evidence_id}/extract-fields", json={"template_code": "security_device_basic"})
+
+    resp = client.post(f"/api/v1/evidences/{evidence_id}/match-asset", json={"force": True})
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["matched_asset_id"] is not None
+    assert body["asset_match_status"] == "suggested"
+    assert body["matched_asset"]["filename"] == "FW-01"
+    assert body["asset_match_reasons_json"]["need_create_asset"] is False
+    assert "资产名称" in "".join(body["asset_match_reasons_json"]["summary"])
+
+
+def test_match_asset_hits_ip(client):
+    project_id = create_project(client)
+    asset_id = create_asset(client, project_id, filename="核心防火墙", category="firewall", category_label="防火墙", primary_ip="10.0.0.1")
+    evidence_id = upload_evidence(client, project_id, "firewall_basic.txt")
+
+    client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={"sample_id": "firewall_basic"})
+    client.post(f"/api/v1/evidences/{evidence_id}/extract-fields", json={"template_code": "security_device_basic"})
+
+    resp = client.post(f"/api/v1/evidences/{evidence_id}/match-asset", json={"force": True})
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["matched_asset_id"] == asset_id
+    assert body["asset_match_reasons_json"]["signals"]["device_ip"] == "10.0.0.1"
+    assert "IP" in "".join(body["asset_match_reasons_json"]["summary"])
+
+
+def test_match_asset_suggests_switch_type_from_h3c_keyword(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "switch_h3c.txt")
+
+    client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={"sample_id": "switch_h3c"})
+
+    resp = client.post(f"/api/v1/evidences/{evidence_id}/match-asset", json={"force": True})
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["asset_match_status"] == "unmatched"
+    assert body["asset_match_reasons_json"]["suggested_asset_type"] == "switch"
+    assert body["asset_match_reasons_json"]["need_create_asset"] is True
+
+
+def test_match_asset_suggests_firewall_type_from_keyword(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "firewall_keyword.txt")
+
+    client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={"sample_id": "firewall_basic"})
+
+    resp = client.post(f"/api/v1/evidences/{evidence_id}/match-asset", json={"force": True})
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["asset_match_reasons_json"]["suggested_asset_type"] == "firewall"
+
+
+def test_match_asset_returns_need_create_when_no_candidate(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "server_unknown.txt")
+
+    client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={"sample_id": "server_linux"})
+
+    resp = client.post(f"/api/v1/evidences/{evidence_id}/match-asset", json={"force": True})
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["matched_asset_id"] is None
+    assert body["asset_match_status"] == "unmatched"
+    assert body["asset_match_reasons_json"]["need_create_asset"] is True
+    assert body["asset_match_reasons_json"]["suggested_asset_name"]
+
+
+def test_confirm_asset_binds_evidence_and_asset(client):
+    project_id = create_project(client)
+    asset_id = create_asset(client, project_id, filename="FW-01", category="firewall", category_label="防火墙", primary_ip="10.0.0.1")
+    evidence_id = upload_evidence(client, project_id, "firewall_basic.txt")
+
+    client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={"sample_id": "firewall_basic"})
+    client.post(f"/api/v1/evidences/{evidence_id}/extract-fields", json={"template_code": "security_device_basic"})
+    client.post(f"/api/v1/evidences/{evidence_id}/match-asset", json={"force": True})
+
+    resp = client.post(f"/api/v1/evidences/{evidence_id}/confirm-asset", json={"asset_id": asset_id})
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["matched_asset_id"] == asset_id
+    assert body["asset_match_status"] == "confirmed"
+    assert body["asset_match_reasons_json"]["confirmed_asset_id"] == asset_id
+    assert body["matched_asset"]["filename"] == "FW-01"
+
+
+def test_match_guidance_returns_candidate_and_history(client, tmp_path):
+    from tests.test_guidance_api import import_network_guidance, import_sample_history
+
+    guidance_resp = import_network_guidance(client, tmp_path)
+    history_resp = import_sample_history(client)
+    assert guidance_resp.status_code == 201
+    assert history_resp.status_code == 201
+
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "firewall_basic.txt")
+    client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={"sample_id": "firewall_basic"})
+    client.post(f"/api/v1/evidences/{evidence_id}/extract-fields", json={"template_code": "security_device_basic"})
+    client.post(f"/api/v1/evidences/{evidence_id}/match-asset", json={"force": True})
+
+    resp = client.post(f"/api/v1/evidences/{evidence_id}/match-guidance", json={"force": True})
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["matched_guidance_id"] is not None
+    assert body["guidance_match_status"] == "suggested"
+    assert body["matched_guidance"]["section_title"] == "边界防护"
+    assert body["guidance_match_reasons_json"]["top_history"]
+    assert body["guidance_match_reasons_json"]["history_count"] >= 1
+
+
+def test_confirm_guidance_binds_evidence_and_item(client, tmp_path):
+    from tests.test_guidance_api import import_network_guidance
+
+    guidance_resp = import_network_guidance(client, tmp_path)
+    assert guidance_resp.status_code == 201
+    guidance_id = client.get("/api/v1/guidance/items", params={"keyword": "边界防护"}).json()["data"]["items"][0]["id"]
+
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "firewall_basic.txt")
+    client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={"sample_id": "firewall_basic"})
+
+    resp = client.post(f"/api/v1/evidences/{evidence_id}/confirm-guidance", json={"guidance_id": guidance_id})
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["matched_guidance_id"] == guidance_id
+    assert body["guidance_match_status"] == "confirmed"
+    assert body["guidance_match_reasons_json"]["confirmed_guidance_id"] == guidance_id
+    assert body["matched_guidance"]["section_title"] == "边界防护"
+
+
 def test_extract_fields_without_ocr_returns_400(client):
     project_id = create_project(client)
     evidence_id = upload_evidence(client, project_id)
@@ -135,17 +320,20 @@ def test_run_ocr_with_invalid_sample_returns_400(client):
 
 
 def test_run_paddle_ocr_success_with_stubbed_engine(client, monkeypatch):
-    previous_provider = settings.OCR_PROVIDER
     settings.OCR_PROVIDER = "paddle"
     PaddleOCRAdapter.reset_engine()
 
     class FakeEngine:
-        def ocr(self, file_path, cls=True):
+        def predict(self, file_path, use_textline_orientation=True):
             return [
-                [
-                    [[[0, 0], [10, 0], [10, 10], [0, 10]], ("设备名称：FW-01", 0.99)],
-                    [[[0, 12], [10, 12], [10, 22], [0, 22]], ("管理IP：10.0.0.1", 0.97)],
-                ]
+                {
+                    "rec_texts": ["设备名称：FW-01", "管理IP：10.0.0.1"],
+                    "rec_scores": [0.99, 0.97],
+                    "dt_polys": [
+                        [[0, 0], [10, 0], [10, 10], [0, 10]],
+                        [[0, 12], [10, 12], [10, 22], [0, 22]],
+                    ],
+                }
             ]
 
     monkeypatch.setattr(PaddleOCRAdapter, "_create_engine", classmethod(lambda cls: FakeEngine()))
@@ -154,8 +342,6 @@ def test_run_paddle_ocr_success_with_stubbed_engine(client, monkeypatch):
     evidence_id = upload_evidence(client, project_id, "real-image.png")
 
     resp = client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={})
-    settings.OCR_PROVIDER = previous_provider
-    PaddleOCRAdapter.reset_engine()
 
     assert resp.status_code == 200
     body = resp.json()
@@ -172,12 +358,11 @@ def test_run_paddle_ocr_success_with_stubbed_engine(client, monkeypatch):
 
 
 def test_run_paddle_ocr_failure_returns_structured_result(client, monkeypatch):
-    previous_provider = settings.OCR_PROVIDER
     settings.OCR_PROVIDER = "paddle"
     PaddleOCRAdapter.reset_engine()
 
     class FakeEngine:
-        def ocr(self, file_path, cls=True):
+        def predict(self, file_path, use_textline_orientation=True):
             raise RuntimeError("engine boom")
 
     monkeypatch.setattr(PaddleOCRAdapter, "_create_engine", classmethod(lambda cls: FakeEngine()))
@@ -186,8 +371,6 @@ def test_run_paddle_ocr_failure_returns_structured_result(client, monkeypatch):
     evidence_id = upload_evidence(client, project_id, "broken-image.png")
 
     resp = client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={})
-    settings.OCR_PROVIDER = previous_provider
-    PaddleOCRAdapter.reset_engine()
 
     assert resp.status_code == 200
     body = resp.json()

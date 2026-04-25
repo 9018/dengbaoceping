@@ -43,10 +43,12 @@ export interface ProjectPayload {
 export interface Asset extends Timestamped {
   id: string
   project_id: string
+  asset_kind: string
   category: string
   category_label: string
   batch_no: string | null
   filename: string
+  primary_ip: string | null
   file_ext: string | null
   mime_type: string | null
   relative_path: string
@@ -59,10 +61,12 @@ export interface Asset extends Timestamped {
 }
 
 export interface AssetPayload {
+  asset_kind?: string
   category: string
   category_label: string
   batch_no?: string | null
   filename: string
+  primary_ip?: string | null
   file_ext?: string | null
   mime_type?: string | null
   relative_path: string
@@ -74,10 +78,54 @@ export interface AssetPayload {
   ingest_status?: string
 }
 
+export interface AssetMatchReasons {
+  summary?: string[]
+  matched_asset_id?: string | null
+  asset_name?: string | null
+  asset_type?: string | null
+  score?: number | null
+  score_breakdown?: Record<string, number>
+  signals?: Record<string, unknown>
+  need_create_asset?: boolean
+  suggested_asset_name?: string | null
+  suggested_asset_type?: string | null
+  confirmed_asset_id?: string | null
+  confirmed_asset_name?: string | null
+  confirmed_asset_type?: string | null
+}
+
+export interface GuidanceEvidenceHistory {
+  history_record_id: string
+  sheet_name: string
+  asset_name: string | null
+  asset_type: string | null
+  compliance_status: string | null
+  match_score: number
+  match_reason: GuidanceMatchReason | Record<string, unknown>
+}
+
+export interface GuidanceMatchReasons {
+  summary?: string[]
+  matched_guidance_id?: string | null
+  guidance_code?: string | null
+  section_title?: string | null
+  section_path?: string | null
+  score?: number | null
+  score_breakdown?: Record<string, unknown>
+  signals?: Record<string, unknown>
+  history_count?: number
+  top_history?: GuidanceEvidenceHistory[]
+  confirmed_guidance_id?: string | null
+  confirmed_guidance_code?: string | null
+  confirmed_section_title?: string | null
+}
+
 export interface Evidence extends Timestamped {
   id: string
   project_id: string
   asset_id: string | null
+  matched_asset_id: string | null
+  matched_guidance_id: string | null
   evidence_type: string
   title: string
   summary: string | null
@@ -91,6 +139,14 @@ export interface Evidence extends Timestamped {
   evidence_time: string | null
   tags_json: unknown
   source_ref: string | null
+  asset_match_score: number | null
+  asset_match_reasons_json: AssetMatchReasons | Record<string, unknown> | null
+  asset_match_status: string | null
+  guidance_match_score: number | null
+  guidance_match_reasons_json: GuidanceMatchReasons | Record<string, unknown> | null
+  guidance_match_status: string | null
+  matched_asset?: Asset | null
+  matched_guidance?: GuidanceItem | null
 }
 
 export interface EvidenceUploadPayload {
@@ -388,6 +444,7 @@ export interface ExportJob extends Timestamped {
   id: string
   project_id: string
   format: string
+  mode: string | null
   status: string
   file_name: string
   file_size: number
@@ -396,6 +453,10 @@ export interface ExportJob extends Timestamped {
 
 export interface ExportCreatePayload {
   format?: string
+}
+
+export interface ExcelExportCreatePayload {
+  mode: 'official' | 'debug'
 }
 
 export interface ProjectSummary {

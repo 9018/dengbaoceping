@@ -102,6 +102,7 @@ npm run dev
 - `UPLOAD_DIR`：上传文件目录
 - `EXPORT_DIR`：导出文件目录
 - `SNAPSHOT_DIR`：快照目录
+- `GUIDANCE_FILE_PATH`：指导书 Markdown 文件路径，默认 `./md/指导书.md`
 - `OCR_PROVIDER`：`mock`、`paddle` 或 `real`
 - `OCR_TIMEOUT_SECONDS`：OCR 超时时间
 - `PADDLE_OCR_LANG`：PaddleOCR 语言配置，默认 `ch`
@@ -114,8 +115,8 @@ npm run dev
 
 ## OCR provider 说明
 
-- 默认 `OCR_PROVIDER=mock`，适合本地开发和 CI。
-- `OCR_PROVIDER=paddle` 时，会读取真实上传文件并执行 PaddleOCR。
+- 默认 `OCR_PROVIDER=paddle`，会读取真实上传文件并执行 PaddleOCR。
+- `OCR_PROVIDER=mock` 仅用于本地调试或测试时显式切回。
 - `OCR_PROVIDER=real` 仍保留为占位 provider，当前会返回 `REAL_OCR_NOT_CONFIGURED`。
 - PaddleOCR 结果统一至少包含：`provider`、`status`、`full_text`、`lines`、`processed_at`。
 - `lines` 中每项结构为：`{ text, confidence, bbox }`。
@@ -124,7 +125,7 @@ npm run dev
 
 ### Paddle 安装提示
 
-`backend/requirements.txt` 已补充 Paddle 依赖，但 Paddle 版本兼容性受平台影响较大。首次在新环境安装时，建议优先在后端虚拟环境中单独验证：
+`backend/requirements.txt` 已补充 Paddle 依赖；Docker 镜像也会安装 Paddle 运行所需的基础系统库。首次在新环境安装时，建议优先在后端虚拟环境中单独验证：
 
 ```bash
 cd backend

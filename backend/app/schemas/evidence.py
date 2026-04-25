@@ -3,11 +3,15 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.asset import AssetRead
 from app.schemas.common import TimestampSchema
+from app.schemas.guidance import GuidanceItemRead
 
 
 class EvidenceBase(BaseModel):
     asset_id: str | None = Field(default=None, description="关联文件资产ID")
+    matched_asset_id: str | None = Field(default=None, description="匹配测试对象资产ID")
+    matched_guidance_id: str | None = Field(default=None, description="匹配指导书条目ID")
     evidence_type: str = Field(..., description="证据类型")
     title: str = Field(..., description="证据标题")
     summary: str | None = Field(default=None, description="证据摘要")
@@ -21,6 +25,12 @@ class EvidenceBase(BaseModel):
     evidence_time: datetime | None = Field(default=None, description="证据时间")
     tags_json: dict | list | None = Field(default=None, description="证据标签JSON")
     source_ref: str | None = Field(default=None, description="来源引用标识")
+    asset_match_score: float | None = Field(default=None, description="测试对象匹配得分")
+    asset_match_reasons_json: dict | list | None = Field(default=None, description="测试对象匹配原因JSON")
+    asset_match_status: str | None = Field(default=None, description="测试对象匹配状态")
+    guidance_match_score: float | None = Field(default=None, description="指导书匹配得分")
+    guidance_match_reasons_json: dict | list | None = Field(default=None, description="指导书匹配原因JSON")
+    guidance_match_status: str | None = Field(default=None, description="指导书匹配状态")
 
 
 class EvidenceCreate(EvidenceBase):
@@ -51,6 +61,22 @@ class EvidenceExtractRequest(BaseModel):
     force: bool = Field(default=False, description="是否强制重新执行")
 
 
+class EvidenceMatchAssetRequest(BaseModel):
+    force: bool = Field(default=False, description="是否强制重新匹配")
+
+
+class EvidenceConfirmAssetRequest(BaseModel):
+    asset_id: str | None = Field(default=None, description="确认绑定的测试对象资产ID")
+
+
+class EvidenceMatchGuidanceRequest(BaseModel):
+    force: bool = Field(default=False, description="是否强制重新匹配指导书")
+
+
+class EvidenceConfirmGuidanceRequest(BaseModel):
+    guidance_id: str | None = Field(default=None, description="确认绑定的指导书条目ID")
+
+
 class ExtractedFieldRead(TimestampSchema):
     id: str
     evidence_id: str | None
@@ -71,6 +97,8 @@ class ExtractedFieldRead(TimestampSchema):
 
 class EvidenceUpdate(BaseModel):
     asset_id: str | None = None
+    matched_asset_id: str | None = None
+    matched_guidance_id: str | None = None
     evidence_type: str | None = None
     title: str | None = None
     summary: str | None = None
@@ -80,10 +108,18 @@ class EvidenceUpdate(BaseModel):
     evidence_time: datetime | None = None
     tags_json: dict | list | None = None
     source_ref: str | None = None
+    asset_match_score: float | None = None
+    asset_match_reasons_json: dict | list | None = None
+    asset_match_status: str | None = None
+    guidance_match_score: float | None = None
+    guidance_match_reasons_json: dict | list | None = None
+    guidance_match_status: str | None = None
 
 
 class EvidenceRead(EvidenceBase, TimestampSchema):
     id: str
     project_id: str
+    matched_asset: AssetRead | None = None
+    matched_guidance: GuidanceItemRead | None = None
 
     model_config = ConfigDict(from_attributes=True)

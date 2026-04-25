@@ -3,7 +3,12 @@ from io import BytesIO
 from openpyxl import Workbook
 
 from app.services.history_import_service import HistoryImportService
-from tests.history_excel_utils import build_history_excel
+from tests.history_excel_utils import (
+    build_history_excel,
+    build_history_excel_with_cover_sheet,
+    build_history_excel_with_trailing_blank_headers,
+    build_history_excel_with_variation_headers,
+)
 
 
 service = HistoryImportService()
@@ -36,6 +41,36 @@ def test_import_excel_keeps_previous_values_for_merged_cells(db_session):
     assert len(records) == 2
     assert records[1].extension_standard == "安全通信网络"
     assert records[1].control_point == "边界访问控制"
+
+
+def test_import_excel_accepts_normalized_headers(db_session):
+    result = service.import_excel(db_session, "history.xlsx", build_history_excel_with_variation_headers())
+
+    assert result["sheet_count"] == 1
+    assert result["imported_count"] == 1
+    records = service.repository.list_records(db_session, sheet_name="出口防火墙")
+    assert len(records) == 1
+    assert records[0].item_no == "A-01"
+
+
+def test_import_excel_accepts_trailing_blank_headers(db_session):
+    result = service.import_excel(db_session, "history.xlsx", build_history_excel_with_trailing_blank_headers())
+
+    assert result["sheet_count"] == 1
+    assert result["imported_count"] == 1
+    records = service.repository.list_records(db_session, sheet_name="出口防火墙")
+    assert len(records) == 1
+    assert records[0].score == 1.0
+    assert records[0].item_no == "A-01"
+
+
+def test_import_excel_skips_cover_sheet_and_imports_valid_sheet(db_session):
+    result = service.import_excel(db_session, "history.xlsx", build_history_excel_with_cover_sheet())
+
+    assert result["sheet_count"] == 2
+    assert result["imported_count"] == 1
+    records = service.repository.list_records(db_session, sheet_name="出口防火墙")
+    assert len(records) == 1
 
 
 def test_import_excel_rejects_invalid_extension(db_session):

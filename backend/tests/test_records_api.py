@@ -45,6 +45,19 @@ def test_generate_record_full_match(client):
     evidence_id = upload_evidence(client, project_id, "firewall_basic.txt")
     run_extract_flow(client, evidence_id, "firewall_basic", "security_device_basic")
 
+    from tests.test_guidance_api import import_network_guidance, import_sample_history
+    from pathlib import Path
+    import tempfile
+
+    tmp_path = Path(tempfile.mkdtemp())
+    guidance_resp = import_network_guidance(client, tmp_path)
+    history_resp = import_sample_history(client)
+    assert guidance_resp.status_code == 201
+    assert history_resp.status_code == 201
+    guidance_match_resp = client.post(f"/api/v1/evidences/{evidence_id}/match-guidance", json={"force": True})
+    assert guidance_match_resp.status_code == 200
+    assert guidance_match_resp.json()["data"]["matched_guidance"]["section_title"] == "边界防护"
+
     resp = client.post(
         f"/api/v1/projects/{project_id}/records/generate",
         json={"evidence_id": evidence_id},

@@ -7,6 +7,9 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parents[2]
+DEFAULT_GUIDANCE_FILE_PATH = BASE_DIR.parent / "md" / "指导书.md"
+if not DEFAULT_GUIDANCE_FILE_PATH.exists():
+    DEFAULT_GUIDANCE_FILE_PATH = BASE_DIR / "md" / "指导书.md"
 
 
 class Settings(BaseSettings):
@@ -23,8 +26,8 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = str(BASE_DIR / "uploads")
     EXPORT_DIR: str = str(BASE_DIR / "exports")
     SNAPSHOT_DIR: str = str(BASE_DIR / "snapshots")
-    GUIDANCE_FILE_PATH: str = str(BASE_DIR.parent / "md" / "指导书.md")
-    OCR_PROVIDER: str = "mock"
+    GUIDANCE_FILE_PATH: str = str(DEFAULT_GUIDANCE_FILE_PATH)
+    OCR_PROVIDER: str = "paddle"
     OCR_TIMEOUT_SECONDS: int = 30
     PADDLE_OCR_LANG: str = "ch"
     PADDLE_OCR_USE_ANGLE_CLS: bool = True

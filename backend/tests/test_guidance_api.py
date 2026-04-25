@@ -100,6 +100,20 @@ def test_guidance_import_and_items_api(client, tmp_path: Path):
     assert detail_resp.json()["data"]["section_title"] == "安全通用要求"
 
 
+def test_guidance_default_path_prefers_repo_md_file(client):
+    expected_path = Path(settings.BASE_DIR) / "md" / "指导书.md"
+    original = settings.GUIDANCE_FILE_PATH
+    settings.GUIDANCE_FILE_PATH = str(expected_path)
+    try:
+        resp = client.get("/api/v1/guidance/items")
+    finally:
+        settings.GUIDANCE_FILE_PATH = original
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["absolute_path"].endswith("/md/指导书.md")
+
+
 def test_guidance_keyword_search(client, tmp_path: Path):
     import_resp = import_sample_guidance(client, tmp_path)
     assert import_resp.status_code == 201

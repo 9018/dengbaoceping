@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sqlalchemy import JSON, String, Text, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
@@ -25,3 +25,5 @@ class GuidanceItem(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     check_points_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list, comment="核查要点列表")
     evidence_requirements_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list, comment="证据要求列表")
     record_suggestion: Mapped[str | None] = mapped_column(Text, nullable=True, comment="记录建议")
+
+    matched_evidences = relationship("Evidence", back_populates="matched_guidance")

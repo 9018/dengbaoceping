@@ -74,10 +74,12 @@ class EvidenceService:
 
         asset = Asset(
             project_id=project_id,
+            asset_kind="evidence_file",
             category=payload.category,
             category_label=payload.category_label,
             batch_no=datetime.now().strftime("%Y%m%d%H%M%S"),
             filename=original_name,
+            primary_ip=None,
             file_ext=suffix or None,
             mime_type=mime_type,
             relative_path=relative_path,
@@ -93,6 +95,8 @@ class EvidenceService:
         evidence = Evidence(
             project_id=project_id,
             asset_id=asset.id,
+            matched_asset_id=None,
+            matched_guidance_id=None,
             evidence_type=payload.evidence_type,
             title=payload.title or original_name,
             summary=payload.summary,
@@ -106,6 +110,12 @@ class EvidenceService:
             evidence_time=payload.evidence_time,
             tags_json=payload.tags_json,
             source_ref=payload.source_ref,
+            asset_match_score=None,
+            asset_match_reasons_json=None,
+            asset_match_status="pending",
+            guidance_match_score=None,
+            guidance_match_reasons_json=None,
+            guidance_match_status="pending",
         )
         return self.repository.create(db, evidence)
 

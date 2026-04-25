@@ -1,3 +1,17 @@
+from io import BytesIO
+
+import pytest
+from openpyxl import load_workbook
+
+from app.core.config import settings
+
+
+@pytest.fixture(autouse=True)
+def use_mock_ocr_provider():
+    original = settings.OCR_PROVIDER
+    settings.OCR_PROVIDER = "mock"
+    yield
+    settings.OCR_PROVIDER = original
 
 
 def create_project(client):
@@ -75,6 +89,47 @@ def advance_record_to_approved(client, record_id: str, current_status: str, revi
     return current_status
 
 
+def prepare_guidance_and_history(client, tmp_path):
+    from tests.test_guidance_api import import_network_guidance, import_sample_history
+
+    guidance_resp = import_network_guidance(client, tmp_path)
+    history_resp = import_sample_history(client)
+    assert guidance_resp.status_code == 201
+    assert history_resp.status_code == 201
+    guidance_id = client.get("/api/v1/guidance/items", params={"keyword": "边界防护"}).json()["data"]["items"][0]["id"]
+    link_resp = client.post(f"/api/v1/guidance/{guidance_id}/link-history")
+    assert link_resp.status_code == 200
+    return guidance_id
+
+
+def confirm_asset_and_guidance(client, project_id: str, evidence_id: str, asset_name: str, primary_ip: str, guidance_id: str) -> None:
+    asset_resp = client.post(
+        f"/api/v1/projects/{project_id}/assets",
+        json={
+            "filename": asset_name,
+            "category": "server",
+            "category_label": "服务器",
+            "relative_path": f"assets/{asset_name}.txt",
+            "primary_ip": primary_ip,
+        },
+    )
+    assert asset_resp.status_code == 201
+    asset_id = asset_resp.json()["data"]["id"]
+
+    confirm_asset_resp = client.post(f"/api/v1/evidences/{evidence_id}/confirm-asset", json={"asset_id": asset_id})
+    assert confirm_asset_resp.status_code == 200
+
+    confirm_guidance_resp = client.post(f"/api/v1/evidences/{evidence_id}/confirm-guidance", json={"guidance_id": guidance_id})
+    assert confirm_guidance_resp.status_code == 200
+
+
+def open_workbook_from_response(response):
+    return load_workbook(BytesIO(response.content))
+
+
+def header_values(worksheet):
+    return [cell.value for cell in worksheet[1]]
+
 
 def test_project_export_txt_grouped_by_device(client):
     project_id = create_project(client)
@@ -110,6 +165,7 @@ def test_project_export_txt_grouped_by_device(client):
 
     download_resp = client.get(f"/api/v1/exports/{export_id}/download")
     assert download_resp.status_code == 200
+    assert download_resp.headers["content-type"].startswith("text/plain")
     content = download_resp.text
     assert "项目：导出项目" in content
     assert "设备：服务器A" in content
@@ -118,6 +174,74 @@ def test_project_export_txt_grouped_by_device(client):
     assert record_2["title"] in content
     assert record_3["title"] in content
     assert "状态：exported" in content
+
+
+def test_project_export_excel_official_multi_sheet(client, tmp_path):
+    guidance_id = prepare_guidance_and_history(client, tmp_path)
+    project_id = create_project(client)
+
+    evidence_id_1 = upload_evidence(client, project_id, "firewall_basic.txt", "防火墙配置", "设备A")
+    evidence_id_2 = upload_evidence(client, project_id, "policy_missing_action.txt", "安全策略", "设备B")
+
+    run_extract_flow(client, evidence_id_1, "firewall_basic", "security_device_basic")
+    run_extract_flow(client, evidence_id_2, "security_policy_missing_action", "security_policy_basic")
+    confirm_asset_and_guidance(client, project_id, evidence_id_1, "FW-01", "10.0.0.1", guidance_id)
+    confirm_asset_and_guidance(client, project_id, evidence_id_2, "SW-01", "10.0.0.2", guidance_id)
+
+    record_1 = generate_record(client, project_id, evidence_id_1)
+    record_2 = generate_record(client, project_id, evidence_id_2)
+    assert advance_record_to_approved(client, record_1["id"], record_1["status"], "alice") == "approved"
+    assert advance_record_to_approved(client, record_2["id"], record_2["status"], "bob") == "approved"
+
+    export_resp = client.post(f"/api/v1/projects/{project_id}/export-excel", json={"mode": "official"})
+    assert export_resp.status_code == 201
+    body = export_resp.json()
+    assert body["data"]["format"] == "xlsx"
+    assert body["data"]["mode"] == "official"
+    export_id = body["data"]["id"]
+
+    download_resp = client.get(f"/api/v1/exports/{export_id}/download")
+    assert download_resp.status_code == 200
+    assert download_resp.headers["content-type"].startswith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    workbook = open_workbook_from_response(download_resp)
+    assert set(workbook.sheetnames) == {"FW-01", "SW-01"}
+    worksheet = workbook["FW-01"]
+    assert header_values(worksheet) == ["编号", "扩展标准", "控制点", "测评项", "结果记录", "符合情况", "分值"]
+    assert worksheet.freeze_panes == "A2"
+    row = [worksheet.cell(2, index).value for index in range(1, 8)]
+    assert row[0] == "A-01"
+    assert row[1] == "安全通信网络"
+    assert row[5] == "符合"
+    assert row[6] == 1
+
+
+def test_project_export_excel_debug_contains_debug_columns(client, tmp_path):
+    guidance_id = prepare_guidance_and_history(client, tmp_path)
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "firewall_basic.txt", "防火墙配置", "设备A")
+
+    run_extract_flow(client, evidence_id, "firewall_basic", "security_device_basic")
+    confirm_asset_and_guidance(client, project_id, evidence_id, "FW-01", "10.0.0.1", guidance_id)
+
+    record = generate_record(client, project_id, evidence_id)
+    assert advance_record_to_approved(client, record["id"], record["status"], "alice") == "approved"
+
+    export_resp = client.post(f"/api/v1/projects/{project_id}/export-excel", json={"mode": "debug"})
+    assert export_resp.status_code == 201
+    export_id = export_resp.json()["data"]["id"]
+
+    download_resp = client.get(f"/api/v1/exports/{export_id}/download")
+    workbook = open_workbook_from_response(download_resp)
+    worksheet = workbook["FW-01"]
+    headers = header_values(worksheet)
+    assert headers == ["编号", "扩展标准", "控制点", "测评项", "结果记录", "符合情况", "分值", "测试对象", "证据文件", "指导书依据", "匹配分数", "历史样本ID"]
+    row = [worksheet.cell(2, index).value for index in range(1, 13)]
+    assert row[7] == "FW-01"
+    assert row[8] == "防火墙配置"
+    assert "边界防护" in row[9]
+    assert "记录:" in row[10]
+    assert row[11]
 
 
 def test_project_export_requires_approved_records(client):

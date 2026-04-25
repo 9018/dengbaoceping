@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.evaluation_record import EvaluationRecord, EvaluationRecordEvidence
+from app.models.evidence import Evidence
 from app.models.extracted_field import ReviewAuditLog
 
 
@@ -13,6 +14,24 @@ class EvaluationRecordRepository:
             .options(
                 selectinload(EvaluationRecord.evidence_links)
                 .selectinload(EvaluationRecordEvidence.evidence),
+            )
+            .filter(EvaluationRecord.project_id == project_id)
+            .order_by(EvaluationRecord.created_at.desc())
+            .all()
+        )
+
+    def list_by_project_for_export(self, db: Session, project_id: str) -> list[EvaluationRecord]:
+        return (
+            db.query(EvaluationRecord)
+            .options(
+                selectinload(EvaluationRecord.asset),
+                selectinload(EvaluationRecord.evaluation_item),
+                selectinload(EvaluationRecord.evidence_links)
+                .selectinload(EvaluationRecordEvidence.evidence)
+                .selectinload(Evidence.matched_asset),
+                selectinload(EvaluationRecord.evidence_links)
+                .selectinload(EvaluationRecordEvidence.evidence)
+                .selectinload(Evidence.matched_guidance),
             )
             .filter(EvaluationRecord.project_id == project_id)
             .order_by(EvaluationRecord.created_at.desc())

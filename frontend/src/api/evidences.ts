@@ -52,6 +52,22 @@ export async function listEvidenceFields(evidenceId: string) {
   return unwrapResponse<ExtractedField[]>(apiClient.get(`/evidences/${evidenceId}/fields`))
 }
 
+export async function matchEvidenceAsset(evidenceId: string, force = false) {
+  return unwrapResponse<Evidence>(apiClient.post(`/evidences/${evidenceId}/match-asset`, { force }))
+}
+
+export async function confirmEvidenceAsset(evidenceId: string, assetId?: string | null) {
+  return unwrapResponse<Evidence>(apiClient.post(`/evidences/${evidenceId}/confirm-asset`, { asset_id: assetId || null }))
+}
+
+export async function matchEvidenceGuidance(evidenceId: string, force = false) {
+  return unwrapResponse<Evidence>(apiClient.post(`/evidences/${evidenceId}/match-guidance`, { force }))
+}
+
+export async function confirmEvidenceGuidance(evidenceId: string, guidanceId?: string | null) {
+  return unwrapResponse<Evidence>(apiClient.post(`/evidences/${evidenceId}/confirm-guidance`, { guidance_id: guidanceId || null }))
+}
+
 export async function deleteEvidence(evidenceId: string) {
   return unwrapResponse<null>(apiClient.delete(`/evidences/${evidenceId}`))
 }

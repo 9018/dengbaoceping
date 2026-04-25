@@ -12,6 +12,14 @@ class AssetRepository:
     def list_by_project(self, db: Session, project_id: str) -> list[Asset]:
         return db.query(Asset).filter(Asset.project_id == project_id).order_by(Asset.created_at.desc()).all()
 
+    def list_matchable_by_project(self, db: Session, project_id: str) -> list[Asset]:
+        return (
+            db.query(Asset)
+            .filter(Asset.project_id == project_id, Asset.asset_kind == "test_object")
+            .order_by(Asset.created_at.desc())
+            .all()
+        )
+
     def get(self, db: Session, asset_id: str) -> Asset | None:
         return db.get(Asset, asset_id)
 

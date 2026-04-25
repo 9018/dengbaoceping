@@ -31,11 +31,13 @@ class PaddleOCRAdapter:
             ) from exc
 
         try:
-            return PaddleOCR(
-                lang=settings.PADDLE_OCR_LANG,
-                use_angle_cls=settings.PADDLE_OCR_USE_ANGLE_CLS,
-                use_gpu=settings.PADDLE_OCR_USE_GPU,
-            )
+            kwargs = {
+                "lang": settings.PADDLE_OCR_LANG,
+                "use_textline_orientation": settings.PADDLE_OCR_USE_ANGLE_CLS,
+            }
+            if settings.PADDLE_OCR_USE_GPU:
+                kwargs["device"] = "gpu"
+            return PaddleOCR(**kwargs)
         except Exception as exc:
             raise StorageException(
                 "PADDLE_OCR_INIT_FAILED",
@@ -68,7 +70,10 @@ class PaddleOCRAdapter:
 
         engine = self._get_engine()
         try:
-            raw_result = engine.ocr(str(path), cls=settings.PADDLE_OCR_USE_ANGLE_CLS)
+            raw_result = engine.predict(
+                str(path),
+                use_textline_orientation=settings.PADDLE_OCR_USE_ANGLE_CLS,
+            )
         except Exception as exc:
             return self._failed_result(
                 evidence_id=evidence_id,
@@ -154,7 +159,7 @@ class PaddleOCRAdapter:
         return [line for line in lines if line["text"]]
 
     def _normalize_page(self, page_result: Any) -> list[OCRLine]:
-        if isinstance(page_result, dict):
+        if hasattr(page_result, "get"):
             nested = page_result.get("res")
             if isinstance(nested, list):
                 return self._normalize_page(nested)
@@ -185,13 +190,13 @@ class PaddleOCRAdapter:
 
     def _normalize_entry(self, entry: Any) -> OCRLine | None:
         if isinstance(entry, dict):
-            text = str(entry.get("text") or "").strip()
+            text = str(entry.get("text") or entry.get("rec_text") or "").strip()
             if not text:
                 return None
             return {
                 "text": text,
-                "confidence": self._normalize_confidence(entry.get("confidence")),
-                "bbox": self._normalize_bbox(entry.get("bbox")),
+                "confidence": self._normalize_confidence(entry.get("confidence") or entry.get("score") or entry.get("rec_score")),
+                "bbox": self._normalize_bbox(entry.get("bbox") or entry.get("dt_poly") or entry.get("poly")),
             }
 
         if not isinstance(entry, (list, tuple)) or len(entry) < 2:

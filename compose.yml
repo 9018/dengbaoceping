@@ -12,6 +12,7 @@ services:
       - ./backend/exports:/app/exports
       - ./backend/snapshots:/app/snapshots
       - ./backend/app.db:/app/app.db
+      - ./md:/app/md:ro
 
   frontend:
     build:

@@ -2,16 +2,19 @@
   <el-dialog v-model="visible" :title="mode === 'create' ? '新增设备资产' : '编辑设备资产'" width="640px">
     <el-form label-width="110px">
       <el-form-item label="分类标识">
-        <el-input v-model="form.category" placeholder="例如 device" />
+        <el-input v-model="form.category" placeholder="例如 firewall / switch / server" />
       </el-form-item>
       <el-form-item label="分类名称">
-        <el-input v-model="form.category_label" placeholder="例如 设备资产" />
+        <el-input v-model="form.category_label" placeholder="例如 防火墙 / 交换机 / 服务器" />
+      </el-form-item>
+      <el-form-item label="资产名称">
+        <el-input v-model="form.filename" placeholder="填写测试对象名称" />
+      </el-form-item>
+      <el-form-item label="主 IP">
+        <el-input v-model="form.primary_ip" placeholder="例如 10.0.0.1" />
       </el-form-item>
       <el-form-item label="批次号">
         <el-input v-model="form.batch_no" />
-      </el-form-item>
-      <el-form-item label="文件名">
-        <el-input v-model="form.filename" placeholder="可填写设备名称或标识文件名" />
       </el-form-item>
       <el-form-item label="相对路径">
         <el-input v-model="form.relative_path" placeholder="例如 assets/device-manual.txt" />
@@ -63,10 +66,12 @@ const visible = computed({
 })
 
 const form = reactive({
+  asset_kind: 'test_object',
   category: 'device',
   category_label: '设备资产',
   batch_no: '',
   filename: '',
+  primary_ip: '',
   file_ext: '',
   mime_type: 'text/plain',
   relative_path: 'assets/device.txt',
@@ -81,10 +86,12 @@ const form = reactive({
 watch(
   () => props.asset,
   (asset) => {
+    form.asset_kind = asset?.asset_kind ?? 'test_object'
     form.category = asset?.category ?? 'device'
     form.category_label = asset?.category_label ?? '设备资产'
     form.batch_no = asset?.batch_no ?? ''
     form.filename = asset?.filename ?? ''
+    form.primary_ip = asset?.primary_ip ?? ''
     form.file_ext = asset?.file_ext ?? ''
     form.mime_type = asset?.mime_type ?? 'text/plain'
     form.relative_path = asset?.relative_path ?? 'assets/device.txt'
@@ -102,10 +109,12 @@ const mode = computed(() => props.mode || 'create')
 
 function submit() {
   emit('submit', {
+    asset_kind: form.asset_kind,
     category: form.category.trim(),
     category_label: form.category_label.trim(),
     batch_no: form.batch_no.trim() || null,
     filename: form.filename.trim(),
+    primary_ip: form.primary_ip.trim() || null,
     file_ext: form.file_ext.trim() || null,
     mime_type: form.mime_type.trim() || null,
     relative_path: form.relative_path.trim(),

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections import Counter
 from dataclasses import asdict, dataclass
 from io import BytesIO
-from pathlib import Path
 
 from openpyxl import load_workbook
 from openpyxl.utils.exceptions import InvalidFileException
@@ -42,6 +42,26 @@ class HistoryImportService:
         "score": ("分值",),
         "item_no": ("编号",),
     }
+    OPTIONAL_HEADERS = {
+        "extension_standard": ("扩展标准", "扩展标准:", "扩展标准："),
+        "control_point": ("控制点", "控制点:", "控制点："),
+        "evaluation_item": ("测评项", "测评项:", "测评项："),
+        "record_text": ("结果记录", "结果记录:", "结果记录："),
+        "compliance_status": ("符合情况", "符合情况:", "符合情况："),
+        "score": ("分值", "分值:", "分值："),
+        "item_no": ("编号", "编号:", "编号："),
+    }
+    HEADER_STRIP_PATTERN = re.compile(r"[\s​‌‍⁠﻿]+")
+    HEADER_TRAILING_PUNCTUATION_PATTERN = re.compile(r"[:：]+$")
+    HEADER_FALLBACK_FIELD_ORDER = (
+        "extension_standard",
+        "control_point",
+        "evaluation_item",
+        "record_text",
+        "compliance_status",
+        "score",
+        "item_no",
+    )
     ASSET_TYPE_RULES = (
         ("防火墙", "firewall"),
         ("交换机", "switch"),
@@ -59,10 +79,16 @@ class HistoryImportService:
         workbook = self._load_workbook(filename, content)
         parsed_rows: list[ParsedHistoryRow] = []
         skipped_count = 0
+        matched_sheet_count = 0
         for sheet in workbook.worksheets:
-            sheet_rows, sheet_skipped = self._parse_sheet(sheet.title, sheet.iter_rows(values_only=True), filename)
-            parsed_rows.extend(sheet_rows)
-            skipped_count += sheet_skipped
+            sheet_result = self._parse_sheet(sheet.title, sheet.iter_rows(values_only=True), filename)
+            if not sheet_result["matched"]:
+                continue
+            matched_sheet_count += 1
+            parsed_rows.extend(sheet_result["rows"])
+            skipped_count += sheet_result["skipped_count"]
+        if matched_sheet_count == 0:
+            raise BadRequestException("HISTORY_EXCEL_HEADER_NOT_FOUND", "未识别到历史测评记录表头，请确认包含扩展标准/控制点/测评项/结果记录/符合情况/分值/编号")
         if not parsed_rows:
             raise BadRequestException("HISTORY_EXCEL_EMPTY", "Excel 未解析出有效历史记录")
         records = [HistoryRecord(**asdict(row)) for row in parsed_rows]
@@ -84,9 +110,12 @@ class HistoryImportService:
         except (InvalidFileException, OSError, ValueError) as exc:
             raise BadRequestException("HISTORY_EXCEL_INVALID_FILE", "历史测评记录 Excel 解析失败") from exc
 
-    def _parse_sheet(self, sheet_name: str, rows, source_file: str) -> tuple[list[ParsedHistoryRow], int]:
+    def _parse_sheet(self, sheet_name: str, rows, source_file: str) -> dict:
         row_values = [list(row) for row in rows]
-        header_row_index, header_map = self._find_header(row_values)
+        header = self._find_header(row_values)
+        if header is None:
+            return {"matched": False, "rows": [], "skipped_count": 0}
+        header_row_index, header_map = header
         parsed_rows: list[ParsedHistoryRow] = []
         skipped_count = 0
         last_values: dict[str, str | None] = {key: None for key in self.REQUIRED_HEADERS}
@@ -97,20 +126,53 @@ class HistoryImportService:
                 skipped_count += 1
                 continue
             parsed_rows.append(payload)
-        return parsed_rows, skipped_count
+        return {"matched": True, "rows": parsed_rows, "skipped_count": skipped_count}
 
-    def _find_header(self, rows: list[list[object]]) -> tuple[int, dict[str, int]]:
+    def _find_header(self, rows: list[list[object]]) -> tuple[int, dict[str, int]] | None:
+        normalized_required_headers = {
+            field_name: {self._normalize_cell(alias) for alias in aliases}
+            for field_name, aliases in self.OPTIONAL_HEADERS.items()
+        }
         for index, row in enumerate(rows):
             normalized_cells = [self._normalize_cell(cell) for cell in row]
             header_map: dict[str, int] = {}
-            for field_name, aliases in self.REQUIRED_HEADERS.items():
+            for field_name, aliases in normalized_required_headers.items():
                 for cell_index, cell in enumerate(normalized_cells):
                     if cell in aliases:
                         header_map[field_name] = cell_index
                         break
             if len(header_map) == len(self.REQUIRED_HEADERS):
                 return index, header_map
-        raise BadRequestException("HISTORY_EXCEL_HEADER_NOT_FOUND", "未识别到历史测评记录表头，请确认包含扩展标准/控制点/测评项/结果记录/符合情况/分值/编号")
+            fallback_map = self._build_fallback_header_map(normalized_cells, header_map)
+            if fallback_map is not None:
+                return index, fallback_map
+        return None
+
+    def _build_fallback_header_map(self, normalized_cells: list[str], header_map: dict[str, int]) -> dict[str, int] | None:
+        if not header_map:
+            return None
+        first_missing_field = next((field for field in self.HEADER_FALLBACK_FIELD_ORDER if field not in header_map), None)
+        if first_missing_field is None:
+            return header_map
+        first_missing_index = self.HEADER_FALLBACK_FIELD_ORDER.index(first_missing_field)
+        if any(field not in header_map for field in self.HEADER_FALLBACK_FIELD_ORDER[:first_missing_index]):
+            return None
+        fallback_map = dict(header_map)
+        last_index = -1
+        for field_name in self.HEADER_FALLBACK_FIELD_ORDER:
+            if field_name in fallback_map:
+                last_index = fallback_map[field_name]
+                continue
+            last_index += 1
+            if last_index >= len(normalized_cells):
+                return None
+            remaining_fields = self.HEADER_FALLBACK_FIELD_ORDER[self.HEADER_FALLBACK_FIELD_ORDER.index(field_name) + 1 :]
+            if any(next_field in fallback_map for next_field in remaining_fields):
+                return None
+            fallback_map[field_name] = last_index
+        if not any(self._normalize_cell(cell) for cell in normalized_cells):
+            return None
+        return fallback_map
 
     def _build_row_payload(
         self,
@@ -149,7 +211,10 @@ class HistoryImportService:
         )
 
     def _normalize_cell(self, cell: object) -> str:
-        return re.sub(r"\s+", "", str(cell or "").strip())
+        text = unicodedata.normalize("NFKC", str(cell or ""))
+        text = self.HEADER_STRIP_PATTERN.sub("", text)
+        text = self.HEADER_TRAILING_PUNCTUATION_PATTERN.sub("", text)
+        return text.strip()
 
     def _normalize_value(self, value: object) -> str | None:
         if value is None:

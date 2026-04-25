@@ -35,6 +35,17 @@ class GuidanceHistoryLinkRepository:
             query = query.filter(HistoryRecord.compliance_status == compliance_status)
         return query.order_by(GuidanceHistoryLink.match_score.desc(), HistoryRecord.created_at.desc(), HistoryRecord.row_index.asc()).all()
 
+    def list_history_by_guidance_ids(self, db: Session, guidance_item_ids: list[str]):
+        if not guidance_item_ids:
+            return []
+        return (
+            db.query(GuidanceHistoryLink, HistoryRecord)
+            .join(HistoryRecord, HistoryRecord.id == GuidanceHistoryLink.history_record_id)
+            .filter(GuidanceHistoryLink.guidance_item_id.in_(guidance_item_ids))
+            .order_by(GuidanceHistoryLink.guidance_item_id.asc(), GuidanceHistoryLink.match_score.desc(), HistoryRecord.created_at.desc(), HistoryRecord.row_index.asc())
+            .all()
+        )
+
     def list_guidance_by_history(self, db: Session, history_record_id: str):
         return (
             db.query(GuidanceHistoryLink, GuidanceItem)

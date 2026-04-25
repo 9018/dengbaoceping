@@ -1,6 +1,11 @@
 from openpyxl import Workbook
 
-from tests.history_excel_utils import build_history_excel
+from tests.history_excel_utils import (
+    build_history_excel,
+    build_history_excel_with_cover_sheet,
+    build_history_excel_with_trailing_blank_headers,
+    build_history_excel_with_variation_headers,
+)
 from tests.test_guidance_api import configure_guidance_path, write_guidance_file
 
 
@@ -55,6 +60,40 @@ def test_import_history_excel_api(client):
     assert data["sheet_count"] == 2
     assert data["imported_count"] == 4
     assert data["compliance_status_counts"]["符合"] == 1
+
+
+def test_import_history_excel_api_accepts_normalized_headers(client):
+    resp = client.post(
+        "/api/v1/history/import-excel",
+        files={"file": ("history.xlsx", build_history_excel_with_variation_headers(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["imported_count"] == 1
+
+
+def test_import_history_excel_api_accepts_trailing_blank_headers(client):
+    resp = client.post(
+        "/api/v1/history/import-excel",
+        files={"file": ("history.xlsx", build_history_excel_with_trailing_blank_headers(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["imported_count"] == 1
+
+
+def test_import_history_excel_api_skips_cover_sheet(client):
+    resp = client.post(
+        "/api/v1/history/import-excel",
+        files={"file": ("history.xlsx", build_history_excel_with_cover_sheet(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["sheet_count"] == 2
+    assert data["imported_count"] == 1
 
 
 def test_list_history_records_and_detail(client):

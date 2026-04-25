@@ -24,6 +24,7 @@ class AssetService:
         self._ensure_project_exists(db, project_id)
         data = payload.model_dump()
         data["project_id"] = project_id
+        data["asset_kind"] = data.get("asset_kind") or "test_object"
         asset = Asset(**data)
         return self.repository.create(db, asset)
 

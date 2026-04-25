@@ -10,9 +10,18 @@
           </div>
           <el-space wrap>
             <el-button @click="loadData">刷新</el-button>
+            <el-radio-group v-model="excelMode" size="small">
+              <el-radio-button label="official">official</el-radio-button>
+              <el-radio-button label="debug">debug</el-radio-button>
+            </el-radio-group>
             <el-tooltip :disabled="canCreateExport" :content="getExportDisabledReason()" placement="top">
               <span class="action-wrapper">
-                <el-button type="success" :disabled="!canCreateExport" @click="createExportJob">导出项目结果</el-button>
+                <el-button :disabled="!canCreateExport" @click="createTxtExportJob">导出 TXT</el-button>
+              </span>
+            </el-tooltip>
+            <el-tooltip :disabled="canCreateExport" :content="getExportDisabledReason()" placement="top">
+              <span class="action-wrapper">
+                <el-button type="success" :disabled="!canCreateExport" @click="createExcelExportJob">导出 Excel</el-button>
               </span>
             </el-tooltip>
           </el-space>
@@ -68,6 +77,8 @@
         </template>
         <el-table :data="exportJobs" border>
           <el-table-column prop="file_name" label="文件名" min-width="240" />
+          <el-table-column prop="format" label="格式" width="100" />
+          <el-table-column prop="mode" label="模式" width="110" />
           <el-table-column label="状态" width="120">
             <template #default="scope">
               <AppStatusTag kind="export" :status="scope.row.status" />
@@ -94,7 +105,7 @@ import { ElMessage } from 'element-plus'
 import AppShell from '@/components/AppShell.vue'
 import AppStatusTag from '@/components/AppStatusTag.vue'
 import StatsCards, { type StatsCardItem } from '@/components/StatsCards.vue'
-import { createProjectExport, getExportDownloadUrl, listProjectExports } from '@/api/exports'
+import { createProjectExcelExport, createProjectExport, getExportDownloadUrl, listProjectExports } from '@/api/exports'
 import { listRecords } from '@/api/records'
 import type { EvaluationRecord, ExportJob } from '@/types/domain'
 
@@ -102,6 +113,7 @@ const props = defineProps<{ projectId: string }>()
 const router = useRouter()
 const records = ref<EvaluationRecord[]>([])
 const exportJobs = ref<ExportJob[]>([])
+const excelMode = ref<'official' | 'debug'>('official')
 
 const blockedRecords = computed(() => records.value.filter((item) => !['approved', 'exported'].includes(item.status)))
 const readyRecordsCount = computed(() => records.value.length - blockedRecords.value.length)
@@ -134,9 +146,15 @@ function getBlockedHint(status: string) {
   return '当前记录状态尚未满足导出要求。'
 }
 
-async function createExportJob() {
+async function createTxtExportJob() {
   await createProjectExport(props.projectId, { format: 'txt' })
-  ElMessage.success('项目导出成功')
+  ElMessage.success('TXT 导出成功')
+  await loadData()
+}
+
+async function createExcelExportJob() {
+  await createProjectExcelExport(props.projectId, { mode: excelMode.value })
+  ElMessage.success(`Excel 导出成功（${excelMode.value}）`)
   await loadData()
 }
 

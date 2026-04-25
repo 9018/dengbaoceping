@@ -24,6 +24,20 @@ MOCK_OCR_SAMPLES: dict[str, dict] = {
             }
         ],
     },
+    "switch_h3c": {
+        "provider": "mock_ocr",
+        "status": "completed",
+        "sample_id": "switch_h3c",
+        "full_text": "设备厂商：H3C\n设备类型：交换机\n主机名：SW-CORE-01",
+        "pages": [{"page": 1, "confidence": 0.96, "text": "设备厂商：H3C\n设备类型：交换机\n主机名：SW-CORE-01", "segments": []}],
+    },
+    "server_linux": {
+        "provider": "mock_ocr",
+        "status": "completed",
+        "sample_id": "server_linux",
+        "full_text": "操作系统：Linux\n主机名称：SRV-LINUX-99\n版本：Rocky Linux 9",
+        "pages": [{"page": 1, "confidence": 0.95, "text": "操作系统：Linux\n主机名称：SRV-LINUX-99\n版本：Rocky Linux 9", "segments": []}],
+    },
     "windows_host": {
         "provider": "mock_ocr",
         "status": "completed",
