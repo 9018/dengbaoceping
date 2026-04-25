@@ -5,6 +5,9 @@ from app.models.evaluation_record import EvaluationRecord, EvaluationRecordEvide
 from app.models.evidence import Evidence
 from app.models.export_job import ExportJob
 from app.models.extracted_field import ExtractedField, ReviewAuditLog
+from app.models.guidance_history_link import GuidanceHistoryLink
+from app.models.guidance_item import GuidanceItem
+from app.models.history_record import HistoryRecord
 from app.models.project import Project
 from app.models.template import Template
 
@@ -20,4 +23,7 @@ __all__ = [
     "EvaluationRecord",
     "EvaluationRecordEvidence",
     "ExportJob",
+    "GuidanceItem",
+    "GuidanceHistoryLink",
+    "HistoryRecord",
 ]

@@ -146,6 +146,189 @@ python -c "from paddleocr import PaddleOCR; print('paddle ready')"
 
 后端通过 `backend/app/services/rule_loader.py` 读取这些规则文件。需要调整抽取、匹配或记录渲染逻辑时，应优先更新这些 JSON 文件，而不是写死到代码里。
 
+## 指导书知识库说明
+
+第一阶段已接入固定路径指导书文件：`md/指导书.md`
+
+注意事项：
+
+- 只读取 `md/指导书.md`
+- 不读取 `docs/指导书.md`
+- 如果 `md/指导书.md` 不存在，导入接口会返回明确错误
+- 如果 `md/指导书.md` 为空，页面会显示“指导书.md 当前为空，请先补充内容”
+
+### Markdown 推荐格式
+
+建议优先使用标准 Markdown 标题组织章节，例如：
+
+```md
+# 安全物理环境
+## 安全通用要求
+### 物理访问控制
+
+| 测评项 | 操作步骤 | 预期结果 |
+| --- | --- | --- |
+| 物理访问控制 | 应核查门禁配置并查看门禁日志 | 应提供门禁记录和现场截图 |
+```
+
+当前导入逻辑会：
+
+- 按 `#` / `##` / `###` 标题切分章节
+- 生成 `section_path`
+- 生成稳定 `guidance_code`
+- 保存 `raw_markdown` 和 `plain_text`
+- 规则提取 `keywords_json`、`check_points_json`、`evidence_requirements_json`
+- 初步生成 `record_suggestion`
+
+### 导入方式
+
+后端 API：
+
+- `POST /api/v1/guidance/import-md`：导入 `md/指导书.md`
+- `GET /api/v1/guidance/items`：获取指导书状态和章节列表
+- `GET /api/v1/guidance/items/{guidance_id}`：获取章节详情
+- `GET /api/v1/guidance/search?keyword=门禁`：按关键词搜索章节
+
+前端页面：
+
+- 进入“指导书管理”页面
+- 查看固定路径 `md/指导书.md`
+- 执行“一键导入”
+- 使用关键词搜索章节并查看详情
+
+### 查询方式
+
+支持以下维度的规则查询：
+
+- 章节标题
+- 章节路径
+- 关键词
+- 核查要点
+- 证据要求
+- 章节正文纯文本
+
+当前实现不引入 Elasticsearch、向量库或大模型，先使用规则和关键词完成第一版。
+
+### 后续与 evaluation_items 的关联方向
+
+当前阶段只完成指导书入库和查询，不改动记录生成主链路。
+
+后续可在不破坏现有 OCR、字段抽取、记录生成、导出流程的前提下，逐步接入：
+
+1. 用 `keywords_json` / `plain_text` 参与测评项匹配排序
+2. 用 `check_points_json` 和 `evidence_requirements_json` 增强复核展示
+3. 用 `record_suggestion` 辅助记录生成草稿
+4. 将 `guidance_code` 与 `evaluation_items` 建立显式映射关系
+
+## 历史人工测评记录库说明
+
+第一阶段新增“历史人工测评记录库”，用于把真实人工三级测评 Excel 导入系统，沉淀为可查询、可搜索、可统计、可相似匹配的样本库。
+
+当前阶段能力边界：
+
+- 仅支持 `.xlsx` 文件导入
+- 不引入 Elasticsearch、向量库或大模型
+- 不改动现有 OCR、字段抽取、记录生成、复核、导出主链路
+
+### Excel 推荐格式
+
+建议每个工作表对应一个设备、区域或管理对象，至少包含以下列：
+
+- `扩展标准`
+- `控制点`
+- `测评项`
+- `结果记录`
+- `符合情况`
+- `分值`
+- `编号`
+
+当前导入逻辑会：
+
+- 遍历所有工作表并自动识别表头
+- 一行生成一条历史记录
+- 默认使用 `sheet_name` 作为 `asset_name`
+- 按工作表名称推断 `asset_type`（如防火墙/交换机/服务器/数据库/安全管理）
+- 从控制点、测评项、结果记录中提取 `keywords_json`
+- 返回导入统计、跳过数量和符合情况分布
+
+### 导入与查询方式
+
+后端 API：
+
+- `POST /api/v1/history/import-excel`：导入历史测评记录 Excel
+- `GET /api/v1/history/records`：按 sheet/control_point/compliance_status/asset_type 筛选记录
+- `GET /api/v1/history/records/{record_id}`：获取单条历史记录详情
+- `GET /api/v1/history/search?keyword=日志审计`：按关键词搜索历史记录
+- `GET /api/v1/history/stats`：获取工作表数量、记录总数、符合情况统计、资产类型统计
+- `GET /api/v1/history/similar?control_point=xxx&evaluation_item=xxx&asset_type=xxx`：获取相似历史记录 Top N
+- `GET /api/v1/history/phrases`：统计常见句式（经现场核查 / 查看 / 未提供 / 当前 / 已配置 / 不适用）
+
+前端页面：
+
+- 进入“历史记录库”页面
+- 上传 `.xlsx` 文件
+- 查看导入统计卡片
+- 按 sheet / 控制点 / 符合情况 / 资产类型筛选
+- 执行关键词搜索
+- 查看详情抽屉、相似样本和句式统计
+
+### 后续与指导书 / 记录生成的结合方向
+
+当前阶段只完成历史样本入库与查询，不自动写回现有测评记录生成主链路。
+
+后续可以在不破坏当前流程的前提下逐步接入：
+
+1. 用历史样本辅助记录写法参考
+2. 用相似记录结果辅助复核判断
+3. 与指导书知识库做联合检索与推荐
+
+## 指导书与历史人工记录关联说明
+
+当前阶段新增了 Guidance ↔ History 的独立关联层，用于把指导书章节与历史人工测评记录建立可重算、可持久化的规则链接，为后续生成更接近人工风格的测评记录提供样本参考。
+
+当前阶段能力边界：
+
+- 不引入 Elasticsearch、向量库或大模型
+- 不改动现有 OCR、字段抽取、记录生成、复核、导出主链路
+- 仅基于规则和文本重合度做第一版关联
+
+### 关联规则
+
+当前匹配逻辑会综合以下因素计算 `match_score` 并产出结构化 `match_reason`：
+
+- `control_point` 与指导书章节标题 / 路径 / 核查要点 / 正文的命中或部分重合
+- `evaluation_item` / `record_text` 与指导书记录建议 / 证据要求 / 正文的命中或部分重合
+- `keywords_json` 的重合
+- `asset_type` 的命中
+
+关联结果会持久化到 `guidance_history_links`，因此前端查看详情时可以直接读取已有样本，而不是每次重新全量计算。
+
+### 查询方式
+
+后端 API：
+
+- `POST /api/v1/guidance/{guidance_id}/link-history`：重算某个指导书章节的历史记录关联并持久化结果
+- `GET /api/v1/guidance/{guidance_id}/history-records`：获取某个指导书章节已关联的历史记录，支持 `compliance_status` 筛选
+- `GET /api/v1/history/{history_id}/guidance-items`：从某条历史记录反查关联到的指导书章节
+
+前端页面：
+
+- 进入“指导书管理”页面
+- 打开某个章节详情抽屉
+- 查看“相似历史记录”表格
+- 按“符合情况”筛选关联结果
+- 点击“刷新关联”重新计算该章节的样本链接
+
+### 后续与记录生成的结合方向
+
+当前阶段只完成“指导书章节 ↔ 历史人工样本”的关联沉淀，不直接改写现有生成链路。
+
+后续可以在不破坏当前流程的前提下逐步接入：
+
+1. 在记录生成时按 `guidance_id` 读取高分历史样本
+2. 用历史人工写法样本增强记录文风参考
+3. 在复核阶段展示章节依据与历史写法的联合参考
+
 ## 导出说明
 
 项目级导出由以下接口提供：
@@ -182,6 +365,9 @@ pytest -q tests/test_evidences_api.py tests/services/test_paddle_adapter.py
 - 字段抽取
 - 记录生成
 - 导出
+- 指导书入库与查询
+- 历史人工测评记录入库与查询
+- 指导书与历史人工记录关联
 
 前端构建验证：
 
@@ -206,6 +392,17 @@ npm run build
    - 字段抽取与字段复核
    - 生成记录并审批
    - 发起项目导出并成功下载 TXT
+7. 已完成指导书知识库第一阶段闭环：
+   - 固定读取 `md/指导书.md`
+   - 支持空文件检测与友好提示
+   - 支持章节导入、列表查询、关键词搜索与章节详情展示
+8. 已完成历史人工测评记录库第一阶段闭环：
+   - 支持 `.xlsx` 导入、筛选、搜索、相似记录与句式统计
+   - 支持详情抽屉查看结构化历史样本
+9. 已完成指导书与历史人工记录关联第一阶段闭环：
+   - 支持 guidance 章节触发 link-history 重算
+   - 支持 guidance 详情查看相似历史记录并按符合情况筛选
+   - 支持 history 记录反查 guidance 章节
 
 在这轮浏览器实操中，已额外修复两个仅靠单测和 curl 不易发现的交付问题：
 
@@ -267,6 +464,9 @@ Compose 默认使用：
    - 创建项目
    - 上传证据
    - OCR → 字段抽取 → 字段复核 → 生成记录 → 审批 → 导出
+   - 进入“指导书管理”页面
+   - 检查 `md/指导书.md` 路径状态
+   - 执行一键导入、关键词搜索和章节详情查看
 7. 如需容器化启动
    - 回到仓库根目录
    - `docker compose up --build`

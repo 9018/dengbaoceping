@@ -14,6 +14,8 @@
         <el-menu :default-active="activeMenu" router class="workspace-shell__menu">
           <el-menu-item index="/dashboard">工作台 Dashboard</el-menu-item>
           <el-menu-item index="/projects">项目列表</el-menu-item>
+          <el-menu-item index="/history-records">历史记录库</el-menu-item>
+          <el-menu-item index="/guidance">指导书管理</el-menu-item>
           <el-menu-item index="/template-rules">模板规则</el-menu-item>
         </el-menu>
       </div>
@@ -104,7 +106,8 @@ const activeMenu = computed(() => {
   const candidates = [
     '/dashboard',
     '/projects',
-    '/template-rules',
+    '/history-records',
+    '/guidance',
     projectId.value ? `/projects/${projectId.value}/exports` : '',
     projectId.value ? `/projects/${projectId.value}/records` : '',
     projectId.value ? `/projects/${projectId.value}/review` : '',

@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = str(BASE_DIR / "uploads")
     EXPORT_DIR: str = str(BASE_DIR / "exports")
     SNAPSHOT_DIR: str = str(BASE_DIR / "snapshots")
+    GUIDANCE_FILE_PATH: str = str(BASE_DIR.parent / "md" / "指导书.md")
     OCR_PROVIDER: str = "mock"
     OCR_TIMEOUT_SECONDS: int = 30
     PADDLE_OCR_LANG: str = "ch"

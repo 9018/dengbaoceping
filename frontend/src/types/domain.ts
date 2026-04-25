@@ -242,6 +242,137 @@ export interface RecordReviewPayload {
   reviewed_by?: string | null
 }
 
+export interface HistoryRecord extends Timestamped {
+  id: string
+  source_file: string
+  sheet_name: string
+  asset_name: string
+  asset_type: string | null
+  extension_standard: string | null
+  control_point: string | null
+  evaluation_item: string | null
+  record_text: string | null
+  compliance_status: string | null
+  score: number | null
+  item_no: string | null
+  row_index: number
+  keywords_json: string[]
+}
+
+export interface HistoryImportResult {
+  source_file: string
+  sheet_count: number
+  imported_count: number
+  skipped_count: number
+  compliance_status_counts: Record<string, number>
+}
+
+export interface HistoryStats {
+  sheet_count: number
+  total: number
+  compliance_status_counts: Record<string, number>
+  asset_type_counts: Record<string, number>
+}
+
+export interface HistorySimilarRecord {
+  id: string
+  sheet_name: string
+  asset_name: string
+  asset_type: string | null
+  control_point: string | null
+  evaluation_item: string | null
+  compliance_status: string | null
+  score: number
+  reasons: string[]
+}
+
+export interface HistoryPhraseSummary {
+  phrase: string
+  total: number
+  compliance_status_counts: Record<string, number>
+}
+
+export interface GuidanceMatchReason {
+  summary: string[]
+  guidance_asset_type: string | null
+  history_asset_type: string | null
+  keyword_overlap: string[]
+  control_point_hits: string[]
+  evaluation_text_hits: string[]
+}
+
+export interface GuidanceHistoryMatch {
+  guidance_item_id: string
+  history_record_id: string
+  match_score: number
+  match_reason: GuidanceMatchReason
+  record_text: string | null
+  compliance_status: string | null
+  asset_type: string | null
+  control_point: string | null
+  evaluation_item: string | null
+  sheet_name: string
+}
+
+export interface HistoryGuidanceMatch {
+  history_record_id: string
+  guidance_item_id: string
+  match_score: number
+  match_reason: GuidanceMatchReason
+  section_title: string
+  section_path: string
+  guidance_code: string
+}
+
+export interface GuidanceHistoryLinkResult {
+  guidance_item_id: string
+  linked_count: number
+  updated_count: number
+  top_score: number | null
+}
+
+export interface GuidanceItem extends Timestamped {
+  id: string
+  guidance_code: string
+  source_file: string
+  section_path: string
+  section_title: string
+  level1: string | null
+  level2: string | null
+  level3: string | null
+  raw_markdown: string
+  plain_text: string
+  keywords_json: string[]
+  check_points_json: string[]
+  evidence_requirements_json: string[]
+  record_suggestion: string | null
+}
+
+export interface GuidanceLibrary {
+  source_file: string
+  absolute_path: string
+  file_exists: boolean
+  file_empty: boolean
+  file_message: string
+  imported: boolean
+  total: number
+  keyword: string | null
+  items: GuidanceItem[]
+}
+
+export interface GuidanceImportResult {
+  source_file: string
+  absolute_path: string
+  file_exists: boolean
+  file_empty: boolean
+  file_message: string
+  imported: boolean
+  total: number
+  imported_count: number
+}
+
+export type GuidanceSearchResult = GuidanceItem[]
+
 export interface AuditLog {
   id: string
   target_type: string

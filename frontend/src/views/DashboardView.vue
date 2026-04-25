@@ -10,6 +10,7 @@
           </div>
           <el-space wrap>
             <el-button type="primary" @click="go('/projects')">进入项目列表</el-button>
+            <el-button @click="go('/guidance')">指导书管理</el-button>
             <el-button @click="go('/template-rules')">查看模板规则</el-button>
           </el-space>
         </div>

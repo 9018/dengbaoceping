@@ -58,6 +58,16 @@ const router = createRouter({
       name: 'template-rules',
       component: () => import('@/views/TemplateRulesView.vue'),
     },
+    {
+      path: '/history-records',
+      name: 'history-records',
+      component: () => import('@/views/HistoryRecordsView.vue'),
+    },
+    {
+      path: '/guidance',
+      name: 'guidance',
+      component: () => import('@/views/GuidanceView.vue'),
+    },
   ],
 })
 
