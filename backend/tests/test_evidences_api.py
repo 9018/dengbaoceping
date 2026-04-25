@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from app.core.config import settings
+from app.models.evaluation_record import EvaluationRecord
 from app.services.ocr.paddle_adapter import PaddleOCRAdapter
 
 
@@ -384,6 +385,96 @@ def test_run_paddle_ocr_failure_returns_structured_result(client, monkeypatch):
     assert result["status"] == "failed"
     assert result["error"]["code"] == "PADDLE_OCR_RUN_FAILED"
     assert result["lines"] == []
+
+
+def test_classify_page_api_uses_ocr_text(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "password-policy.txt")
+
+    resp = client.post(
+        f"/api/v1/evidences/{evidence_id}/classify-page",
+        json={"ocr_text": "密码策略 密码长度 复杂度 大写字母 小写字母 数字 特殊字符 有效期"},
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["page_type"] == "password_policy"
+    assert body["confidence"] >= 0.7
+    assert "密码策略" in body["matched_keywords"]
+    assert body["reason"]
+
+
+def test_match_history_api_returns_suggestion(client, db_session):
+    from tests.history_excel_utils import build_final_assessment_excel
+
+    import_resp = client.post(
+        "/api/history-records/import-excel",
+        files={
+            "file": (
+                "final.xlsx",
+                build_final_assessment_excel(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
+    )
+    assert import_resp.status_code == 201
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "access-control.txt")
+
+    resp = client.post(
+        f"/api/v1/evidences/{evidence_id}/match-history",
+        json={
+            "ocr_text": "安全策略 访问控制 源地址 目的地址 服务 动作 命中数 默认拒绝",
+            "asset_type": "firewall",
+        },
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["page_type"] == "access_control_policy"
+    assert body["matched_history_records"]
+    assert body["suggested_control_point"] == "边界访问控制"
+    assert "访问控制" in body["suggested_record_text"] or "日志" in body["suggested_record_text"]
+    assert body["suggested_compliance_result"] in {"符合", "部分符合"}
+    assert body["confidence"] >= 0.3
+    assert body["reason"]
+    assert db_session.query(EvaluationRecord).count() == 0
+
+
+def test_match_history_api_low_confidence_is_suggestion_only(client, db_session):
+    from tests.history_excel_utils import build_final_assessment_excel
+
+    import_resp = client.post(
+        "/api/history-records/import-excel",
+        files={"file": ("final.xlsx", build_final_assessment_excel(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+    assert import_resp.status_code == 201
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "unknown.txt")
+
+    resp = client.post(f"/api/v1/evidences/{evidence_id}/match-history", json={"ocr_text": "无关截图内容"})
+
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["confidence"] < 0.7
+    assert db_session.query(EvaluationRecord).count() == 0
+
+
+def test_classify_page_api_missing_evidence_returns_404(client):
+    resp = client.post("/api/v1/evidences/missing-evidence/classify-page", json={"ocr_text": "密码策略"})
+
+    assert resp.status_code == 404
+    assert resp.json()["error"]["code"] == "EVIDENCE_NOT_FOUND"
+
+
+def test_match_history_api_requires_text_or_fields(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "empty.txt")
+
+    resp = client.post(f"/api/v1/evidences/{evidence_id}/match-history", json={})
+
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "EVIDENCE_HISTORY_MATCH_INPUT_NOT_FOUND"
 
 
 @pytest.mark.skipif(settings.OCR_PROVIDER != "real", reason="仅在真实OCR provider配置下验证占位返回")

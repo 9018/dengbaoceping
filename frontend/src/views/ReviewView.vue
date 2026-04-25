@@ -99,6 +99,50 @@
           <el-card class="asset-match-card" shadow="never">
             <template #header>
               <div class="section-header">
+                <div class="section-title">历史记录匹配</div>
+                <div class="section-subtitle">基于 OCR、页面类型、资产类型和历史人工记录，给出候选结果记录。</div>
+              </div>
+            </template>
+            <el-space direction="vertical" fill>
+              <div class="match-status-row">
+                <span class="muted-text">页面类型：{{ pageClassification?.page_type || historyMatchResult?.page_type || '未识别' }}</span>
+                <span class="muted-text">置信度：{{ historyMatchResult?.confidence ?? pageClassification?.confidence ?? '-' }}</span>
+              </div>
+              <el-alert
+                v-if="historyMatchResult && historyMatchResult.confidence < 0.7"
+                type="warning"
+                :closable="false"
+                title="置信度低于 0.7，仅作为人工参考，不会自动写入记录。"
+              />
+              <div class="meta-list compact">
+                <span>建议控制点：{{ historyMatchResult?.suggested_control_point || '-' }}</span>
+                <span>建议测评项：{{ historyMatchResult?.suggested_item_text || '-' }}</span>
+                <span>建议符合情况：{{ historyMatchResult?.suggested_compliance_result || '-' }}</span>
+              </div>
+              <div v-if="pageClassification?.reason" class="reason-item">{{ pageClassification.reason }}</div>
+              <div v-if="historyMatchResult?.reason" class="reason-item">{{ historyMatchResult.reason }}</div>
+              <div v-if="historyMatchResult?.suggested_record_text" class="muted-text record-suggestion">{{ historyMatchResult.suggested_record_text }}</div>
+              <el-space wrap>
+                <el-button type="primary" :disabled="!selectedEvidenceId" @click="runPageClassification">识别页面类型</el-button>
+                <el-button :disabled="!selectedEvidenceId" @click="runHistoryMatch">匹配历史记录</el-button>
+              </el-space>
+              <div v-if="historyMatchResult?.matched_history_records.length" class="guidance-history-list">
+                <div class="panel-label">候选历史记录（Top {{ historyMatchResult.matched_history_records.length }})</div>
+                <div v-for="item in historyMatchResult.matched_history_records" :key="item.id" class="guidance-history-item">
+                  <div class="guidance-history-item__head">
+                    <span>{{ item.sheet_name }}</span>
+                    <span class="muted-text">{{ item.asset_name }} / {{ item.compliance_result || item.compliance_status || '未标注' }}</span>
+                  </div>
+                  <div class="muted-text">{{ item.control_point || '-' }} / {{ item.item_text || item.evaluation_item || '-' }}</div>
+                  <div class="muted-text">匹配分数：{{ item.score }}；{{ item.reasons.join('；') }}</div>
+                </div>
+              </div>
+            </el-space>
+          </el-card>
+
+          <el-card class="asset-match-card" shadow="never">
+            <template #header>
+              <div class="section-header">
                 <div class="section-title">指导书匹配</div>
                 <div class="section-subtitle">基于证据文本、资产类型和核查关键词，建议当前证据对应的指导书条目。</div>
               </div>
@@ -202,7 +246,7 @@ import AssetFormDialog from '@/components/AssetFormDialog.vue'
 import FieldReviewTable from '@/components/FieldReviewTable.vue'
 import { createAsset, listAssets } from '@/api/assets'
 import { listGuidanceItems } from '@/api/guidance'
-import { confirmEvidenceAsset, confirmEvidenceGuidance, getOcrResult, listEvidenceFields, listEvidences, matchEvidenceAsset, matchEvidenceGuidance } from '@/api/evidences'
+import { classifyEvidencePage, confirmEvidenceAsset, confirmEvidenceGuidance, getOcrResult, listEvidenceFields, listEvidences, matchEvidenceAsset, matchEvidenceGuidance, matchEvidenceHistory } from '@/api/evidences'
 import { listFieldAuditLogs, reviewField, updateField } from '@/api/fields'
 import { listRecords } from '@/api/records'
 import type {
@@ -210,6 +254,8 @@ import type {
   AssetMatchReasons,
   AuditLog,
   Evidence,
+  EvidenceHistoryMatchResult,
+  EvidencePageClassification,
   EvaluationRecord,
   ExtractedField,
   GuidanceItem,
@@ -232,6 +278,8 @@ const assets = ref<Asset[]>([])
 const guidanceItems = ref<GuidanceItem[]>([])
 const assetDialogVisible = ref(false)
 const editingAsset = ref<Asset | null>(null)
+const pageClassification = ref<EvidencePageClassification | null>(null)
+const historyMatchResult = ref<EvidenceHistoryMatchResult | null>(null)
 
 const currentEvidence = computed(() => evidences.value.find((item) => item.id === selectedEvidenceId.value) || null)
 const relatedRecord = computed(() => records.value.find((item) => item.evidence_ids.includes(selectedEvidenceId.value)) || null)
@@ -306,6 +354,8 @@ async function loadReviewData() {
   assets.value = assetsResult.data
   guidanceItems.value = guidanceResult.data.items || []
   auditLogs.value = []
+  pageClassification.value = null
+  historyMatchResult.value = null
   selectedAssetId.value = currentEvidence.value?.matched_asset_id || ''
   selectedGuidanceId.value = currentEvidence.value?.matched_guidance_id || ''
 }
@@ -362,6 +412,29 @@ async function confirmMatchedGuidance() {
   await confirmEvidenceGuidance(selectedEvidenceId.value, selectedGuidanceId.value || currentEvidence.value?.matched_guidance_id || null)
   ElMessage.success('指导书绑定成功')
   await loadReviewData()
+}
+
+async function runPageClassification() {
+  if (!selectedEvidenceId.value) return
+  const { data } = await classifyEvidencePage(selectedEvidenceId.value, { ocr_text: ocrText.value, extracted_fields: fields.value })
+  pageClassification.value = data
+  ElMessage.success('页面类型识别完成')
+}
+
+async function runHistoryMatch() {
+  if (!selectedEvidenceId.value) return
+  const { data } = await matchEvidenceHistory(selectedEvidenceId.value, {
+    ocr_text: ocrText.value,
+    page_type: pageClassification.value?.page_type || undefined,
+    asset_type: currentEvidence.value?.matched_asset?.category || matchReasons.value.suggested_asset_type || undefined,
+    extracted_fields: fields.value,
+  })
+  historyMatchResult.value = data
+  if (data.confidence < 0.7) {
+    ElMessage.warning('历史记录匹配置信度低于 0.7，仅作为人工参考')
+  } else {
+    ElMessage.success('历史记录匹配完成')
+  }
 }
 
 function getGuidanceHistorySummary(reason: GuidanceMatchReason | Record<string, unknown>) {
@@ -513,6 +586,14 @@ onMounted(async () => {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 4px;
+}
+
+.record-suggestion {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.86);
+  line-height: 1.7;
+  white-space: pre-wrap;
 }
 
 @media (max-width: 1400px) {

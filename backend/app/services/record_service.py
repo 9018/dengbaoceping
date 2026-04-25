@@ -10,8 +10,10 @@ from app.models.extracted_field import ReviewAuditLog
 from app.repositories.evaluation_record_repository import EvaluationRecordRepository
 from app.repositories.evidence_repository import EvidenceRepository
 from app.repositories.extracted_field_repository import ExtractedFieldRepository
+from app.repositories.history_record_repository import HistoryRecordRepository
 from app.repositories.project_repository import ProjectRepository
 from app.services.matching_service import MatchingService
+from app.services.record_generation_service import RecordGenerationService
 from app.services.template_service import TemplateService
 
 
@@ -31,8 +33,10 @@ class RecordService:
         self.evidence_repository = EvidenceRepository()
         self.field_repository = ExtractedFieldRepository()
         self.record_repository = EvaluationRecordRepository()
+        self.history_repository = HistoryRecordRepository()
         self.matching_service = MatchingService()
         self.template_service = TemplateService()
+        self.record_generation_service = RecordGenerationService()
 
     def generate_record(
         self,
@@ -70,8 +74,10 @@ class RecordService:
             match_result["field_map"],
             selected_match["missing_fields"],
         )
-        needs_review = bool(selected_match["missing_fields"])
-        low_confidence = selected_match["score"] < selected_match["pass_score"]
+        generation_input = self._build_generation_input(db, evidence, match_result, selected_match)
+        generated = self.record_generation_service.generate(generation_input)
+        needs_review = bool(selected_match["missing_fields"] or generated["missing_evidence"])
+        low_confidence = selected_match["score"] < selected_match["pass_score"] or generated["confidence"] < 0.7
         status = "reviewed" if needs_review else "generated"
         if low_confidence and not needs_review:
             status = "generated_low_confidence"
@@ -81,6 +87,8 @@ class RecordService:
         review_comment = rendered["review_comment"]
         if low_confidence:
             review_comment = f"{review_comment} 匹配得分低于阈值: {selected_match['score']} < {selected_match['pass_score']}。".strip()
+        if generated["missing_evidence"]:
+            review_comment = f"{review_comment} 缺失证据: {'、'.join(generated['missing_evidence'])}。".strip()
         if selected_item_code or selected_template_code:
             review_comment = f"{review_comment} 本次按人工选择候选项生成。".strip()
 
@@ -104,13 +112,22 @@ class RecordService:
                 "best_match_item_code": match_result.get("best_match", {}).get("item_code") if match_result.get("best_match") else None,
                 "selection_mode": self._resolve_selection_mode(selected_item_code, selected_template_code),
                 "device_type": match_result.get("device_type"),
+                "record_generation": {
+                    "compliance_result": generated["compliance_result"],
+                    "confidence": generated["confidence"],
+                    "evidence_summary": generated["evidence_summary"],
+                    "missing_evidence": generated["missing_evidence"],
+                    "page_type": generation_input.get("page_type"),
+                    "history_record_ids": [item.get("id") for item in generation_input.get("similar_history_records", []) if item.get("id")],
+                },
             },
             match_score=selected_match["score"],
             review_comment=review_comment,
             indicator_l2=selected_match.get("level2"),
             indicator_l3=selected_match.get("level3"),
-            record_text=rendered["record_content"],
-            final_content=rendered["record_content"],
+            record_text=generated["record_text"],
+            final_content=generated["record_text"],
+            conclusion=generated["compliance_result"],
             status=status,
             source_type="generated",
         )
@@ -214,6 +231,105 @@ class RecordService:
                 reviewed_by=reviewed_by,
             ),
         )
+
+    def _build_generation_input(self, db: Session, evidence, match_result: dict, selected_match: dict) -> dict:
+        field_map = match_result.get("field_map") or {}
+        matched_item = {
+            "item_code": selected_match.get("item_code"),
+            "template_code": selected_match.get("template_code"),
+            "level2": selected_match.get("level2"),
+            "level3": selected_match.get("level3"),
+            "missing_fields": selected_match.get("missing_fields") or [],
+            "reasons": selected_match.get("reasons") or {},
+        }
+        matched_guidance = getattr(evidence, "matched_guidance", None)
+        if matched_guidance:
+            matched_item.update(
+                {
+                    "guidance_code": matched_guidance.guidance_code,
+                    "section_title": matched_guidance.section_title,
+                    "section_path": matched_guidance.section_path,
+                    "record_suggestion": matched_guidance.record_suggestion,
+                }
+            )
+        facts = {key: value for key, value in field_map.items() if value is not None}
+        facts["page_type"] = self._resolve_page_type(evidence, facts)
+        if facts["page_type"] in {"web", "password_policy", "access_control_policy", "login_failure_lock"} and not facts.get("page_name"):
+            facts["page_name"] = self._resolve_page_name(facts["page_type"])
+        return {
+            "asset_name": self._resolve_asset_name(evidence, field_map),
+            "asset_type": self._resolve_asset_type(evidence, match_result),
+            "page_type": facts["page_type"],
+            "matched_item": matched_item,
+            "extracted_facts": facts,
+            "similar_history_records": self._resolve_history_records(db, evidence),
+        }
+
+    def _resolve_asset_name(self, evidence, field_map: dict) -> str:
+        matched_asset = getattr(evidence, "matched_asset", None)
+        if matched_asset and matched_asset.filename:
+            return matched_asset.filename
+        reasons = evidence.asset_match_reasons_json if isinstance(evidence.asset_match_reasons_json, dict) else {}
+        return (
+            reasons.get("confirmed_asset_name")
+            or reasons.get("suggested_asset_name")
+            or field_map.get("device_name")
+            or field_map.get("hostname")
+            or evidence.device
+            or evidence.title
+            or "当前测试对象"
+        )
+
+    def _resolve_asset_type(self, evidence, match_result: dict) -> str | None:
+        matched_asset = getattr(evidence, "matched_asset", None)
+        if matched_asset and matched_asset.category:
+            return matched_asset.category
+        reasons = evidence.asset_match_reasons_json if isinstance(evidence.asset_match_reasons_json, dict) else {}
+        return reasons.get("confirmed_asset_type") or reasons.get("suggested_asset_type") or match_result.get("device_type")
+
+    def _resolve_page_type(self, evidence, facts: dict) -> str:
+        if facts.get("page_type"):
+            return str(facts["page_type"])
+        text = " ".join(str(item or "") for item in (evidence.text_content, evidence.title, evidence.source_ref)).lower()
+        if facts.get("command") or any(token in text for token in ("show ", "display ", "get ")):
+            return "cli"
+        if facts.get("password_min_length") or facts.get("complexity") or facts.get("password_expire_days") is not None:
+            return "password_policy"
+        if facts.get("page_name"):
+            return "web"
+        return "screenshot"
+
+    def _resolve_page_name(self, page_type: str) -> str | None:
+        return {
+            "password_policy": "管理员账号-密码安全策略",
+            "access_control_policy": "安全策略",
+            "login_failure_lock": "管理员账号-登录失败锁定策略",
+        }.get(page_type)
+
+    def _resolve_history_records(self, db: Session, evidence) -> list[dict]:
+        reasons = evidence.guidance_match_reasons_json if isinstance(evidence.guidance_match_reasons_json, dict) else {}
+        records = []
+        for item in reasons.get("top_history") or []:
+            history_id = item.get("history_record_id")
+            history = self.history_repository.get(db, history_id) if history_id else None
+            if not history:
+                continue
+            records.append(
+                {
+                    "id": history.id,
+                    "asset_name": history.asset_name,
+                    "asset_type": history.asset_type,
+                    "record_text": history.record_text,
+                    "raw_text": history.raw_text,
+                    "compliance_result": history.compliance_result,
+                    "compliance_status": history.compliance_status,
+                    "control_point": history.control_point,
+                    "item_text": history.item_text,
+                    "evaluation_item": history.evaluation_item,
+                    "match_score": item.get("match_score"),
+                }
+            )
+        return records
 
     def _serialize_candidates(self, candidates: list[dict]) -> list[dict]:
         serialized = []

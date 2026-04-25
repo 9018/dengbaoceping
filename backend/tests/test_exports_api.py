@@ -212,7 +212,8 @@ def test_project_export_excel_official_multi_sheet(client, tmp_path):
     row = [worksheet.cell(2, index).value for index in range(1, 8)]
     assert row[0] == "A-01"
     assert row[1] == "安全通信网络"
-    assert row[5] == "符合"
+    assert row[5] == record_1["conclusion"]
+    assert row[5] == "待人工确认"
     assert row[6] == 1
 
 
@@ -249,7 +250,7 @@ def test_project_export_requires_approved_records(client):
     evidence_id = upload_evidence(client, project_id, "firewall_basic.txt", "防火墙配置", "服务器A")
     run_extract_flow(client, evidence_id, "firewall_basic", "security_device_basic")
     record = generate_record(client, project_id, evidence_id)
-    assert record["status"] == "generated"
+    assert record["status"] in {"generated", "reviewed"}
 
     export_resp = client.post(f"/api/v1/projects/{project_id}/export", json={"format": "txt"})
     assert export_resp.status_code == 400

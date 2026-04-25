@@ -149,6 +149,59 @@ export interface Evidence extends Timestamped {
   matched_guidance?: GuidanceItem | null
 }
 
+export type EvidencePageType =
+  | 'password_policy'
+  | 'login_failure_lock'
+  | 'session_timeout'
+  | 'remote_management_protocol'
+  | 'admin_account'
+  | 'user_role_permission'
+  | 'access_control_policy'
+  | 'security_policy'
+  | 'intrusion_prevention'
+  | 'antivirus'
+  | 'audit_log'
+  | 'system_log'
+  | 'log_server_config'
+  | 'signature_update'
+  | 'system_version'
+  | 'ha_status'
+
+export interface EvidencePageClassification {
+  page_type: EvidencePageType | null
+  confidence: number
+  reason: string
+  matched_keywords: string[]
+}
+
+export interface EvidenceHistoryMatchedRecord {
+  id: string
+  sheet_name: string
+  asset_name: string
+  asset_type: string | null
+  control_point: string | null
+  item_text: string | null
+  evaluation_item: string | null
+  record_text: string | null
+  raw_text: string | null
+  compliance_result: string | null
+  compliance_status: string | null
+  score: number
+  reasons: string[]
+}
+
+export interface EvidenceHistoryMatchResult {
+  matched_history_records: EvidenceHistoryMatchedRecord[]
+  suggested_control_point: string | null
+  suggested_item_text: string | null
+  suggested_record_text: string | null
+  suggested_compliance_result: string | null
+  confidence: number
+  reason: string
+  page_type: EvidencePageType | null
+  page_confidence: number
+}
+
 export interface EvidenceUploadPayload {
   file: File
   title?: string
@@ -273,6 +326,7 @@ export interface EvaluationRecord extends Timestamped {
   match_reasons: MatchReasons | Record<string, unknown> | null
   template_code: string | null
   item_code: string | null
+  conclusion: string | null
 }
 
 export interface RecordGeneratePayload {
@@ -301,15 +355,24 @@ export interface RecordReviewPayload {
 export interface HistoryRecord extends Timestamped {
   id: string
   source_file: string
+  project_name: string | null
   sheet_name: string
   asset_name: string
   asset_type: string | null
+  asset_ip: string | null
+  asset_version: string | null
+  standard_type: string | null
   extension_standard: string | null
   control_point: string | null
+  item_text: string | null
   evaluation_item: string | null
   record_text: string | null
+  raw_text: string | null
+  compliance_result: string | null
   compliance_status: string | null
+  score_weight: number | null
   score: number | null
+  item_code: string | null
   item_no: string | null
   row_index: number
   keywords_json: string[]
@@ -332,12 +395,23 @@ export interface HistoryStats {
 
 export interface HistorySimilarRecord {
   id: string
+  source_file: string | null
+  project_name: string | null
   sheet_name: string
   asset_name: string
   asset_type: string | null
+  asset_ip: string | null
+  asset_version: string | null
+  standard_type: string | null
   control_point: string | null
+  item_text: string | null
   evaluation_item: string | null
+  record_text: string | null
+  raw_text: string | null
+  compliance_result: string | null
   compliance_status: string | null
+  score_weight: number | null
+  item_code: string | null
   score: number
   reasons: string[]
 }

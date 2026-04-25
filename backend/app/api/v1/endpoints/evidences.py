@@ -7,9 +7,13 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.common import ApiResponse, list_response, success_response
 from app.schemas.evidence import (
+    EvidenceClassifyPageRead,
+    EvidenceClassifyPageRequest,
     EvidenceConfirmAssetRequest,
     EvidenceConfirmGuidanceRequest,
     EvidenceExtractRequest,
+    EvidenceHistoryMatchRead,
+    EvidenceHistoryMatchRequest,
     EvidenceMatchAssetRequest,
     EvidenceMatchGuidanceRequest,
     EvidenceOCRRequest,
@@ -18,6 +22,7 @@ from app.schemas.evidence import (
 )
 from app.services.asset_match_service import AssetMatchService
 from app.services.evidence_service import EvidenceService
+from app.services.evidence_to_history_match_service import EvidenceToHistoryMatchService
 from app.services.field_extraction_service import FieldExtractionService
 from app.services.guidance_match_service import GuidanceMatchService
 from app.services.ocr_service import OCRService
@@ -28,6 +33,7 @@ ocr_service = OCRService()
 field_service = FieldExtractionService()
 asset_match_service = AssetMatchService()
 guidance_match_service = GuidanceMatchService()
+history_match_service = EvidenceToHistoryMatchService()
 
 
 def serialize_evidence(evidence):
@@ -123,6 +129,30 @@ def match_guidance(evidence_id: str, payload: EvidenceMatchGuidanceRequest, db: 
 def confirm_guidance(evidence_id: str, payload: EvidenceConfirmGuidanceRequest, db: Session = Depends(get_db)):
     evidence = guidance_match_service.confirm_guidance(db, evidence_id, payload.guidance_id)
     return success_response(serialize_evidence(evidence), "指导书绑定成功")
+
+
+@router.post("/evidences/{evidence_id}/classify-page", response_model=ApiResponse)
+def classify_evidence_page(evidence_id: str, payload: EvidenceClassifyPageRequest, db: Session = Depends(get_db)):
+    result = history_match_service.classify_page(
+        db,
+        evidence_id,
+        ocr_text=payload.ocr_text,
+        extracted_fields=payload.extracted_fields,
+    )
+    return success_response(EvidenceClassifyPageRead.model_validate(result), "页面类型识别完成")
+
+
+@router.post("/evidences/{evidence_id}/match-history", response_model=ApiResponse)
+def match_evidence_history(evidence_id: str, payload: EvidenceHistoryMatchRequest, db: Session = Depends(get_db)):
+    result = history_match_service.match(
+        db,
+        evidence_id,
+        ocr_text=payload.ocr_text,
+        page_type=payload.page_type,
+        asset_type=payload.asset_type,
+        extracted_fields=payload.extracted_fields,
+    )
+    return success_response(EvidenceHistoryMatchRead.model_validate(result), "历史记录匹配完成")
 
 
 @router.delete("/evidences/{evidence_id}", response_model=ApiResponse)

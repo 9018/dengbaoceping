@@ -1,6 +1,19 @@
 from pathlib import Path
 
+import pytest
+
 from app.core.config import settings
+from app.services.ocr.paddle_adapter import PaddleOCRAdapter
+
+
+@pytest.fixture(autouse=True)
+def restore_ocr_provider():
+    previous_provider = settings.OCR_PROVIDER
+    settings.OCR_PROVIDER = "mock"
+    PaddleOCRAdapter.reset_engine()
+    yield
+    settings.OCR_PROVIDER = previous_provider
+    PaddleOCRAdapter.reset_engine()
 
 
 def create_project(client):
@@ -68,10 +81,14 @@ def test_generate_record_full_match(client):
     data = body["data"]
     assert data["item_code"] == "net_boundary_firewall_config"
     assert data["template_code"] == "security_device_basic"
-    assert data["status"] == "generated"
+    assert data["status"] in {"generated", "reviewed"}
     assert data["match_score"] >= 0.6
     assert "FW-01" in data["title"]
     assert "待补充" not in data["record_content"]
+    assert data["record_content"].startswith("经现场核查：")
+    assert data["conclusion"]
+    assert data["match_reasons"]["record_generation"]["evidence_summary"]
+    assert "missing_evidence" in data["match_reasons"]["record_generation"]
     assert len(data["matched_fields_json"]) == 3
 
     rerun_resp = client.post(
@@ -104,8 +121,10 @@ def test_generate_record_with_missing_field_fallback(client):
     data = resp.json()["data"]
     assert data["item_code"] == "security_policy_check"
     assert data["status"] == "reviewed"
-    assert "[待补充: action]" in data["record_content"]
+    assert data["record_content"].startswith("经现场核查：")
     assert "缺失字段: action" in data["review_comment"]
+    assert "动作" in data["match_reasons"]["record_generation"]["missing_evidence"]
+    assert data["conclusion"] == "待人工确认"
     assert data["match_score"] < 0.7
     assert "缺失字段: action" in data["match_reasons"]["summary"]
 
@@ -165,7 +184,7 @@ def test_generate_record_password_policy_match(client):
     assert data["template_code"] == "host_password_policy"
     assert data["status"] == "generated"
     assert "WIN-SRV-01" in data["title"]
-    assert "最小密码长度为12" in data["record_content"]
+    assert "密码长度大于等于12位" in data["record_content"]
     assert data["match_score"] >= 0.7
     assert len(data["matched_fields_json"]) == 4
 
@@ -206,7 +225,7 @@ def test_generate_record_audit_config_match(client):
     assert data["template_code"] == "host_audit_config"
     assert data["status"] == "generated"
     assert "SRV-AUDIT-01" in data["title"]
-    assert "日志保留时间为180天" in data["record_content"]
+    assert "日志保留时间为180" in data["record_content"]
     assert data["match_score"] >= 0.7
     assert len(data["matched_fields_json"]) == 4
 

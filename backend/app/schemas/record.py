@@ -7,6 +7,37 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.schemas.common import TimestampSchema
 
 
+class RecordGenerationHistoryRecord(BaseModel):
+    id: str | None = None
+    asset_name: str | None = None
+    asset_type: str | None = None
+    record_text: str | None = None
+    raw_text: str | None = None
+    compliance_result: str | None = None
+    compliance_status: str | None = None
+    control_point: str | None = None
+    item_text: str | None = None
+    evaluation_item: str | None = None
+    match_score: float | None = None
+
+
+class RecordGenerationInput(BaseModel):
+    asset_name: str
+    asset_type: str | None = None
+    page_type: str | None = None
+    matched_item: dict | None = None
+    extracted_facts: dict[str, str | int | float | bool | list | dict | None] = Field(default_factory=dict)
+    similar_history_records: list[RecordGenerationHistoryRecord] = Field(default_factory=list)
+
+
+class RecordGenerationResult(BaseModel):
+    record_text: str
+    compliance_result: str
+    confidence: float
+    evidence_summary: list[str] = Field(default_factory=list)
+    missing_evidence: list[str] = Field(default_factory=list)
+
+
 class RecordGenerateRequest(BaseModel):
     evidence_id: str = Field(..., description="证据ID")
     device_type_override: str | None = Field(default=None, description="设备类型覆盖值")
@@ -48,6 +79,7 @@ class RecordRead(TimestampSchema):
     match_reasons: dict | list | None
     template_code: str | None
     item_code: str | None
+    conclusion: str | None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -72,6 +104,7 @@ class RecordRead(TimestampSchema):
                 "match_reasons": obj.match_reasons_json,
                 "template_code": obj.template_code,
                 "item_code": obj.item_code,
+                "conclusion": obj.conclusion,
                 "created_at": obj.created_at,
                 "updated_at": obj.updated_at,
             }

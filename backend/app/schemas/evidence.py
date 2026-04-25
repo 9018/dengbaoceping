@@ -116,6 +116,53 @@ class EvidenceUpdate(BaseModel):
     guidance_match_status: str | None = None
 
 
+class EvidenceClassifyPageRequest(BaseModel):
+    ocr_text: str | None = None
+    extracted_fields: dict | list | None = None
+
+
+class EvidenceClassifyPageRead(BaseModel):
+    page_type: str | None
+    confidence: float
+    reason: str
+    matched_keywords: list[str]
+
+
+class EvidenceHistoryMatchRequest(BaseModel):
+    ocr_text: str | None = None
+    page_type: str | None = None
+    asset_type: str | None = None
+    extracted_fields: dict | list | None = None
+
+
+class EvidenceHistoryMatchedRecordRead(BaseModel):
+    id: str
+    sheet_name: str
+    asset_name: str
+    asset_type: str | None
+    control_point: str | None
+    item_text: str | None
+    evaluation_item: str | None = None
+    record_text: str | None
+    raw_text: str | None = None
+    compliance_result: str | None
+    compliance_status: str | None = None
+    score: float
+    reasons: list[str]
+
+
+class EvidenceHistoryMatchRead(BaseModel):
+    matched_history_records: list[EvidenceHistoryMatchedRecordRead]
+    suggested_control_point: str | None
+    suggested_item_text: str | None
+    suggested_record_text: str | None
+    suggested_compliance_result: str | None
+    confidence: float
+    reason: str
+    page_type: str | None
+    page_confidence: float
+
+
 class EvidenceRead(EvidenceBase, TimestampSchema):
     id: str
     project_id: str

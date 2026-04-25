@@ -1,12 +1,12 @@
 <template>
-  <AppShell title="历史记录库" subtitle="导入人工三级测评 Excel，沉淀结构化样本库，支持筛选、搜索、相似记录和句式统计。">
+  <AppShell title="历史测评记录库" subtitle="最终测评记录 Excel 结构化导入，形成可检索、可仿写、可匹配的历史人工样本库。">
     <div class="page-stack">
       <section class="page-section">
         <div class="page-header">
           <div class="page-header__content">
             <div class="section-kicker">History Library</div>
-            <div class="section-title">历史人工测评记录库</div>
-            <div class="section-subtitle">当前阶段只做 Excel 入库、结构化查询、规则搜索与参考统计，不改动现有记录生成主链路。</div>
+            <div class="section-title">历史测评记录库</div>
+            <div class="section-subtitle">逐 Sheet、逐行解析最终人工测评记录，沉淀资产信息、测评项、结果记录和符合情况。</div>
           </div>
           <el-space wrap>
             <el-button @click="loadAll">刷新</el-button>
@@ -41,12 +41,15 @@
         <template #header>
           <div class="section-header">
             <div class="section-title">历史记录检索</div>
-            <div class="section-subtitle">按 sheet、控制点、符合情况、资产类型过滤，并支持关键词搜索历史人工样本。</div>
+            <div class="section-subtitle">按资产、Sheet、控制点、测评项、符合情况过滤，并支持关键词搜索历史人工样本。</div>
           </div>
         </template>
 
         <div class="page-filter-bar">
           <el-form inline @submit.prevent>
+            <el-form-item label="资产">
+              <el-input v-model="filters.asset_name" clearable placeholder="输入资产名称" style="width: 180px" />
+            </el-form-item>
             <el-form-item label="Sheet">
               <el-select v-model="filters.sheet_name" clearable filterable placeholder="全部工作表" style="width: 220px">
                 <el-option v-for="item in sheetOptions" :key="item" :label="item" :value="item" />
@@ -56,7 +59,7 @@
               <el-input v-model="filters.control_point" clearable placeholder="输入控制点关键词" style="width: 220px" />
             </el-form-item>
             <el-form-item label="符合情况">
-              <el-select v-model="filters.compliance_status" clearable placeholder="全部状态" style="width: 180px">
+              <el-select v-model="filters.compliance_result" clearable placeholder="全部状态" style="width: 180px">
                 <el-option v-for="item in complianceOptions" :key="item" :label="item" :value="item" />
               </el-select>
             </el-form-item>
@@ -78,13 +81,15 @@
         </div>
 
         <el-table :data="rows" border v-loading="loading">
-          <el-table-column prop="sheet_name" label="Sheet" min-width="160" />
-          <el-table-column prop="asset_type" label="资产类型" width="120" />
+          <el-table-column prop="asset_name" label="资产" min-width="160" show-overflow-tooltip />
+          <el-table-column prop="sheet_name" label="Sheet" min-width="150" />
+          <el-table-column prop="asset_ip" label="IP" width="140" />
+          <el-table-column prop="asset_type" label="资产类型" width="110" />
           <el-table-column prop="control_point" label="控制点" min-width="180" show-overflow-tooltip />
-          <el-table-column prop="evaluation_item" label="测评项" min-width="220" show-overflow-tooltip />
-          <el-table-column prop="compliance_status" label="符合情况" width="120" />
-          <el-table-column prop="score" label="分值" width="90" />
-          <el-table-column prop="item_no" label="编号" width="110" />
+          <el-table-column prop="item_text" label="测评项" min-width="220" show-overflow-tooltip />
+          <el-table-column prop="compliance_result" label="符合情况" width="120" />
+          <el-table-column prop="score_weight" label="权重" width="90" />
+          <el-table-column prop="item_code" label="编号" width="110" />
           <el-table-column label="关键词" min-width="220">
             <template #default="scope">
               <div class="tag-group">
@@ -105,15 +110,21 @@
           <template #header>
             <div class="section-header">
               <div class="section-title">相似样本</div>
-              <div class="section-subtitle">基于控制点、测评项和资产类型的规则打分，返回最接近的历史记录。</div>
+              <div class="section-subtitle">基于 OCR 文本、控制点、测评项、页面类型和资产类型的规则打分，返回最接近的历史记录。</div>
             </div>
           </template>
           <el-form label-width="88px" @submit.prevent>
             <el-form-item label="控制点">
               <el-input v-model="similarQuery.control_point" clearable placeholder="例如：边界访问控制" />
             </el-form-item>
+            <el-form-item label="OCR文本">
+              <el-input v-model="similarQuery.ocr_text" clearable type="textarea" :rows="2" placeholder="可粘贴 OCR 识别文本" />
+            </el-form-item>
+            <el-form-item label="页面类型">
+              <el-input v-model="similarQuery.page_type" clearable placeholder="例如：日志审计 / 系统边界" />
+            </el-form-item>
             <el-form-item label="测评项">
-              <el-input v-model="similarQuery.evaluation_item" clearable placeholder="例如：应限制非授权访问" />
+              <el-input v-model="similarQuery.item_text" clearable placeholder="例如：应限制非授权访问" />
             </el-form-item>
             <el-form-item label="资产类型">
               <el-select v-model="similarQuery.asset_type" clearable placeholder="可选">
@@ -126,7 +137,7 @@
           </el-form>
           <el-table :data="similarRows" border>
             <el-table-column prop="sheet_name" label="Sheet" min-width="140" />
-            <el-table-column prop="compliance_status" label="符合情况" width="120" />
+            <el-table-column prop="compliance_result" label="符合情况" width="120" />
             <el-table-column prop="score" label="得分" width="80" />
             <el-table-column label="命中原因" min-width="220" show-overflow-tooltip>
               <template #default="scope">{{ scope.row.reasons.join('；') }}</template>
@@ -158,14 +169,17 @@
       <el-drawer v-model="detailVisible" title="历史记录详情" size="720px">
         <div v-if="detailItem" class="page-stack">
           <el-descriptions :column="2" border>
+            <el-descriptions-item label="项目名称">{{ detailItem.project_name || '-' }}</el-descriptions-item>
             <el-descriptions-item label="来源文件">{{ detailItem.source_file }}</el-descriptions-item>
             <el-descriptions-item label="Sheet">{{ detailItem.sheet_name }}</el-descriptions-item>
             <el-descriptions-item label="资产名称">{{ detailItem.asset_name }}</el-descriptions-item>
             <el-descriptions-item label="资产类型">{{ detailItem.asset_type || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="IP / 版本">{{ detailItem.asset_ip || '-' }} / {{ detailItem.asset_version || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="标准类型">{{ detailItem.standard_type || detailItem.extension_standard || '-' }}</el-descriptions-item>
             <el-descriptions-item label="控制点">{{ detailItem.control_point || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="测评项">{{ detailItem.evaluation_item || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="符合情况">{{ detailItem.compliance_status || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="编号 / 分值">{{ detailItem.item_no || '-' }} / {{ detailItem.score ?? '-' }}</el-descriptions-item>
+            <el-descriptions-item label="测评项">{{ detailItem.item_text || detailItem.evaluation_item || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="符合情况">{{ detailItem.compliance_result || detailItem.compliance_status || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="编号 / 权重">{{ detailItem.item_code || detailItem.item_no || '-' }} / {{ detailItem.score_weight ?? detailItem.score ?? '-' }}</el-descriptions-item>
           </el-descriptions>
 
           <el-card>
@@ -175,7 +189,7 @@
                 <div class="section-subtitle">保留人工原始写法，便于横向参考。</div>
               </div>
             </template>
-            <div class="muted-text record-text">{{ detailItem.record_text || '暂无结果记录。' }}</div>
+            <div class="muted-text record-text">{{ detailItem.raw_text || detailItem.record_text || '暂无结果记录。' }}</div>
           </el-card>
 
           <el-card>
@@ -207,7 +221,6 @@ import {
   getHistoryStats,
   importHistoryExcel,
   listHistoryRecords,
-  searchHistoryRecords,
 } from '@/api/history'
 import type {
   HistoryImportResult,
@@ -233,14 +246,17 @@ const stats = ref<HistoryStats>({
   asset_type_counts: {},
 })
 const filters = reactive({
+  asset_name: '',
   sheet_name: '',
   control_point: '',
-  compliance_status: '',
+  compliance_result: '',
   asset_type: '',
 })
 const similarQuery = reactive({
+  ocr_text: '',
+  page_type: '',
   control_point: '',
-  evaluation_item: '',
+  item_text: '',
   asset_type: '',
 })
 
@@ -268,22 +284,13 @@ async function loadPhrases() {
 async function loadRecords() {
   loading.value = true
   try {
-    const normalizedKeyword = keyword.value.trim()
-    if (normalizedKeyword) {
-      const { data } = await searchHistoryRecords(normalizedKeyword)
-      rows.value = data.filter((item) => {
-        return (!filters.sheet_name || item.sheet_name === filters.sheet_name)
-          && (!filters.control_point || (item.control_point || '').includes(filters.control_point.trim()))
-          && (!filters.compliance_status || item.compliance_status === filters.compliance_status)
-          && (!filters.asset_type || item.asset_type === filters.asset_type)
-      })
-      return
-    }
     const { data } = await listHistoryRecords({
+      asset_name: filters.asset_name || undefined,
       sheet_name: filters.sheet_name || undefined,
       control_point: filters.control_point || undefined,
-      compliance_status: filters.compliance_status || undefined,
+      compliance_result: filters.compliance_result || undefined,
       asset_type: filters.asset_type || undefined,
+      keyword: keyword.value.trim() || undefined,
     })
     rows.value = data
   } finally {
@@ -292,13 +299,15 @@ async function loadRecords() {
 }
 
 async function loadSimilar() {
-  if (!similarQuery.control_point.trim() || !similarQuery.evaluation_item.trim()) {
-    ElMessage.warning('请先填写控制点和测评项')
+  if (!similarQuery.ocr_text.trim() && !similarQuery.control_point.trim() && !similarQuery.item_text.trim() && !similarQuery.page_type.trim() && !similarQuery.asset_type) {
+    ElMessage.warning('请先填写至少一个相似搜索条件')
     return
   }
   const { data } = await getHistorySimilarRecords({
-    control_point: similarQuery.control_point.trim(),
-    evaluation_item: similarQuery.evaluation_item.trim(),
+    ocr_text: similarQuery.ocr_text.trim() || undefined,
+    page_type: similarQuery.page_type.trim() || undefined,
+    control_point: similarQuery.control_point.trim() || undefined,
+    item_text: similarQuery.item_text.trim() || undefined,
     asset_type: similarQuery.asset_type || undefined,
   })
   similarRows.value = data
@@ -325,9 +334,10 @@ async function handleFileChange(uploadFile: UploadFile) {
 }
 
 async function resetFilters() {
+  filters.asset_name = ''
   filters.sheet_name = ''
   filters.control_point = ''
-  filters.compliance_status = ''
+  filters.compliance_result = ''
   filters.asset_type = ''
   keyword.value = ''
   await loadRecords()

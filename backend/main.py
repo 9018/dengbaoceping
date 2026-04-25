@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.router import api_router
+from app.api.v1.endpoints import history_records
 from app.core.config import settings
 from app.core.database import init_db
 from app.core.exceptions import AppException
@@ -52,3 +53,4 @@ def health():
 
 
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+app.include_router(history_records.router, prefix="/api")

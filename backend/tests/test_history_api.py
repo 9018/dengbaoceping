@@ -1,6 +1,7 @@
 from openpyxl import Workbook
 
 from tests.history_excel_utils import (
+    build_final_assessment_excel,
     build_history_excel,
     build_history_excel_with_cover_sheet,
     build_history_excel_with_trailing_blank_headers,
@@ -62,7 +63,55 @@ def test_import_history_excel_api(client):
     assert data["compliance_status_counts"]["符合"] == 1
 
 
-def test_import_history_excel_api_accepts_normalized_headers(client):
+def test_import_final_assessment_excel_api_parses_asset_metadata_and_inherited_columns(client):
+    resp = client.post(
+        "/api/history-records/import-excel",
+        files={"file": ("final.xlsx", build_final_assessment_excel(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+    assert resp.status_code == 201
+    assert resp.json()["data"]["imported_count"] == 2
+
+    list_resp = client.get("/api/history-records", params={"asset_name": "出口防火墙-A"})
+    assert list_resp.status_code == 200
+    rows = list_resp.json()["data"]
+    assert len(rows) == 2
+    first = rows[0] if rows[0]["item_code"] == "A-01" else rows[1]
+    second = rows[0] if rows[0]["item_code"] == "A-02" else rows[1]
+    assert first["asset_name"] == "出口防火墙-A"
+    assert first["asset_ip"] == "143.8.51.2"
+    assert first["asset_version"] == "V8.0.26"
+    assert second["standard_type"] == "安全通信网络"
+    assert second["control_point"] == "边界访问控制"
+    assert second["raw_text"] == "查看日志审计配置，当前已开启日志留存。"
+    assert second["record_text"] == "查看日志审计配置，当前已开启日志留存。"
+    assert second["compliance_result"] == "部分符合"
+    assert second["score_weight"] == 0.6
+
+
+def test_history_records_search_similar_api(client):
+    client.post(
+        "/api/history-records/import-excel",
+        files={"file": ("final.xlsx", build_final_assessment_excel(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+
+    resp = client.post(
+        "/api/history-records/search-similar",
+        json={
+            "ocr_text": "访问控制策略 日志审计",
+            "asset_type": "firewall",
+            "page_type": "出口防火墙",
+            "control_point": "边界访问控制",
+            "item_text": "应限制非授权访问",
+        },
+    )
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data
+    assert data[0]["asset_name"] == "出口防火墙-A"
+    assert data[0]["score"] >= data[-1]["score"]
+
+
+
     resp = client.post(
         "/api/v1/history/import-excel",
         files={"file": ("history.xlsx", build_history_excel_with_variation_headers(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},

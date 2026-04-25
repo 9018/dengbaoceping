@@ -98,7 +98,7 @@ class ExcelExportService:
                     "control_point": self._coalesce(history_record.control_point if history_record else None, record.indicator_l3, record.title),
                     "evaluation_item": self._coalesce(record.title, getattr(record.evaluation_item, "level3", None), history_record.evaluation_item if history_record else None),
                     "result_record": self._coalesce(record.final_content, record.record_text),
-                    "compliance_status": self._coalesce(history_record.compliance_status if history_record else None),
+                    "compliance_status": self._resolve_compliance_status(record, history_record),
                     "score": history_record.score if history_record else None,
                     "asset_name": asset_name,
                     "evidence_files": "\n".join(filter(None, [item.title for item in evidence_items])) or None,
@@ -153,6 +153,11 @@ class ExcelExportService:
         if history_link is not None:
             parts.append(f"历史:{history_link.match_score}")
         return " / ".join(parts) or None
+
+    def _resolve_compliance_status(self, record: EvaluationRecord, history_record) -> str | None:
+        reasons = record.match_reasons_json if isinstance(record.match_reasons_json, dict) else {}
+        generation = reasons.get("record_generation") if isinstance(reasons.get("record_generation"), dict) else {}
+        return self._coalesce(record.conclusion, generation.get("compliance_result"), history_record.compliance_status if history_record else None)
 
     def _style_header(self, worksheet) -> None:
         for cell in worksheet[1]:
