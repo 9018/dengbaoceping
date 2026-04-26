@@ -1,10 +1,13 @@
 from pathlib import Path
+from io import BytesIO
 
 import pytest
+from openpyxl import Workbook
 
 from app.core.config import settings
 from app.models.evaluation_record import EvaluationRecord
 from app.services.ocr.paddle_adapter import PaddleOCRAdapter
+from tests.assessment_template_excel_utils import build_assessment_template_match_excel
 
 
 @pytest.fixture(autouse=True)
@@ -66,6 +69,21 @@ def upload_evidence(client, project_id: str, filename: str = "firewall_basic.txt
     upload_body = upload_resp.json()
     assert upload_body["success"] is True
     return upload_body["data"]["id"]
+
+
+def import_template_match_library(client):
+    resp = client.post(
+        "/api/v1/assessment-templates/import-excel",
+        files={
+            "file": (
+                "结果记录参考模板20260426.xlsx",
+                build_assessment_template_match_excel(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
+    )
+    assert resp.status_code == 201
+    return resp.json()["data"]
 
 
 def test_evidence_upload_and_delete(client):
@@ -402,6 +420,73 @@ def test_classify_page_api_uses_ocr_text(client):
     assert body["confidence"] >= 0.7
     assert "密码策略" in body["matched_keywords"]
     assert body["reason"]
+
+
+def test_match_template_item_api_acceptance_cases(client):
+    import_template_match_library(client)
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "template-match.txt")
+
+    cases = [
+        {
+            "ocr_text": "查看系统-管理员账号-密码安全策略 最小密码长度 密码复杂度 有效期",
+            "asset_type": "firewall",
+            "expected_sheet": "外联防火墙A",
+            "expected_control_point": "身份鉴别",
+            "expected_item_prefix": "a）",
+        },
+        {
+            "ocr_text": "查看监控-日志页面 审计日志 操作日志 管理员操作记录",
+            "asset_type": "firewall",
+            "expected_sheet": "外联防火墙A",
+            "expected_control_point": "安全审计",
+            "expected_item_prefix": "a）",
+        },
+        {
+            "ocr_text": "display password-control 登录失败 锁定阈值 最小密码长度 密码复杂度",
+            "asset_type": "switch",
+            "expected_sheet": "核心交换机",
+            "expected_control_point": "身份鉴别",
+            "expected_item_prefix": "b）",
+        },
+        {
+            "ocr_text": "打开本地安全策略 secpol.msc 最小密码长度 密码复杂度 账户锁定阈值",
+            "asset_type": "server",
+            "expected_sheet": "Windows服务器",
+            "expected_control_point": "身份鉴别",
+            "expected_item_prefix": "a）",
+        },
+    ]
+
+    for case in cases:
+        resp = client.post(
+            f"/api/v1/evidences/{evidence_id}/match-template-item",
+            json={
+                "ocr_text": case["ocr_text"],
+                "asset_type": case["asset_type"],
+            },
+        )
+        assert resp.status_code == 200
+        body = resp.json()["data"]
+        assert body["matched_template_item"] is not None
+        assert body["matched_template_item"]["sheet_name"] == case["expected_sheet"]
+        assert body["matched_template_item"]["control_point"] == case["expected_control_point"]
+        assert body["matched_template_item"]["item_text"].startswith(case["expected_item_prefix"])
+        assert body["score"] >= 0.45
+        assert body["confidence"] >= 0.45
+        assert body["candidates"]
+        assert body["reason"]
+
+
+def test_match_template_item_api_requires_text_or_fields(client):
+    import_template_match_library(client)
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "empty-template-match.txt")
+
+    resp = client.post(f"/api/v1/evidences/{evidence_id}/match-template-item", json={})
+
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "EVIDENCE_TEMPLATE_MATCH_INPUT_NOT_FOUND"
 
 
 def test_match_history_api_returns_suggestion(client, db_session):

@@ -90,16 +90,32 @@ class ExcelExportService:
             guidance_id = matched_guidance.id if matched_guidance else None
             history_link, history_record = history_by_guidance.get(guidance_id, (None, None))
             asset_name = self._resolve_asset_name(record, evidence_items)
+            template_snapshot = record.template_snapshot_json if isinstance(record.template_snapshot_json, dict) else {}
             rows.append(
                 {
-                    "sheet_name": asset_name,
-                    "item_no": self._coalesce(history_record.item_no if history_record else None, record.record_no),
-                    "extension_standard": self._coalesce(history_record.extension_standard if history_record else None, record.indicator_l2),
-                    "control_point": self._coalesce(history_record.control_point if history_record else None, record.indicator_l3, record.title),
-                    "evaluation_item": self._coalesce(record.title, getattr(record.evaluation_item, "level3", None), history_record.evaluation_item if history_record else None),
-                    "result_record": self._coalesce(record.final_content, record.record_text),
+                    "sheet_name": self._coalesce(record.sheet_name, template_snapshot.get("sheet_name"), asset_name),
+                    "item_no": self._coalesce(template_snapshot.get("item_no"), history_record.item_no if history_record else None, record.record_no),
+                    "extension_standard": self._coalesce(
+                        template_snapshot.get("extension_standard"),
+                        history_record.extension_standard if history_record else None,
+                        record.indicator_l2,
+                    ),
+                    "control_point": self._coalesce(
+                        template_snapshot.get("control_point"),
+                        history_record.control_point if history_record else None,
+                        record.indicator_l2,
+                        record.indicator_l3,
+                        record.title,
+                    ),
+                    "evaluation_item": self._coalesce(
+                        template_snapshot.get("evaluation_item"),
+                        getattr(record.evaluation_item, "level3", None),
+                        record.title,
+                        history_record.evaluation_item if history_record else None,
+                    ),
+                    "result_record": self._coalesce(record.final_content, record.record_text, template_snapshot.get("record_template")),
                     "compliance_status": self._resolve_compliance_status(record, history_record),
-                    "score": history_record.score if history_record else None,
+                    "score": self._coalesce(template_snapshot.get("score_weight"), history_record.score if history_record else None),
                     "asset_name": asset_name,
                     "evidence_files": "\n".join(filter(None, [item.title for item in evidence_items])) or None,
                     "guidance_basis": self._build_guidance_basis(matched_guidance),

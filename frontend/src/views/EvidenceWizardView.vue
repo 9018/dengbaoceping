@@ -1,12 +1,12 @@
 <template>
-  <AppShell :project-id="projectId" title="识别复核页" subtitle="以项目模板候选和缺失证据为主线复核，指导书与历史记录仅作为辅助判断依据。">
+  <AppShell :project-id="projectId" title="证据处理向导" subtitle="按步骤完成截图预览、OCR、结果记录模板匹配、历史记录参考和结果记录生成。">
     <div class="page-stack">
       <el-card>
         <template #header>
           <div class="card-toolbar">
             <div class="section-header">
               <div class="section-title">证据选择</div>
-              <div class="section-subtitle">切换证据后，模板上下文、OCR 文本和字段修正表单会同步刷新。</div>
+              <div class="section-subtitle">切换证据后，预览、OCR 文本、匹配结果和字段结果会同步刷新，保证处理闭环。</div>
             </div>
             <el-space wrap>
               <el-select v-model="selectedEvidenceId" placeholder="请选择证据" style="width: 360px" @change="loadReviewData">
@@ -22,14 +22,14 @@
         <el-card class="review-column">
           <template #header>
             <div class="section-header">
-              <div class="section-title">证据文件预览</div>
-              <div class="section-subtitle">当前后端未提供可直接嵌入浏览器的文件地址，因此左栏以模板上下文、证据元信息和辅助依据为主。</div>
+              <div class="section-title">截图预览与证据上下文</div>
+              <div class="section-subtitle">当前后端未提供可直接嵌入浏览器的文件地址，因此以证据元信息和处理状态作为预览抓手。</div>
             </div>
           </template>
           <div class="preview-placeholder">
             <div class="preview-placeholder__icon">PREVIEW</div>
             <div class="preview-placeholder__title">暂无可用文件预览 URL</div>
-            <div class="preview-placeholder__text">当前阶段先围绕模板候选、OCR 文本与字段修正建立复核闭环。</div>
+            <div class="preview-placeholder__text">当前阶段先围绕证据上下文、OCR 文本、匹配建议与结果记录建立处理闭环。</div>
           </div>
           <div class="info-panel review-meta-panel">
             <div class="panel-label">证据上下文</div>
@@ -46,70 +46,19 @@
             </el-descriptions-item>
             <el-descriptions-item label="OCR Provider">{{ currentEvidence?.ocr_provider || '-' }}</el-descriptions-item>
             <el-descriptions-item label="更新时间">{{ currentEvidence?.updated_at || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="当前模板记录">
-              {{ templatePosition }}
+            <el-descriptions-item label="当前匹配记录">
+              {{ relatedRecord?.item_code || '尚未生成记录' }}
             </el-descriptions-item>
-            <el-descriptions-item label="缺失证据提示">
-              {{ missingEvidence.length ? missingEvidence.join('，') : '无' }}
+            <el-descriptions-item label="缺失字段提示">
+              {{ relatedRecordMissingFields.length ? relatedRecordMissingFields.join('，') : '无' }}
             </el-descriptions-item>
           </el-descriptions>
 
           <el-card class="asset-match-card" shadow="never">
             <template #header>
               <div class="section-header">
-                <div class="section-title">模板主驱动上下文</div>
-                <div class="section-subtitle">优先围绕当前记录绑定的 sheet、编号、模板 D/E/F 基线和候选项做人工确认。</div>
-              </div>
-            </template>
-            <div class="template-context-grid">
-              <div class="template-context-item">
-                <div class="panel-label">匹配来源</div>
-                <div class="muted-text">{{ relatedRecordMatchSource }}</div>
-              </div>
-              <div class="template-context-item">
-                <div class="panel-label">模板得分</div>
-                <div class="muted-text">{{ relatedRecord?.match_score ?? '-' }}</div>
-              </div>
-              <div class="template-context-item">
-                <div class="panel-label">扩展标准</div>
-                <div class="muted-text">{{ templateSnapshot.extension_standard || '—' }}</div>
-              </div>
-              <div class="template-context-item">
-                <div class="panel-label">控制点</div>
-                <div class="muted-text">{{ templateSnapshot.control_point || '—' }}</div>
-              </div>
-              <div class="template-context-item">
-                <div class="panel-label">测评项</div>
-                <div class="muted-text">{{ templateSnapshot.evaluation_item || relatedRecord?.title || '—' }}</div>
-              </div>
-              <div class="template-context-item">
-                <div class="panel-label">符合情况 / 分值</div>
-                <div class="muted-text">{{ `${templateSnapshot.default_compliance || relatedRecord?.conclusion || '—'} / ${templateSnapshot.score_weight ?? '—'}` }}</div>
-              </div>
-            </div>
-            <div class="template-block">
-              <div class="panel-label">模板结果记录 D 列</div>
-              <div class="template-block__content">{{ templateSnapshot.record_template || '尚未生成模板驱动记录' }}</div>
-            </div>
-            <div class="template-block" v-if="topCandidates.length">
-              <div class="panel-label">模板候选 Top {{ topCandidates.length }}</div>
-              <el-space wrap>
-                <el-tag v-for="candidate in topCandidates" :key="`${candidate.item_code}-${candidate.template_code}-${candidate.sheet_name || 'sheet'}`" size="small">
-                  {{ formatCandidateLabel(candidate) }}
-                </el-tag>
-              </el-space>
-            </div>
-            <div class="template-block" v-if="supportSummary.length">
-              <div class="panel-label">证据摘要</div>
-              <div class="template-block__content">{{ supportSummary.join('；') }}</div>
-            </div>
-          </el-card>
-
-          <el-card class="asset-match-card" shadow="never">
-            <template #header>
-              <div class="section-header">
                 <div class="section-title">测试对象匹配</div>
-                <div class="section-subtitle">为模板行补足测试对象上下文，不再单独主导记录生成。</div>
+                <div class="section-subtitle">基于 OCR 文本和抽取字段，建议当前证据对应的测试对象。</div>
               </div>
             </template>
             <el-space direction="vertical" fill>
@@ -150,8 +99,84 @@
           <el-card class="asset-match-card" shadow="never">
             <template #header>
               <div class="section-header">
-                <div class="section-title">历史写法参考</div>
-                <div class="section-subtitle">仅作为人工写法样本库，为模板记录补充表达参考，不直接主导结果生成。</div>
+                <div class="section-title">结果记录模板匹配</div>
+                <div class="section-subtitle">基于 OCR、页面类型、测试对象类型和模板正文，优先匹配 AssessmentTemplateItem 主模板项。</div>
+              </div>
+            </template>
+            <el-space direction="vertical" fill>
+              <div class="match-status-row">
+                <span class="muted-text">页面类型：{{ pageClassification?.page_type || templateMatchResult?.matched_template_item?.page_types_json?.[0] || '未识别' }}</span>
+                <span class="muted-text">模板置信度：{{ templateMatchResult?.confidence ?? '-' }}</span>
+              </div>
+              <el-alert
+                v-if="templateMatchResult && templateMatchResult.confidence < 0.7"
+                type="warning"
+                :closable="false"
+                title="模板匹配置信度低于 0.7，请结合历史记录与指导书人工确认。"
+              />
+              <div class="meta-list compact">
+                <span>建议 Sheet：{{ templateMatchResult?.matched_template_item?.sheet_name || '-' }}</span>
+                <span>建议控制点：{{ templateMatchResult?.matched_template_item?.control_point || '-' }}</span>
+                <span>建议测评项：{{ templateMatchResult?.matched_template_item?.item_text || '-' }}</span>
+              </div>
+              <div v-if="templateMatchResult?.matched_template_item?.record_template" class="muted-text record-suggestion">{{ templateMatchResult.matched_template_item.record_template }}</div>
+              <div v-if="templateHistoryLinks.length" class="guidance-history-list">
+                <div class="panel-label">模板关联历史写法（Top {{ templateHistoryLinks.length }})</div>
+                <div v-for="group in templateHistoryGroups" :key="group.label" class="guidance-history-list">
+                  <div class="muted-text">{{ group.label }}（{{ group.items.length }}）</div>
+                  <div v-for="item in group.items" :key="item.history_record_id" class="guidance-history-item">
+                    <div class="guidance-history-item__head">
+                      <span>{{ item.sheet_name }}</span>
+                      <span class="muted-text">{{ item.asset_name }} / 匹配分数：{{ item.match_score }}</span>
+                    </div>
+                    <div class="muted-text">{{ item.control_point || '-' }} / {{ item.item_text || item.evaluation_item || '-' }}</div>
+                    <div v-if="item.record_text" class="muted-text">写法样例：{{ item.record_text }}</div>
+                    <div v-if="item.match_reason.summary?.length" class="muted-text">关联依据：{{ item.match_reason.summary.join('；') }}</div>
+                  </div>
+                </div>
+              </div>
+              <div v-if="templateMatchResult?.reason.length" class="reason-list">
+                <div v-for="reason in templateMatchResult.reason" :key="reason" class="reason-item">- {{ reason }}</div>
+              </div>
+              <el-space wrap>
+                <el-button type="primary" :disabled="!selectedEvidenceId" @click="runPageClassification">识别页面类型</el-button>
+                <el-button :disabled="!selectedEvidenceId" @click="runTemplateMatch">匹配结果记录模板</el-button>
+              </el-space>
+              <div v-if="templateGuidebookLinks.length" class="guidance-history-list">
+                <div class="panel-label">关联指导书依据（Top {{ templateGuidebookLinks.length }})</div>
+                <div v-for="item in templateGuidebookLinks" :key="item.guidance_item_id" class="guidance-history-item">
+                  <div class="guidance-history-item__head">
+                    <span>{{ item.section_title }}</span>
+                    <span class="muted-text">{{ item.guidance_code }} / 匹配分数：{{ item.match_score }}</span>
+                  </div>
+                  <div class="muted-text">章节路径：{{ item.section_path }}</div>
+                  <div v-if="item.match_reason.summary?.length" class="muted-text">关联依据：{{ item.match_reason.summary.join('；') }}</div>
+                  <div v-if="item.check_points.length" class="muted-text">操作步骤：{{ item.check_points.join('；') }}</div>
+                  <div v-if="item.guidance_item.plain_text" class="muted-text">判断标准：{{ item.guidance_item.plain_text }}</div>
+                  <div v-if="item.evidence_requirements.length" class="muted-text">预期结果：{{ item.evidence_requirements.join('；') }}</div>
+                  <div v-else-if="item.record_suggestion" class="muted-text">预期结果：{{ item.record_suggestion }}</div>
+                </div>
+              </div>
+              <div v-if="templateMatchResult?.candidates.length" class="guidance-history-list">
+                <div class="panel-label">模板候选（Top {{ templateMatchResult.candidates.length }})</div>
+                <div v-for="item in templateMatchResult.candidates" :key="item.id" class="guidance-history-item">
+                  <div class="guidance-history-item__head">
+                    <span>{{ item.sheet_name }} / {{ item.item_code || '未编号' }}</span>
+                    <span class="muted-text">{{ item.object_type || '未分类' }} / {{ item.default_compliance_result || '未标注' }}</span>
+                  </div>
+                  <div class="muted-text">{{ item.control_point || '-' }} / {{ item.item_text || '-' }}</div>
+                  <div class="muted-text">匹配分数：{{ item.score }}；{{ item.reasons.join('；') }}</div>
+                  <div v-if="item.matched_keywords.length" class="muted-text">命中关键词：{{ item.matched_keywords.join('，') }}</div>
+                </div>
+              </div>
+            </el-space>
+          </el-card>
+
+          <el-card class="asset-match-card" shadow="never">
+            <template #header>
+              <div class="section-header">
+                <div class="section-title">历史记录参考</div>
+                <div class="section-subtitle">在模板候选基础上，结合历史人工记录补充相似写法与符合情况。</div>
               </div>
             </template>
             <el-space direction="vertical" fill>
@@ -194,8 +219,8 @@
           <el-card class="asset-match-card" shadow="never">
             <template #header>
               <div class="section-header">
-                <div class="section-title">指导书依据</div>
-                <div class="section-subtitle">指导书只提供核查动作与证据要求，作为模板复核的辅助依据。</div>
+                <div class="section-title">指导书辅助参考</div>
+                <div class="section-subtitle">指导书不再作为主匹配步骤，仅用于补充核查依据、章节路径和历史关联记录。</div>
               </div>
             </template>
             <el-space direction="vertical" fill>
@@ -230,7 +255,7 @@
                 title="当前没有可展示的历史参考记录。"
               />
               <div v-else class="guidance-history-list">
-                <div class="panel-label">关联历史参考（Top {{ guidanceHistoryList.length }})</div>
+                <div class="panel-label">历史人工记录参考（Top {{ guidanceHistoryList.length }})</div>
                 <div v-for="item in guidanceHistoryList" :key="item.history_record_id" class="guidance-history-item">
                   <div class="guidance-history-item__head">
                     <span>{{ item.sheet_name }}</span>
@@ -248,7 +273,7 @@
           <template #header>
             <div class="section-header">
               <div class="section-title">OCR 文本</div>
-              <div class="section-subtitle">中栏保留原始 OCR 文本，用于和模板候选、右侧字段修正结果逐项对照。</div>
+              <div class="section-subtitle">中栏保留原始 OCR 文本，用于和右侧字段修正结果逐项对照。</div>
             </div>
           </template>
           <el-scrollbar height="760px">
@@ -260,7 +285,7 @@
           <template #header>
             <div class="section-header">
               <div class="section-title">抽取字段与修正表单</div>
-              <div class="section-subtitle">右栏聚焦 corrected_value、复核状态、复核意见和审计轨迹，是模板复核主战场。</div>
+              <div class="section-subtitle">右栏聚焦 corrected_value、复核状态、复核意见和审计轨迹，是当前复核主战场。</div>
             </div>
           </template>
           <FieldReviewTable :fields="fields" @update="saveField" @review="markFieldReview" @audit="loadFieldAuditLogs" />
@@ -295,9 +320,10 @@ import AppShell from '@/components/AppShell.vue'
 import AppStatusTag from '@/components/AppStatusTag.vue'
 import AssetFormDialog from '@/components/AssetFormDialog.vue'
 import FieldReviewTable from '@/components/FieldReviewTable.vue'
+import { linkTemplateItemGuidebook, linkTemplateItemHistory, listTemplateItemGuidebookLinks, listTemplateItemHistoryLinks } from '@/api/assessmentTemplates'
 import { createAsset, listAssets } from '@/api/assets'
 import { listGuidanceItems } from '@/api/guidance'
-import { classifyEvidencePage, confirmEvidenceAsset, confirmEvidenceGuidance, getOcrResult, listEvidenceFields, listEvidences, matchEvidenceAsset, matchEvidenceGuidance, matchEvidenceHistory } from '@/api/evidences'
+import { classifyEvidencePage, confirmEvidenceAsset, confirmEvidenceGuidance, getOcrResult, listEvidenceFields, listEvidences, matchEvidenceAsset, matchEvidenceGuidance, matchEvidenceHistory, matchEvidenceTemplateItem } from '@/api/evidences'
 import { listFieldAuditLogs, reviewField, updateField } from '@/api/fields'
 import { listRecords } from '@/api/records'
 import type {
@@ -307,15 +333,15 @@ import type {
   Evidence,
   EvidenceHistoryMatchResult,
   EvidencePageClassification,
+  EvidenceTemplateItemMatchResult,
   EvaluationRecord,
   ExtractedField,
   GuidanceItem,
   GuidanceMatchReasons,
   GuidanceMatchReason,
-  MatchCandidate,
   MatchReasons,
-  RecordGenerationDetails,
-  RecordTemplateSnapshot,
+  TemplateGuidebookLink,
+  TemplateHistoryLink,
 } from '@/types/domain'
 
 const props = defineProps<{ projectId: string; evidenceId?: string }>()
@@ -334,29 +360,18 @@ const assetDialogVisible = ref(false)
 const editingAsset = ref<Asset | null>(null)
 const pageClassification = ref<EvidencePageClassification | null>(null)
 const historyMatchResult = ref<EvidenceHistoryMatchResult | null>(null)
+const templateMatchResult = ref<EvidenceTemplateItemMatchResult | null>(null)
+const templateGuidebookLinks = ref<TemplateGuidebookLink[]>([])
+const templateHistoryLinks = ref<TemplateHistoryLink[]>([])
 
 const currentEvidence = computed(() => evidences.value.find((item) => item.id === selectedEvidenceId.value) || null)
 const relatedRecord = computed(() => records.value.find((item) => item.evidence_ids.includes(selectedEvidenceId.value)) || null)
-const relatedRecordReasons = computed<MatchReasons>(() => {
+const relatedRecordMissingFields = computed(() => {
   const reasons = relatedRecord.value?.match_reasons
-  return reasons && typeof reasons === 'object' ? (reasons as MatchReasons) : {}
-})
-const recordGeneration = computed<RecordGenerationDetails>(() => relatedRecordReasons.value.record_generation || {})
-const templateSnapshot = computed<RecordTemplateSnapshot>(() => {
-  const snapshot = relatedRecord.value?.template_snapshot_json
-  return snapshot && typeof snapshot === 'object' ? (snapshot as RecordTemplateSnapshot) : recordGeneration.value.template_snapshot || {}
-})
-const templatePosition = computed(() => [templateSnapshot.value.sheet_name || relatedRecord.value?.sheet_name, templateSnapshot.value.item_no || relatedRecord.value?.record_no || relatedRecord.value?.item_code].filter(Boolean).join(' / ') || '尚未生成记录')
-const topCandidates = computed<MatchCandidate[]>(() => Array.isArray(relatedRecord.value?.match_candidates) ? (relatedRecord.value?.match_candidates as MatchCandidate[]).slice(0, 3) : [])
-const missingEvidence = computed(() => {
-  const missing = recordGeneration.value.missing_evidence
+  if (!reasons || typeof reasons !== 'object') return []
+  const missing = (reasons as MatchReasons).missing_required_fields
   return Array.isArray(missing) ? missing : []
 })
-const supportSummary = computed(() => {
-  const summary = recordGeneration.value.evidence_summary
-  return Array.isArray(summary) ? summary.slice(0, 3) : []
-})
-const relatedRecordMatchSource = computed(() => relatedRecordReasons.value.match_source === 'project_template' ? '项目模板主链路' : relatedRecord.value ? '旧规则回退链路' : '尚未生成')
 const testObjectAssets = computed(() => assets.value.filter((item) => item.asset_kind === 'test_object'))
 const matchReasons = computed<AssetMatchReasons>(() => {
   const reasons = currentEvidence.value?.asset_match_reasons_json
@@ -369,6 +384,22 @@ const guidanceMatchReasons = computed<GuidanceMatchReasons>(() => {
 })
 const guidanceReasonList = computed(() => guidanceMatchReasons.value.summary || [])
 const guidanceHistoryList = computed(() => guidanceMatchReasons.value.top_history || [])
+const templateHistoryGroups = computed(() => {
+  const order = ['符合', '部分符合', '不符合', '不适用']
+  const groups = order
+    .map((label) => ({
+      label,
+      items: templateHistoryLinks.value.filter((item) => (item.compliance_result || item.compliance_status || '未标注') === label),
+    }))
+    .filter((group) => group.items.length)
+  const remaining = templateHistoryLinks.value.filter(
+    (item) => !order.includes(item.compliance_result || item.compliance_status || '未标注'),
+  )
+  if (remaining.length) {
+    groups.push({ label: '其他', items: remaining })
+  }
+  return groups
+})
 const guidanceMatchStatusTag = computed(() => {
   const status = currentEvidence.value?.guidance_match_status
   if (status === 'suggested') return 'pending'
@@ -405,6 +436,8 @@ async function loadReviewData() {
   if (!selectedEvidenceId.value) {
     ocrText.value = '请先从证据中心上传并选择证据。'
     fields.value = []
+    templateGuidebookLinks.value = []
+    templateHistoryLinks.value = []
     return
   }
   const [ocrResult, fieldsResult, recordsResult, evidencesResult, assetsResult, guidanceResult] = await Promise.all([
@@ -424,6 +457,9 @@ async function loadReviewData() {
   auditLogs.value = []
   pageClassification.value = null
   historyMatchResult.value = null
+  templateMatchResult.value = null
+  templateGuidebookLinks.value = []
+  templateHistoryLinks.value = []
   selectedAssetId.value = currentEvidence.value?.matched_asset_id || ''
   selectedGuidanceId.value = currentEvidence.value?.matched_guidance_id || ''
 }
@@ -468,6 +504,52 @@ async function confirmMatchedAsset() {
   await loadReviewData()
 }
 
+async function loadTemplateGuidebookLinks() {
+  const itemId = templateMatchResult.value?.matched_template_item?.id
+  if (!itemId) {
+    templateGuidebookLinks.value = []
+    return
+  }
+  const { data } = await listTemplateItemGuidebookLinks(itemId)
+  templateGuidebookLinks.value = data
+}
+
+async function loadTemplateHistoryLinks() {
+  const itemId = templateMatchResult.value?.matched_template_item?.id
+  if (!itemId) {
+    templateHistoryLinks.value = []
+    return
+  }
+  const { data } = await listTemplateItemHistoryLinks(itemId)
+  templateHistoryLinks.value = data
+}
+
+async function runTemplateMatch() {
+  if (!selectedEvidenceId.value) return
+  const { data } = await matchEvidenceTemplateItem(selectedEvidenceId.value, {
+    ocr_text: ocrText.value,
+    page_type: pageClassification.value?.page_type || undefined,
+    asset_type: currentEvidence.value?.matched_asset?.category || matchReasons.value.suggested_asset_type || undefined,
+    extracted_fields: fields.value,
+    evidence_facts: fields.value,
+  })
+  templateMatchResult.value = data
+  templateGuidebookLinks.value = []
+  templateHistoryLinks.value = []
+  if (data.matched_template_item?.id) {
+    await Promise.all([
+      linkTemplateItemGuidebook(data.matched_template_item.id),
+      linkTemplateItemHistory(data.matched_template_item.id),
+    ])
+    await Promise.all([loadTemplateGuidebookLinks(), loadTemplateHistoryLinks()])
+  }
+  if (data.confidence < 0.7) {
+    ElMessage.warning('结果记录模板匹配置信度低于 0.7，请人工确认')
+  } else {
+    ElMessage.success('结果记录模板匹配完成')
+  }
+}
+
 async function runGuidanceMatch() {
   if (!selectedEvidenceId.value) return
   await matchEvidenceGuidance(selectedEvidenceId.value, true)
@@ -508,11 +590,6 @@ async function runHistoryMatch() {
 function getGuidanceHistorySummary(reason: GuidanceMatchReason | Record<string, unknown>) {
   const summary = 'summary' in reason ? reason.summary : undefined
   return Array.isArray(summary) && summary.length ? summary.join('；') : '无匹配说明'
-}
-
-function formatCandidateLabel(candidate: MatchCandidate) {
-  const position = [candidate.sheet_name, candidate.record_no || candidate.item_no || candidate.item_code].filter(Boolean).join(' / ')
-  return `${position || candidate.item_code || candidate.template_code || '未命名候选'} · ${candidate.score ?? '-'} 分`
 }
 
 function openCreateAsset() {
@@ -618,31 +695,6 @@ onMounted(async () => {
   margin-top: 16px;
 }
 
-.template-context-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.template-context-item,
-.template-block {
-  padding: 10px 12px;
-  border: 1px solid var(--workspace-border-soft);
-  border-radius: 12px;
-  background: rgba(248, 250, 252, 0.86);
-}
-
-.template-block {
-  margin-top: 12px;
-}
-
-.template-block__content {
-  margin-top: 8px;
-  color: var(--workspace-text-muted);
-  line-height: 1.7;
-  white-space: pre-wrap;
-}
-
 .match-status-row {
   display: flex;
   align-items: center;
@@ -695,8 +747,7 @@ onMounted(async () => {
 }
 
 @media (max-width: 1400px) {
-  .review-grid,
-  .template-context-grid {
+  .review-grid {
     grid-template-columns: 1fr;
   }
 }

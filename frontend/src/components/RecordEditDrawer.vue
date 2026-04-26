@@ -6,8 +6,8 @@
         <div class="summary-item__value">{{ getStatusLabel('record', form.status) }}</div>
       </div>
       <div class="summary-item">
-        <div class="summary-item__label">编辑重点</div>
-        <div class="summary-item__value">final_content / 候选项</div>
+        <div class="summary-item__label">模板定位</div>
+        <div class="summary-item__value">{{ templatePosition }}</div>
       </div>
     </div>
 
@@ -15,17 +15,53 @@
       <el-card shadow="never">
         <template #header>
           <div>
-            <div class="section-title">正文基线</div>
-            <div class="section-subtitle">保留系统生成内容与匹配摘要作为对照，避免复核过程丢失上下文。</div>
+            <div class="section-title">模板 A-G 基线</div>
+            <div class="section-subtitle">以项目模板原值为主线，对照当前正文、符合情况与缺失证据，避免复核时偏离模板结构。</div>
           </div>
         </template>
-        <el-input v-model="form.record_content" type="textarea" :rows="12" />
-        <div class="match-summary" v-if="selectedReasonsSummary.length || selectedMissingFields.length">
-          <div class="panel-label">匹配摘要</div>
+        <div class="template-grid">
+          <div class="template-grid__item">
+            <div class="panel-label">Sheet / 编号</div>
+            <div class="muted-text">{{ templatePosition }}</div>
+          </div>
+          <div class="template-grid__item">
+            <div class="panel-label">扩展标准</div>
+            <div class="muted-text">{{ templateSnapshot.extension_standard || '—' }}</div>
+          </div>
+          <div class="template-grid__item">
+            <div class="panel-label">控制点</div>
+            <div class="muted-text">{{ templateSnapshot.control_point || '—' }}</div>
+          </div>
+          <div class="template-grid__item">
+            <div class="panel-label">测评项</div>
+            <div class="muted-text">{{ templateSnapshot.evaluation_item || props.record?.title || '—' }}</div>
+          </div>
+          <div class="template-grid__item">
+            <div class="panel-label">模板符合情况</div>
+            <div class="muted-text">{{ templateSnapshot.default_compliance || props.record?.conclusion || '—' }}</div>
+          </div>
+          <div class="template-grid__item">
+            <div class="panel-label">分值</div>
+            <div class="muted-text">{{ templateSnapshot.score_weight ?? '—' }}</div>
+          </div>
+        </div>
+        <div class="template-block">
+          <div class="panel-label">模板结果记录 D 列</div>
+          <div class="template-block__content">{{ templateSnapshot.record_template || '—' }}</div>
+        </div>
+        <div class="template-block">
+          <div class="panel-label">当前正文基线</div>
+          <el-input v-model="form.record_content" type="textarea" :rows="8" />
+        </div>
+        <div v-if="missingEvidence.length || supportSummary.length || selectedReasonsSummary.length" class="match-summary">
+          <div class="panel-label">辅助判断依据</div>
           <el-space wrap>
-            <el-tag v-for="field in selectedMissingFields" :key="field" type="danger">缺失 {{ field }}</el-tag>
+            <el-tag v-for="field in missingEvidence" :key="field" type="danger">缺失 {{ field }}</el-tag>
             <el-tag v-for="reason in selectedReasonsSummary" :key="reason" type="info">{{ reason }}</el-tag>
           </el-space>
+          <div v-if="supportSummary.length" class="support-summary">
+            {{ supportSummary.join('；') }}
+          </div>
         </div>
       </el-card>
 
@@ -33,11 +69,11 @@
         <template #header>
           <div>
             <div class="section-title">候选项与最终交付内容</div>
-            <div class="section-subtitle">可切换候选测评项重新生成，再同步维护状态、复核意见和复核人。</div>
+            <div class="section-subtitle">可切换模板候选重新生成，再同步维护最终正文、状态、复核意见和复核人。</div>
           </div>
         </template>
         <el-form label-width="110px">
-          <el-form-item label="候选测评项">
+          <el-form-item label="模板候选项">
             <el-select v-model="form.selected_item_code" clearable class="w-full" placeholder="使用当前最佳匹配">
               <el-option
                 v-for="candidate in candidateOptions"
@@ -52,8 +88,7 @@
           </el-form-item>
           <el-form-item label="状态">
             <el-select v-model="form.status" class="w-full">
-              <el-option v-for="status in recordStatusOptions" :key="status" :label="getStatusLabel('record', status)
-" :value="status" />
+              <el-option v-for="status in recordStatusOptions" :key="status" :label="getStatusLabel('record', status)" :value="status" />
             </el-select>
           </el-form-item>
           <el-form-item label="复核意见">
@@ -78,7 +113,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue'
-import type { EvaluationRecord, MatchCandidate } from '@/types/domain'
+import type { EvaluationRecord, MatchCandidate, MatchReasons, RecordGenerationDetails, RecordTemplateSnapshot } from '@/types/domain'
 import { recordStatusOptions } from '@/utils/constants'
 import { getStatusLabel } from '@/utils/status'
 
@@ -108,17 +143,27 @@ const form = reactive({
 })
 
 const candidateOptions = computed<MatchCandidate[]>(() => Array.isArray(props.record?.match_candidates) ? props.record?.match_candidates || [] : [])
-const selectedReasonsSummary = computed(() => {
+const matchReasons = computed<MatchReasons>(() => {
   const reasons = props.record?.match_reasons
-  if (!reasons || typeof reasons !== 'object') return []
-  const summary = (reasons as { summary?: string[] }).summary
+  return reasons && typeof reasons === 'object' ? (reasons as MatchReasons) : {}
+})
+const recordGeneration = computed<RecordGenerationDetails>(() => matchReasons.value.record_generation || {})
+const templateSnapshot = computed<RecordTemplateSnapshot>(() => {
+  const snapshot = props.record?.template_snapshot_json
+  return snapshot && typeof snapshot === 'object' ? (snapshot as RecordTemplateSnapshot) : recordGeneration.value.template_snapshot || {}
+})
+const templatePosition = computed(() => [templateSnapshot.value.sheet_name || props.record?.sheet_name, templateSnapshot.value.item_no || props.record?.record_no || props.record?.item_code].filter(Boolean).join(' / ') || '未绑定模板')
+const selectedReasonsSummary = computed(() => {
+  const summary = matchReasons.value.summary
   return Array.isArray(summary) ? summary.slice(0, 4) : []
 })
-const selectedMissingFields = computed(() => {
-  const reasons = props.record?.match_reasons
-  if (!reasons || typeof reasons !== 'object') return []
-  const missing = (reasons as { missing_required_fields?: string[] }).missing_required_fields
+const missingEvidence = computed(() => {
+  const missing = recordGeneration.value.missing_evidence
   return Array.isArray(missing) ? missing : []
+})
+const supportSummary = computed(() => {
+  const summary = recordGeneration.value.evidence_summary
+  return Array.isArray(summary) ? summary.slice(0, 3) : []
 })
 const savePayload = computed(() => ({
   record_content: form.record_content,
@@ -129,7 +174,8 @@ const savePayload = computed(() => ({
 }))
 
 function formatCandidateLabel(candidate: MatchCandidate) {
-  return `${candidate.item_code || candidate.template_code || '未命名候选'} / ${candidate.score ?? '-'} 分`
+  const position = [candidate.sheet_name, candidate.record_no || candidate.item_no || candidate.item_code].filter(Boolean).join(' / ')
+  return `${position || candidate.item_code || candidate.template_code || '未命名候选'} / ${candidate.score ?? '-'} 分`
 }
 
 watch(
@@ -164,8 +210,39 @@ watch(
   gap: 16px;
 }
 
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.template-grid__item,
+.template-block {
+  padding: 12px;
+  border: 1px solid var(--workspace-border-soft);
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.86);
+}
+
+.template-block {
+  margin-top: 14px;
+}
+
+.template-block__content {
+  margin-top: 8px;
+  color: var(--workspace-text-secondary);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
 .match-summary {
   margin-top: 16px;
+}
+
+.support-summary {
+  margin-top: 10px;
+  color: var(--workspace-text-muted);
+  line-height: 1.7;
 }
 
 .w-full {
@@ -180,7 +257,8 @@ watch(
 
 @media (max-width: 1280px) {
   .drawer-summary,
-  .drawer-layout {
+  .drawer-layout,
+  .template-grid {
     grid-template-columns: 1fr;
   }
 }

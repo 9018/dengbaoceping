@@ -1,5 +1,5 @@
 <template>
-  <AppShell title="指导书管理" subtitle="固定接入 md/指导书.md，先完成指导书入库、查询与可视化，为后续测评项匹配和记录生成提供知识底座。">
+  <AppShell title="指导书管理" subtitle="指导书作为依据库管理，为模板主驱动记录生成提供核查动作、证据要求和判断参考。">
     <div class="page-stack">
       <section class="page-section">
         <div class="page-header">

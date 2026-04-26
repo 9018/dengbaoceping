@@ -27,6 +27,30 @@ class ProjectUpdate(BaseModel):
     storage_root: str | None = None
 
 
+class ProjectTemplateImportRead(BaseModel):
+    template_id: str
+    source_asset_id: str
+    source_file: str
+    sheet_count: int
+    sheet_names: list[str]
+    imported_count: int
+    skipped_count: int
+
+
+class ProjectTemplateSummaryRead(TimestampSchema):
+    template_id: str
+    project_id: str
+    name: str
+    template_type: str
+    version: str | None = None
+    source_asset_id: str | None = None
+    source_file: str | None = None
+    sheet_count: int
+    sheet_names: list[str]
+    item_count: int
+    is_active: bool
+
+
 class ProjectRead(ProjectBase, TimestampSchema):
     id: str
 

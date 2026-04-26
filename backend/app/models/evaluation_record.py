@@ -33,6 +33,7 @@ class EvaluationRecord(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     conclusion: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="结论")
     risk_level: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="风险等级")
     suggestion: Mapped[str | None] = mapped_column(Text, nullable=True, comment="整改建议")
+    template_snapshot_json: Mapped[dict | list | None] = mapped_column(JSON, nullable=True, comment="模板行快照JSON")
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="draft", comment="记录状态")
     source_type: Mapped[str] = mapped_column(String(50), nullable=False, default="manual", index=True, comment="来源类型")
     source_row_no: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="来源行号")

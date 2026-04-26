@@ -4,6 +4,7 @@ import pytest
 
 from app.core.config import settings
 from app.services.ocr.paddle_adapter import PaddleOCRAdapter
+from tests.history_excel_utils import build_final_assessment_excel
 
 
 @pytest.fixture(autouse=True)
@@ -51,6 +52,15 @@ def run_extract_flow(client, evidence_id: str, sample_id: str, template_code: st
     )
     assert extract_resp.status_code == 200
     return extract_resp.json()
+
+
+def import_project_template(client, project_id: str, filename: str = "reference.xlsx"):
+    resp = client.post(
+        f"/api/v1/projects/{project_id}/templates/import-reference",
+        files={"file": (filename, build_final_assessment_excel(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+    assert resp.status_code == 201
+    return resp.json()["data"]
 
 
 def test_generate_record_full_match(client):
@@ -298,6 +308,36 @@ def test_generate_record_supports_manual_candidate_selection(client):
     assert manual_data["match_reasons"]["selection_mode"] == "manual_item"
     assert manual_data["match_reasons"]["best_match_item_code"] == "host_password_policy_check"
     assert "人工选择候选项生成" in manual_data["review_comment"]
+
+
+def test_generate_record_from_project_template_persists_template_metadata(client):
+    project_id = create_project(client)
+    import_project_template(client, project_id)
+    evidence_id = upload_evidence(client, project_id, "firewall_basic.txt")
+    run_extract_flow(client, evidence_id, "firewall_basic", "security_device_basic")
+
+    resp = client.post(
+        f"/api/v1/projects/{project_id}/records/generate",
+        json={"evidence_id": evidence_id},
+    )
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["template_id"]
+    assert data["evaluation_item_id"]
+    assert data["template_code"] == data["template_id"]
+    assert data["item_code"] == "A-01"
+    assert data["record_no"] == "A-01"
+    assert data["sheet_name"] == "出口防火墙-A"
+    assert data["source_row_no"] == 3
+    assert data["record_content"] == "经现场核查，已配置访问控制策略。"
+    assert data["conclusion"] == "符合"
+    assert data["status"] == "generated"
+    assert data["match_reasons"]["match_source"] == "project_template"
+    assert data["match_reasons"]["record_generation"]["template_snapshot"]["item_no"] == "A-01"
+    assert data["template_snapshot_json"]["sheet_name"] == "出口防火墙-A"
+    assert data["template_snapshot_json"]["record_template"] == "经现场核查，已配置访问控制策略。"
+    assert data["match_candidates"][0]["sheet_name"] == "出口防火墙-A"
+    assert data["match_candidates"][0]["record_no"] == "A-01"
 
 
 def test_record_update_rejects_direct_export_from_reviewed(client):

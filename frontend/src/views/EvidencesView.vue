@@ -1,12 +1,12 @@
 <template>
-  <AppShell :project-id="projectId" title="证据中心页" subtitle="围绕证据采集、OCR、字段抽取与进入复核构建专业工作流。">
+  <AppShell :project-id="projectId" title="证据中心页" subtitle="围绕证据采集、OCR 与进入证据处理向导构建清晰主流程。">
     <div class="page-stack">
       <section class="page-section">
         <div class="page-header">
           <div class="page-header__content">
             <div class="section-kicker">Evidence Pipeline</div>
             <div class="section-title">证据流水线中心</div>
-            <div class="section-subtitle">统一查看证据元信息、识别状态、抽取入口和下一步动作，避免工作流断点。</div>
+            <div class="section-subtitle">统一查看证据元信息、识别状态和下一步动作，把主流程收束到证据处理向导。</div>
           </div>
           <el-space wrap>
             <el-button @click="loadEvidences">刷新</el-button>
@@ -20,22 +20,12 @@
         <template #header>
           <div class="section-header">
             <div class="section-title">证据流水线</div>
-            <div class="section-subtitle">按 OCR 样例、抽取模板与关键词快速筛选证据，并从当前状态直接进入下一步动作。</div>
+            <div class="section-subtitle">按关键词筛选证据，并从当前状态直接进入向导处理、查看结果或执行备用 OCR。</div>
           </div>
         </template>
 
         <div class="page-filter-bar">
           <el-form inline>
-            <el-form-item label="OCR 样例">
-              <el-select v-model="selectedSampleId" style="width: 240px">
-                <el-option v-for="sample in ocrSampleOptions" :key="sample" :label="sample" :value="sample" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="抽取模板">
-              <el-select v-model="selectedTemplateCode" style="width: 240px">
-                <el-option v-for="code in templateCodeOptions" :key="code" :label="code" :value="code" />
-              </el-select>
-            </el-form-item>
             <el-form-item label="关键词">
               <el-input v-model="keyword" clearable placeholder="搜索证据标题、设备、摘要" style="width: 280px" />
             </el-form-item>
@@ -62,17 +52,12 @@
             </template>
           </el-table-column>
           <el-table-column prop="summary" label="摘要" min-width="240" show-overflow-tooltip />
-          <el-table-column label="操作" min-width="520" fixed="right">
+          <el-table-column label="操作" min-width="420" fixed="right">
             <template #default="scope">
               <el-space wrap>
                 <el-button size="small" @click="runOcrFor(scope.row.id)">执行 OCR</el-button>
-                <el-tooltip :disabled="canExtractFields(scope.row)" content="请先执行 OCR，再进行字段抽取" placement="top">
-                  <span class="action-wrapper">
-                    <el-button size="small" :disabled="!canExtractFields(scope.row)" @click="extractFor(scope.row.id)">字段抽取</el-button>
-                  </span>
-                </el-tooltip>
-                <el-button size="small" :type="getReviewEntryType(scope.row)" @click="goReview(scope.row.id)">
-                  {{ getReviewEntryLabel(scope.row) }}
+                <el-button size="small" :type="getWizardEntryType(scope.row)" @click="goWizard(scope.row.id)">
+                  {{ getWizardEntryLabel(scope.row) }}
                 </el-button>
                 <el-popconfirm title="确认删除该证据？" @confirm="removeEvidence(scope.row.id)">
                   <template #reference>
@@ -98,24 +83,25 @@ import AppShell from '@/components/AppShell.vue'
 import AppStatusTag from '@/components/AppStatusTag.vue'
 import EvidenceUploadDialog from '@/components/EvidenceUploadDialog.vue'
 import StatsCards, { type StatsCardItem } from '@/components/StatsCards.vue'
-import { deleteEvidence, extractFields, listEvidences, runOcr, uploadEvidence } from '@/api/evidences'
-import { ocrSampleOptions, templateCodeOptions } from '@/utils/constants'
-import type { Evidence } from '@/types/domain'
+import { deleteEvidence, listEvidences, runOcr, uploadEvidence } from '@/api/evidences'
+import { listRecords } from '@/api/records'
+import type { Evidence, EvaluationRecord } from '@/types/domain'
 
 const props = defineProps<{ projectId: string }>()
 const router = useRouter()
 const evidences = ref<Evidence[]>([])
+const records = ref<EvaluationRecord[]>([])
 const dialogVisible = ref(false)
-const selectedSampleId = ref('firewall_basic')
-const selectedTemplateCode = ref('security_device_basic')
 const keyword = ref('')
 
 const summaryCards = computed<StatsCardItem[]>(() => [
   { label: '证据总数', value: evidences.value.length, tip: '项目内全部证据', tone: 'primary' },
   { label: '待 OCR', value: evidences.value.filter((item) => item.ocr_status !== 'completed').length, tip: '优先推进识别', tone: 'warning' },
-  { label: '已完成 OCR', value: evidences.value.filter((item) => item.ocr_status === 'completed').length, tip: '可进入抽取与复核', tone: 'success' },
-  { label: '待抽取', value: evidences.value.filter((item) => item.ocr_status === 'completed' && item.text_content).length, tip: '满足抽取前置条件', tone: 'default' },
+  { label: '已完成 OCR', value: evidences.value.filter((item) => item.ocr_status === 'completed').length, tip: '可进入向导分析', tone: 'success' },
+  { label: '已生成记录', value: records.value.length, tip: '可进入结果复核', tone: 'default' },
 ])
+
+const generatedEvidenceIds = computed(() => new Set(records.value.flatMap((item) => item.evidence_ids)))
 
 const filteredEvidences = computed(() => {
   const search = keyword.value.trim().toLowerCase()
@@ -128,26 +114,29 @@ const filteredEvidences = computed(() => {
 })
 
 async function loadEvidences() {
-  const { data } = await listEvidences(props.projectId)
-  evidences.value = data
+  const [evidenceResult, recordsResult] = await Promise.all([listEvidences(props.projectId), listRecords(props.projectId)])
+  evidences.value = evidenceResult.data
+  records.value = recordsResult.data
 }
 
-function canExtractFields(evidence: Evidence) {
-  return evidence.ocr_status === 'completed' && Boolean(evidence.text_content)
+function hasGeneratedRecord(evidence: Evidence) {
+  return generatedEvidenceIds.value.has(evidence.id)
 }
 
-function getReviewEntryType(evidence: Evidence) {
-  return canExtractFields(evidence) ? 'success' : 'primary'
+function getWizardEntryType(evidence: Evidence) {
+  return evidence.ocr_status === 'completed' || hasGeneratedRecord(evidence) ? 'success' : 'primary'
 }
 
-function getReviewEntryLabel(evidence: Evidence) {
-  return canExtractFields(evidence) ? '进入识别复核' : '识别复核'
+function getWizardEntryLabel(evidence: Evidence) {
+  if (hasGeneratedRecord(evidence)) return '查看结果'
+  if (evidence.ocr_status === 'completed') return '继续向导分析'
+  return '进入向导处理'
 }
 
 function getPipelineHint(evidence: Evidence) {
-  if (evidence.ocr_status !== 'completed') return '先执行 OCR，补齐识别结果。'
-  if (!evidence.text_content) return '当前 OCR 文本为空，需确认识别结果。'
-  return '可以继续字段抽取并进入识别复核。'
+  if (hasGeneratedRecord(evidence)) return '查看结果'
+  if (evidence.ocr_status === 'completed') return '继续向导分析'
+  return '进入向导处理'
 }
 
 async function submitUpload(payload: Record<string, unknown>) {
@@ -162,19 +151,13 @@ async function submitUpload(payload: Record<string, unknown>) {
 }
 
 async function runOcrFor(evidenceId: string) {
-  await runOcr(evidenceId, selectedSampleId.value)
+  await runOcr(evidenceId)
   ElMessage.success('OCR 执行成功')
   await loadEvidences()
 }
 
-async function extractFor(evidenceId: string) {
-  await extractFields(evidenceId, selectedTemplateCode.value)
-  ElMessage.success('字段抽取完成')
-  router.push(`/projects/${props.projectId}/review?evidenceId=${evidenceId}`)
-}
-
-function goReview(evidenceId: string) {
-  router.push(`/projects/${props.projectId}/review?evidenceId=${evidenceId}`)
+function goWizard(evidenceId: string) {
+  router.push(`/projects/${props.projectId}/evidence-wizard?evidenceId=${evidenceId}`)
 }
 
 async function removeEvidence(evidenceId: string) {

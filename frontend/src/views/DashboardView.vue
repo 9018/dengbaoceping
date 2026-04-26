@@ -10,8 +10,6 @@
           </div>
           <el-space wrap>
             <el-button type="primary" @click="go('/projects')">进入项目列表</el-button>
-            <el-button @click="go('/guidance')">指导书管理</el-button>
-            <el-button @click="go('/template-rules')">查看模板规则</el-button>
           </el-space>
         </div>
         <StatsCards :items="summaryCards" @select="handleStatSelect" />
@@ -109,7 +107,7 @@
             <template #default="scope">
               <el-space wrap>
                 <el-button size="small" type="primary" @click="go(`/projects/${scope.row.id}`)">项目详情</el-button>
-                <el-button size="small" @click="go(`/projects/${scope.row.id}/review`)">识别复核</el-button>
+                <el-button size="small" @click="go(`/projects/${scope.row.id}/evidence-wizard`)">证据处理向导</el-button>
                 <el-button size="small" @click="go(`/projects/${scope.row.id}/records`)">测评记录</el-button>
               </el-space>
             </template>
@@ -162,9 +160,9 @@ const workflowStepLabel = computed(() => workflowSteps[Math.min(workflowActive.v
 
 const nextActionSummary = computed(() => {
   if (pendingRecordReviewCount.value > 0) return '优先处理测评记录审批，把导出阻塞项清零。'
-  if (pendingFieldReviewCount.value > 0) return '优先进入识别复核页，补齐字段确认与修正。'
+  if (pendingFieldReviewCount.value > 0) return '优先进入证据处理向导，补齐字段确认与结果分析。'
   if (pendingOcrCount.value > 0) return '优先推进证据 OCR，把识别阶段快速拉通。'
-  if (totalProjects.value > 0) return '当前项目已基本跑通，可以抽查规则与导出质量。'
+  if (totalProjects.value > 0) return '当前项目已基本跑通，可以推进结果抽查与导出。'
   return '先创建项目，启动等级保护测评工作台。'
 })
 

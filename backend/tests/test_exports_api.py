@@ -4,6 +4,7 @@ import pytest
 from openpyxl import load_workbook
 
 from app.core.config import settings
+from tests.history_excel_utils import build_final_assessment_excel
 
 
 @pytest.fixture(autouse=True)
@@ -54,6 +55,15 @@ def generate_record(client, project_id: str, evidence_id: str):
     resp = client.post(
         f"/api/v1/projects/{project_id}/records/generate",
         json={"evidence_id": evidence_id},
+    )
+    assert resp.status_code == 201
+    return resp.json()["data"]
+
+
+def import_project_template(client, project_id: str, filename: str = "reference.xlsx"):
+    resp = client.post(
+        f"/api/v1/projects/{project_id}/templates/import-reference",
+        files={"file": (filename, build_final_assessment_excel(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
     assert resp.status_code == 201
     return resp.json()["data"]
@@ -243,6 +253,46 @@ def test_project_export_excel_debug_contains_debug_columns(client, tmp_path):
     assert "边界防护" in row[9]
     assert "记录:" in row[10]
     assert row[11]
+
+
+def test_project_export_excel_prefers_project_template_snapshot(client):
+    project_id = create_project(client)
+    import_project_template(client, project_id)
+    evidence_id = upload_evidence(client, project_id, "firewall_basic.txt", "防火墙配置", "设备A")
+    run_extract_flow(client, evidence_id, "firewall_basic", "security_device_basic")
+
+    record = generate_record(client, project_id, evidence_id)
+    approve_resp = client.post(
+        f"/api/v1/records/{record['id']}/review",
+        json={
+            "status": "reviewed",
+            "final_content": "人工复核后的模板记录",
+            "review_comment": "进入复核",
+            "reviewed_by": "alice",
+        },
+    )
+    assert approve_resp.status_code == 200
+    approve_resp = client.post(
+        f"/api/v1/records/{record['id']}/review",
+        json={
+            "status": "approved",
+            "final_content": "人工复核后的模板记录",
+            "review_comment": "审批通过",
+            "reviewed_by": "alice",
+        },
+    )
+    assert approve_resp.status_code == 200
+
+    export_resp = client.post(f"/api/v1/projects/{project_id}/export-excel", json={"mode": "official"})
+    assert export_resp.status_code == 201
+    export_id = export_resp.json()["data"]["id"]
+
+    download_resp = client.get(f"/api/v1/exports/{export_id}/download")
+    workbook = open_workbook_from_response(download_resp)
+    assert workbook.sheetnames == ["出口防火墙-A"]
+    worksheet = workbook["出口防火墙-A"]
+    row = [worksheet.cell(2, index).value for index in range(1, 8)]
+    assert row == ["A-01", "安全通信网络", "边界访问控制", "应限制非授权访问", "人工复核后的模板记录", "符合", 1]
 
 
 def test_project_export_requires_approved_records(client):

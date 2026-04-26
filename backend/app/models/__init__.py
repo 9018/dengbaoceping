@@ -1,4 +1,5 @@
 from app.models.asset import Asset
+from app.models.assessment_template import AssessmentTemplateItem, AssessmentTemplateSheet, AssessmentTemplateWorkbook, TemplateGuidebookLink, TemplateHistoryLink
 from app.models.base import Base
 from app.models.evaluation_item import EvaluationItem
 from app.models.evaluation_record import EvaluationRecord, EvaluationRecordEvidence
@@ -27,4 +28,9 @@ __all__ = [
     "GuidanceHistoryLink",
     "HistoricalAssessmentRecord",
     "HistoryRecord",
+    "AssessmentTemplateWorkbook",
+    "AssessmentTemplateSheet",
+    "AssessmentTemplateItem",
+    "TemplateGuidebookLink",
+    "TemplateHistoryLink",
 ]

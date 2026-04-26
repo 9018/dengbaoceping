@@ -18,6 +18,8 @@ from app.schemas.evidence import (
     EvidenceMatchGuidanceRequest,
     EvidenceOCRRequest,
     EvidenceRead,
+    EvidenceTemplateItemMatchRead,
+    EvidenceTemplateItemMatchRequest,
     EvidenceUploadData,
 )
 from app.services.asset_match_service import AssetMatchService
@@ -26,6 +28,7 @@ from app.services.evidence_to_history_match_service import EvidenceToHistoryMatc
 from app.services.field_extraction_service import FieldExtractionService
 from app.services.guidance_match_service import GuidanceMatchService
 from app.services.ocr_service import OCRService
+from app.services.template_item_match_service import TemplateItemMatchService
 
 router = APIRouter(tags=["evidences"])
 service = EvidenceService()
@@ -34,6 +37,7 @@ field_service = FieldExtractionService()
 asset_match_service = AssetMatchService()
 guidance_match_service = GuidanceMatchService()
 history_match_service = EvidenceToHistoryMatchService()
+template_item_match_service = TemplateItemMatchService()
 
 
 def serialize_evidence(evidence):
@@ -153,6 +157,20 @@ def match_evidence_history(evidence_id: str, payload: EvidenceHistoryMatchReques
         extracted_fields=payload.extracted_fields,
     )
     return success_response(EvidenceHistoryMatchRead.model_validate(result), "历史记录匹配完成")
+
+
+@router.post("/evidences/{evidence_id}/match-template-item", response_model=ApiResponse)
+def match_template_item(evidence_id: str, payload: EvidenceTemplateItemMatchRequest, db: Session = Depends(get_db)):
+    result = template_item_match_service.match(
+        db,
+        evidence_id,
+        ocr_text=payload.ocr_text,
+        page_type=payload.page_type,
+        asset_type=payload.asset_type,
+        extracted_fields=payload.extracted_fields,
+        evidence_facts=payload.evidence_facts,
+    )
+    return success_response(EvidenceTemplateItemMatchRead.model_validate(result), "结果记录模板匹配完成")
 
 
 @router.delete("/evidences/{evidence_id}", response_model=ApiResponse)

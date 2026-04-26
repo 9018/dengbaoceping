@@ -36,6 +36,7 @@ def test_generate_password_policy_record_matches_required_style():
     assert result["missing_evidence"] == []
 
 
+
 def test_generate_cli_record_uses_command_wording():
     result = RecordGenerationService().generate(
         {
@@ -51,6 +52,7 @@ def test_generate_cli_record_uses_command_wording():
     assert "通过执行 show running-config 命令" in result["record_text"]
     assert "核心交换机-A" in result["record_text"]
     assert "远程登录状态为enabled" in result["record_text"]
+
 
 
 def test_missing_key_facts_returns_missing_evidence_and_conservative_result():
@@ -69,6 +71,7 @@ def test_missing_key_facts_returns_missing_evidence_and_conservative_result():
     assert "密码复杂度要求" in result["missing_evidence"]
     assert result["compliance_result"] == "待人工确认"
     assert result["confidence"] <= 0.6
+
 
 
 def test_history_specific_values_are_not_copied_without_facts():
@@ -92,3 +95,70 @@ def test_history_specific_values_are_not_copied_without_facts():
     assert "旧日志审计" not in result["record_text"]
     assert "180" not in result["record_text"]
     assert result["record_text"].startswith("经现场核查：")
+
+
+
+def test_assessment_template_record_uses_template_skeleton_and_current_facts():
+    result = RecordGenerationService().generate(
+        {
+            "asset_name": "Windows服务器-A",
+            "asset_type": "服务器",
+            "page_type": "screenshot",
+            "matched_item": {
+                "match_source": "assessment_template",
+                "record_template": "经核查，{资产名称}开启远程登录，IP地址为10.0.0.9，版本为V2.3.4。",
+                "default_compliance": "符合",
+                "item_code": "a）",
+                "sheet_name": "Windows服务器",
+                "level3": "访问控制",
+            },
+            "extracted_facts": {
+                "remote_login_status": "disabled",
+                "asset_ip": "192.168.1.20",
+                "asset_version": "V10.0.1",
+            },
+            "similar_history_records": [
+                {
+                    "asset_name": "旧Windows服务器",
+                    "asset_ip": "10.0.0.9",
+                    "asset_version": "V2.3.4",
+                    "record_text": "经核查，旧Windows服务器开启远程登录，IP地址为10.0.0.9，版本为V2.3.4。",
+                    "compliance_result": "符合",
+                }
+            ],
+        }
+    )
+
+    assert "Windows服务器-A" in result["record_text"]
+    assert "旧Windows服务器" not in result["record_text"]
+    assert "192.168.1.20" in result["record_text"]
+    assert "10.0.0.9" not in result["record_text"]
+    assert "V10.0.1" in result["record_text"]
+    assert "V2.3.4" not in result["record_text"]
+    assert result["compliance_result"] == "符合"
+
+
+
+def test_assessment_template_record_appends_missing_evidence_notice():
+    result = RecordGenerationService().generate(
+        {
+            "asset_name": "外联防火墙A",
+            "asset_type": "安全设备",
+            "page_type": "password_policy",
+            "matched_item": {
+                "match_source": "assessment_template",
+                "record_template": "经现场核查，{资产名称}已配置密码策略。",
+                "default_compliance": "符合",
+                "level3": "身份鉴别",
+            },
+            "extracted_facts": {
+                "password_expire_days": None,
+            },
+            "similar_history_records": [],
+        }
+    )
+
+    assert "外联防火墙A" in result["record_text"]
+    assert "当前截图尚未体现密码最小长度、密码复杂度要求" in result["record_text"]
+    assert "口令未设置有效期" in result["record_text"]
+    assert result["compliance_result"] == "待人工确认"

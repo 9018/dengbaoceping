@@ -14,6 +14,8 @@ from app.repositories.history_record_repository import HistoryRecordRepository
 from app.repositories.project_repository import ProjectRepository
 from app.services.matching_service import MatchingService
 from app.services.record_generation_service import RecordGenerationService
+from app.services.template_history_link_service import TemplateHistoryLinkService
+from app.services.template_item_match_service import TemplateItemMatchService
 from app.services.template_service import TemplateService
 
 
@@ -37,6 +39,8 @@ class RecordService:
         self.matching_service = MatchingService()
         self.template_service = TemplateService()
         self.record_generation_service = RecordGenerationService()
+        self.template_history_link_service = TemplateHistoryLinkService()
+        self.template_item_match_service = TemplateItemMatchService()
 
     def generate_record(
         self,
@@ -64,16 +68,17 @@ class RecordService:
             if existing:
                 return existing
 
-        match_result = self.matching_service.match(fields, device_type_override)
-        selected_match = self.matching_service.select_candidate(match_result, selected_item_code, selected_template_code)
+        assessment_template_match = self._match_assessment_template_item(db, evidence, fields)
+        if assessment_template_match:
+            match_result = assessment_template_match["match_result"]
+            selected_match = assessment_template_match["selected_match"]
+        else:
+            match_result = self.matching_service.match(db, project_id, fields, device_type_override)
+            selected_match = self.matching_service.select_candidate(match_result, selected_item_code, selected_template_code)
         if not selected_match:
             raise BadRequestException("EVALUATION_ITEM_NOT_MATCHED", "未找到可匹配的测评条目")
 
-        rendered = self.template_service.render(
-            selected_match["template_code"],
-            match_result["field_map"],
-            selected_match["missing_fields"],
-        )
+        rendered = self._render_record_template(match_result, selected_match)
         generation_input = self._build_generation_input(db, evidence, match_result, selected_match)
         generated = self.record_generation_service.generate(generation_input)
         needs_review = bool(selected_match["missing_fields"] or generated["missing_evidence"])
@@ -98,13 +103,16 @@ class RecordService:
                 db.delete(existing)
                 db.flush()
 
+        template_snapshot = selected_match.get("template_snapshot") if isinstance(selected_match.get("template_snapshot"), dict) else None
         record = EvaluationRecord(
             project_id=project_id,
+            template_id=selected_match.get("template_id"),
+            evaluation_item_id=selected_match.get("evaluation_item_id"),
             asset_id=evidence.asset_id,
             title=rendered["title"],
-            template_code=selected_match["template_code"],
-            item_code=selected_match["item_code"],
-            matched_fields_json=selected_match["matched_fields"],
+            template_code=selected_match.get("template_code"),
+            item_code=selected_match.get("item_code"),
+            matched_fields_json=selected_match.get("matched_fields") or [],
             match_candidates_json=self._serialize_candidates(match_result.get("top_candidates") or []),
             match_reasons_json={
                 **selected_match["reasons"],
@@ -112,6 +120,7 @@ class RecordService:
                 "best_match_item_code": match_result.get("best_match", {}).get("item_code") if match_result.get("best_match") else None,
                 "selection_mode": self._resolve_selection_mode(selected_item_code, selected_template_code),
                 "device_type": match_result.get("device_type"),
+                "match_source": match_result.get("match_source"),
                 "record_generation": {
                     "compliance_result": generated["compliance_result"],
                     "confidence": generated["confidence"],
@@ -119,22 +128,27 @@ class RecordService:
                     "missing_evidence": generated["missing_evidence"],
                     "page_type": generation_input.get("page_type"),
                     "history_record_ids": [item.get("id") for item in generation_input.get("similar_history_records", []) if item.get("id")],
+                    "template_snapshot": template_snapshot,
                 },
             },
             match_score=selected_match["score"],
             review_comment=review_comment,
+            record_no=selected_match.get("record_no") or selected_match.get("item_no"),
+            sheet_name=selected_match.get("sheet_name"),
             indicator_l2=selected_match.get("level2"),
             indicator_l3=selected_match.get("level3"),
             record_text=generated["record_text"],
             final_content=generated["record_text"],
             conclusion=generated["compliance_result"],
+            template_snapshot_json=template_snapshot,
             status=status,
             source_type="generated",
+            source_row_no=selected_match.get("source_row_no"),
         )
         self.record_repository.create(db, record)
         self.record_repository.add_evidence_link(db, record.id, evidence_id, relation_type="source")
         self.field_repository.clear_record_by_evidence(db, evidence_id)
-        self.field_repository.attach_record(db, record.id, selected_match["matched_field_ids"])
+        self.field_repository.attach_record(db, record.id, selected_match.get("matched_field_ids") or [])
         db.commit()
         db.refresh(record)
         return record
@@ -232,13 +246,41 @@ class RecordService:
             ),
         )
 
+    def _render_record_template(self, match_result: dict, selected_match: dict) -> dict:
+        if match_result.get("match_source") == "assessment_template":
+            title = self._coalesce(selected_match.get("level3"), selected_match.get("control_point"), selected_match.get("item_no"), "全局模板测评记录")
+            review_comment = "已按测评记录模板库生成。"
+            return {"title": title, "review_comment": review_comment}
+        if match_result.get("match_source") == "project_template":
+            title = self._coalesce(selected_match.get("level3"), selected_match.get("control_point"), selected_match.get("item_no"), "项目模板测评记录")
+            review_comment = "已按项目结果记录参考模板生成。"
+            return {"title": title, "review_comment": review_comment}
+        return self.template_service.render(
+            selected_match["template_code"],
+            match_result["field_map"],
+            selected_match["missing_fields"],
+        )
+
     def _build_generation_input(self, db: Session, evidence, match_result: dict, selected_match: dict) -> dict:
         field_map = match_result.get("field_map") or {}
         matched_item = {
             "item_code": selected_match.get("item_code"),
+            "item_no": selected_match.get("item_no"),
             "template_code": selected_match.get("template_code"),
+            "template_id": selected_match.get("template_id"),
+            "evaluation_item_id": selected_match.get("evaluation_item_id"),
+            "match_source": selected_match.get("match_source") or match_result.get("match_source"),
+            "sheet_name": selected_match.get("sheet_name"),
+            "record_no": selected_match.get("record_no"),
+            "source_row_no": selected_match.get("source_row_no"),
             "level2": selected_match.get("level2"),
             "level3": selected_match.get("level3"),
+            "control_point": selected_match.get("control_point"),
+            "extension_standard": selected_match.get("extension_standard"),
+            "record_template": selected_match.get("record_template"),
+            "default_compliance": selected_match.get("default_compliance"),
+            "score_weight": selected_match.get("score_weight"),
+            "template_snapshot": selected_match.get("template_snapshot"),
             "missing_fields": selected_match.get("missing_fields") or [],
             "reasons": selected_match.get("reasons") or {},
         }
@@ -256,13 +298,14 @@ class RecordService:
         facts["page_type"] = self._resolve_page_type(evidence, facts)
         if facts["page_type"] in {"web", "password_policy", "access_control_policy", "login_failure_lock"} and not facts.get("page_name"):
             facts["page_name"] = self._resolve_page_name(facts["page_type"])
+        similar_history_records = self._resolve_history_records(db, evidence, matched_item)
         return {
             "asset_name": self._resolve_asset_name(evidence, field_map),
             "asset_type": self._resolve_asset_type(evidence, match_result),
             "page_type": facts["page_type"],
             "matched_item": matched_item,
             "extracted_facts": facts,
-            "similar_history_records": self._resolve_history_records(db, evidence),
+            "similar_history_records": similar_history_records,
         }
 
     def _resolve_asset_name(self, evidence, field_map: dict) -> str:
@@ -306,19 +349,26 @@ class RecordService:
             "login_failure_lock": "管理员账号-登录失败锁定策略",
         }.get(page_type)
 
-    def _resolve_history_records(self, db: Session, evidence) -> list[dict]:
+    def _resolve_history_records(self, db: Session, evidence, matched_item: dict | None = None) -> list[dict]:
+        matched_item = matched_item or {}
+        records = self._resolve_template_history_records(db, matched_item)
+        if records:
+            return records
+
         reasons = evidence.guidance_match_reasons_json if isinstance(evidence.guidance_match_reasons_json, dict) else {}
-        records = []
+        fallback_records = []
         for item in reasons.get("top_history") or []:
             history_id = item.get("history_record_id")
             history = self.history_repository.get(db, history_id) if history_id else None
             if not history:
                 continue
-            records.append(
+            fallback_records.append(
                 {
                     "id": history.id,
                     "asset_name": history.asset_name,
                     "asset_type": history.asset_type,
+                    "asset_ip": history.asset_ip,
+                    "asset_version": history.asset_version,
                     "record_text": history.record_text,
                     "raw_text": history.raw_text,
                     "compliance_result": history.compliance_result,
@@ -329,15 +379,171 @@ class RecordService:
                     "match_score": item.get("match_score"),
                 }
             )
-        return records
+        return fallback_records
+
+    def _resolve_template_history_records(self, db: Session, matched_item: dict) -> list[dict]:
+        template_item_id = matched_item.get("assessment_template_item_id")
+        if matched_item.get("match_source") != "assessment_template" or not template_item_id:
+            return []
+        rows = self.template_history_link_service.list_history_links(db, template_item_id)
+        if not rows:
+            try:
+                self.template_history_link_service.link_history(db, template_item_id)
+            except BadRequestException:
+                return []
+            rows = self.template_history_link_service.list_history_links(db, template_item_id)
+        return [
+            {
+                "id": row["history_record_id"],
+                "asset_name": row["asset_name"],
+                "asset_type": row["asset_type"],
+                "asset_ip": row.get("asset_ip"),
+                "asset_version": row.get("asset_version"),
+                "record_text": row["record_text"],
+                "raw_text": row["raw_text"],
+                "compliance_result": row["compliance_result"],
+                "compliance_status": row["compliance_status"],
+                "control_point": row["control_point"],
+                "item_text": row["item_text"],
+                "evaluation_item": row["evaluation_item"],
+                "match_score": row["match_score"],
+            }
+            for row in rows
+        ]
+
+    def _match_assessment_template_item(self, db: Session, evidence, fields: list) -> dict | None:
+        asset_reasons = evidence.asset_match_reasons_json if isinstance(evidence.asset_match_reasons_json, dict) else {}
+        asset_type = (
+            getattr(getattr(evidence, "matched_asset", None), "category", None)
+            or asset_reasons.get("confirmed_asset_type")
+            or asset_reasons.get("suggested_asset_type")
+        )
+        result = self.template_item_match_service.match(
+            db,
+            evidence.id,
+            asset_type=asset_type,
+            extracted_fields=fields,
+            evidence_facts=fields,
+        )
+        best = result.get("matched_template_item")
+        if not best:
+            return None
+
+        field_map = self._build_field_map(fields)
+        matched_fields = self._build_matched_fields(fields)
+        matched_field_ids = [field.id for field in fields]
+        best_match = self._build_assessment_template_selected_match(best, result.get("reason") or [], matched_fields, matched_field_ids)
+        top_candidates = [
+            self._build_assessment_template_selected_match(candidate, result.get("reason") or [], matched_fields, matched_field_ids)
+            for candidate in result.get("candidates") or []
+        ]
+        return {
+            "match_result": {
+                "match_source": "assessment_template",
+                "device_type": asset_type,
+                "field_map": field_map,
+                "candidates": top_candidates,
+                "top_candidates": top_candidates,
+                "best_match": best_match,
+            },
+            "selected_match": best_match,
+        }
+
+    def _build_assessment_template_selected_match(
+        self,
+        candidate: dict,
+        reason_summary: list[str],
+        matched_fields: list[dict],
+        matched_field_ids: list[str],
+    ) -> dict:
+        template_snapshot = {
+            "template_id": candidate.get("id"),
+            "template_name": candidate.get("sheet_name"),
+            "template_type": "assessment_template",
+            "sheet_name": candidate.get("sheet_name"),
+            "row_no": candidate.get("row_index"),
+            "item_no": candidate.get("item_code"),
+            "control_point": candidate.get("control_point"),
+            "evaluation_item": candidate.get("item_text"),
+            "record_template": candidate.get("record_template"),
+            "default_compliance": candidate.get("default_compliance_result"),
+        }
+        reasons = {
+            "summary": list(dict.fromkeys([*(reason_summary or []), *(candidate.get("reasons") or [])]))[:8],
+            "match_source": "assessment_template",
+            "level2": candidate.get("control_point"),
+            "level3": candidate.get("item_text"),
+            "page_types": candidate.get("page_types_json") or [],
+            "matched_keywords": candidate.get("matched_keywords") or [],
+            "template_sheet_name": candidate.get("sheet_name"),
+            "template_row_no": candidate.get("row_index"),
+            "template_item_no": candidate.get("item_code"),
+            "template_record_template": candidate.get("record_template"),
+            "template_default_compliance": candidate.get("default_compliance_result"),
+            "pass_score": 0.45,
+        }
+        return {
+            "assessment_template_item_id": candidate.get("id"),
+            "match_source": "assessment_template",
+            "item_code": candidate.get("item_code") or candidate.get("id"),
+            "item_no": candidate.get("item_code"),
+            "template_code": candidate.get("sheet_name"),
+            "template_id": None,
+            "evaluation_item_id": None,
+            "level2": candidate.get("control_point"),
+            "level3": candidate.get("item_text"),
+            "sheet_name": candidate.get("sheet_name"),
+            "record_no": candidate.get("item_code"),
+            "source_row_no": candidate.get("row_index"),
+            "control_point": candidate.get("control_point"),
+            "record_template": candidate.get("record_template"),
+            "default_compliance": candidate.get("default_compliance_result"),
+            "score": candidate.get("score") or 0.0,
+            "pass_score": 0.45,
+            "reasons": reasons,
+            "matched_fields": matched_fields,
+            "matched_field_ids": matched_field_ids,
+            "missing_fields": [],
+            "template_snapshot": template_snapshot,
+        }
+
+    def _build_field_map(self, fields: list) -> dict[str, str | None]:
+        field_map: dict[str, str | None] = {}
+        for field in fields:
+            key = field.rule_id or field.field_name
+            field_map[key] = field.corrected_value or field.raw_value
+        return field_map
+
+    def _build_matched_fields(self, fields: list) -> list[dict]:
+        snapshots: list[dict] = []
+        for field in fields:
+            value = field.corrected_value or field.raw_value
+            if not value:
+                continue
+            snapshots.append(
+                {
+                    "field_code": field.rule_id or field.field_name,
+                    "field_name": field.field_name,
+                    "value": value,
+                    "status": field.status,
+                }
+            )
+        return snapshots
 
     def _serialize_candidates(self, candidates: list[dict]) -> list[dict]:
         serialized = []
         for candidate in candidates:
             serialized.append(
                 {
+                    "match_source": candidate.get("match_source"),
                     "item_code": candidate.get("item_code"),
+                    "item_no": candidate.get("item_no"),
                     "template_code": candidate.get("template_code"),
+                    "template_id": candidate.get("template_id"),
+                    "evaluation_item_id": candidate.get("evaluation_item_id"),
+                    "sheet_name": candidate.get("sheet_name"),
+                    "record_no": candidate.get("record_no"),
+                    "source_row_no": candidate.get("source_row_no"),
                     "score": candidate.get("score"),
                     "pass_score": candidate.get("pass_score"),
                     "missing_fields": candidate.get("missing_fields"),
@@ -353,3 +559,12 @@ class RecordService:
         if selected_template_code:
             return "manual_template"
         return "best_match"
+
+    def _coalesce(self, *values):
+        for value in values:
+            if value is None:
+                continue
+            if isinstance(value, str) and not value.strip():
+                continue
+            return value
+        return None

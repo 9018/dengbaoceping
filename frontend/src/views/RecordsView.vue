@@ -1,12 +1,12 @@
 <template>
-  <AppShell :project-id="projectId" title="测评记录页" subtitle="按设备和状态聚焦记录复核，查看候选匹配、原因和缺失字段，再推进审批闭环。">
+  <AppShell :project-id="projectId" title="测评记录页" subtitle="以项目结果记录参考模板为主驱动，围绕模板候选、缺失证据、人工确认和导出闭环推进记录复核。">
     <div class="page-stack">
       <section class="page-section">
         <div class="page-header">
           <div class="page-header__content">
-            <div class="section-kicker">Record Review</div>
-            <div class="section-title">测评记录审批工作区</div>
-            <div class="section-subtitle">在同一工作区查看最佳匹配、Top 3 候选项、匹配原因与缺失字段，并支持人工改选候选项重生成。</div>
+            <div class="section-kicker">Template Driven Records</div>
+            <div class="section-title">项目模板驱动的测评记录工作区</div>
+            <div class="section-subtitle">优先展示模板 Sheet / 编号 / A-G 基线；指导书与历史记录退为辅助判断依据和写法参考。</div>
           </div>
           <el-space wrap>
             <el-button @click="loadData">刷新</el-button>
@@ -17,16 +17,39 @@
         <StatsCards :items="summaryCards" />
       </section>
 
+      <section class="page-grid-3">
+        <div class="soft-panel">
+          <div class="panel-label">主模板状态</div>
+          <div class="panel-value">{{ templateSummary ? '已导入项目模板' : '未导入项目模板' }}</div>
+          <div class="panel-meta">{{ templateSummary ? `${templateSummary.item_count} 条模板行 / ${templateSummary.sheet_count} 个 Sheet` : '当前项目仍会回退到旧规则匹配链路' }}</div>
+        </div>
+        <div class="soft-panel">
+          <div class="panel-label">模板来源文件</div>
+          <div class="panel-value panel-value--path">{{ templateSummary?.source_file || '未上传 reference.xlsx' }}</div>
+          <div class="panel-meta">{{ templateSummary?.sheet_names?.join('、') || '请先导入结果记录参考模板' }}</div>
+        </div>
+        <div class="soft-panel">
+          <div class="panel-label">当前工作重点</div>
+          <div class="panel-value">模板候选 → 人工确认 → 导出</div>
+          <div class="panel-meta">D/E 作为正文与符合情况基线，F/G 保留模板原值。</div>
+        </div>
+      </section>
+
       <el-card>
         <template #header>
           <div class="section-header">
             <div class="section-title">记录生成与筛选</div>
-            <div class="section-subtitle">把设备筛选、状态筛选、候选项解释和审批动作收敛到同一主表格。</div>
+            <div class="section-subtitle">在同一主表格里查看模板来源、Top 候选、缺失证据、最终正文和审批动作。</div>
           </div>
         </template>
 
         <div class="page-filter-bar">
           <el-form inline>
+            <el-form-item label="模板 Sheet">
+              <el-select v-model="sheetFilter" clearable placeholder="全部 Sheet" style="width: 220px">
+                <el-option v-for="sheet in sheetOptions" :key="sheet" :label="sheet" :value="sheet" />
+              </el-select>
+            </el-form-item>
             <el-form-item label="设备筛选">
               <el-select v-model="deviceFilter" clearable placeholder="全部设备" style="width: 220px">
                 <el-option v-for="device in deviceOptions" :key="device" :label="device" :value="device" />
@@ -38,14 +61,29 @@
               </el-select>
             </el-form-item>
             <el-form-item label="关键词">
-              <el-input v-model="keywordFilter" clearable placeholder="搜索标题/模板/测评项" style="width: 260px" />
+              <el-input v-model="keywordFilter" clearable placeholder="搜索标题/模板编号/测评项/控制点" style="width: 280px" />
             </el-form-item>
           </el-form>
         </div>
 
         <el-table :data="filteredRecords" border>
-          <el-table-column prop="title" label="记录标题" min-width="200" />
+          <el-table-column label="模板定位" min-width="240">
+            <template #default="scope">
+              <div class="cell-stack">
+                <strong>{{ scope.row.sheet_name || '未绑定模板 Sheet' }}</strong>
+                <span class="muted-text">编号 {{ scope.row.record_no || scope.row.item_code || '-' }} · 行 {{ scope.row.source_row_no || '-' }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="title" label="测评项" min-width="220" />
           <el-table-column prop="device_name" label="设备" min-width="160" />
+          <el-table-column label="匹配来源" width="120">
+            <template #default="scope">
+              <el-tag :type="scope.row.match_source === 'project_template' ? 'success' : 'info'" effect="plain">
+                {{ scope.row.match_source === 'project_template' ? '项目模板' : '旧规则' }}
+              </el-tag>
+            </template>
+          </el-table-column>
           <el-table-column label="状态" width="140">
             <template #default="scope">
               <AppStatusTag kind="record" :status="scope.row.status" />
@@ -53,30 +91,35 @@
           </el-table-column>
           <el-table-column prop="match_score" label="匹配得分" width="120" />
           <el-table-column prop="template_code" label="模板编码" width="170" />
-          <el-table-column prop="item_code" label="测评项编码" width="190" />
-          <el-table-column label="Top 3 候选" min-width="280">
+          <el-table-column prop="item_code" label="测评项编码" width="170" />
+          <el-table-column label="模板 A-G 摘要" min-width="280" show-overflow-tooltip>
+            <template #default="scope">
+              {{ getTemplateSummary(scope.row) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="Top 候选" min-width="280">
             <template #default="scope">
               <el-space wrap>
-                <el-tag v-for="candidate in getTopCandidates(scope.row)" :key="`${candidate.item_code}-${candidate.template_code}`" size="small">
-                  {{ candidate.item_code }} / {{ candidate.score }}
+                <el-tag v-for="candidate in getTopCandidates(scope.row)" :key="`${candidate.item_code}-${candidate.template_code}-${candidate.sheet_name || 'sheet'}`" size="small">
+                  {{ formatCandidateLabel(candidate) }}
                 </el-tag>
               </el-space>
             </template>
           </el-table-column>
-          <el-table-column label="缺失字段" min-width="220">
+          <el-table-column label="缺失证据" min-width="240">
             <template #default="scope">
               <el-space wrap>
-                <el-tag v-for="field in getMissingFields(scope.row)" :key="field" type="danger" size="small">{{ field }}</el-tag>
-                <span v-if="!getMissingFields(scope.row).length">-</span>
+                <el-tag v-for="field in getMissingEvidence(scope.row)" :key="field" type="danger" size="small">{{ field }}</el-tag>
+                <span v-if="!getMissingEvidence(scope.row).length">-</span>
               </el-space>
             </template>
           </el-table-column>
-          <el-table-column label="匹配原因" min-width="280" show-overflow-tooltip>
+          <el-table-column label="辅助依据" min-width="260" show-overflow-tooltip>
             <template #default="scope">
-              {{ getReasonSummary(scope.row) }}
+              {{ getSupportSummary(scope.row) }}
             </template>
           </el-table-column>
-          <el-table-column prop="final_content" label="最终正文" min-width="280" show-overflow-tooltip />
+          <el-table-column prop="final_content" label="最终正文" min-width="320" show-overflow-tooltip />
           <el-table-column label="操作" min-width="420" fixed="right">
             <template #default="scope">
               <el-space wrap>
@@ -148,13 +191,15 @@ import RecordEditDrawer from '@/components/RecordEditDrawer.vue'
 import StatsCards, { type StatsCardItem } from '@/components/StatsCards.vue'
 import { listAssets } from '@/api/assets'
 import { listEvidences } from '@/api/evidences'
+import { getProjectReferenceTemplate } from '@/api/projects'
 import { generateRecord, listRecordAuditLogs, listRecords, reviewRecord, updateRecord } from '@/api/records'
 import { recordStatusOptions } from '@/utils/constants'
 import { getStatusLabel } from '@/utils/status'
-import type { Asset, AuditLog, EvaluationRecord, Evidence, MatchCandidate, MatchReasons } from '@/types/domain'
+import type { Asset, AuditLog, EvaluationRecord, Evidence, MatchCandidate, MatchReasons, ProjectTemplateSummary, RecordTemplateSnapshot } from '@/types/domain'
 
 interface RecordViewItem extends EvaluationRecord {
   device_name: string
+  match_source: string | null
 }
 
 const props = defineProps<{ projectId: string }>()
@@ -171,7 +216,9 @@ const deviceTypeOverride = ref('')
 const selectedItemCode = ref('')
 const statusFilter = ref('')
 const deviceFilter = ref('')
+const sheetFilter = ref('')
 const keywordFilter = ref('')
+const templateSummary = ref<ProjectTemplateSummary | null>(null)
 
 const recordRows = computed<RecordViewItem[]>(() => {
   const evidenceMap = new Map(evidences.value.map((item) => [item.id, item]))
@@ -179,45 +226,52 @@ const recordRows = computed<RecordViewItem[]>(() => {
   return records.value.map((record) => {
     const firstEvidence = record.evidence_ids.map((id) => evidenceMap.get(id)).find(Boolean)
     const asset = record.asset_id ? assetMap.get(record.asset_id) : undefined
+    const reasons = getReasons(record)
     return {
       ...record,
       device_name: firstEvidence?.device || asset?.filename || '未绑定设备',
+      match_source: reasons.match_source || null,
     }
   })
 })
 
 const deviceOptions = computed(() => Array.from(new Set(recordRows.value.map((item) => item.device_name).filter(Boolean))))
+const sheetOptions = computed(() => Array.from(new Set(recordRows.value.map((item) => item.sheet_name).filter(Boolean))))
 
 const summaryCards = computed<StatsCardItem[]>(() => [
   { label: '记录总数', value: records.value.length, tip: '当前项目全部测评记录', tone: 'primary' },
-  { label: '待复核', value: records.value.filter((item) => ['generated', 'generated_low_confidence'].includes(item.status)).length, tip: '需要先检查匹配结果', tone: 'warning' },
-  { label: '已复核', value: records.value.filter((item) => item.status === 'reviewed').length, tip: '可继续审批', tone: 'success' },
+  { label: '模板驱动', value: records.value.filter((item) => getReasons(item).match_source === 'project_template').length, tip: '来自项目模板主链路', tone: 'success' },
+  { label: '待复核', value: records.value.filter((item) => ['generated', 'generated_low_confidence'].includes(item.status)).length, tip: '需要人工确认模板候选与证据', tone: 'warning' },
   { label: '已审批/导出', value: records.value.filter((item) => ['approved', 'exported'].includes(item.status)).length, tip: '进入导出闭环', tone: 'default' },
 ])
 
 const filteredRecords = computed(() => {
   const keyword = keywordFilter.value.trim().toLowerCase()
   return recordRows.value.filter((item) => {
+    const snapshot = getTemplateSnapshot(item)
     const matchStatus = !statusFilter.value || item.status === statusFilter.value
     const matchDevice = !deviceFilter.value || item.device_name === deviceFilter.value
+    const matchSheet = !sheetFilter.value || item.sheet_name === sheetFilter.value
     const matchKeyword =
       !keyword ||
-      [item.title, item.template_code, item.item_code]
+      [item.title, item.template_code, item.item_code, item.record_no, snapshot.control_point, snapshot.evaluation_item, item.sheet_name]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword))
-    return matchStatus && matchDevice && matchKeyword
+    return matchStatus && matchDevice && matchSheet && matchKeyword
   })
 })
 
 async function loadData() {
-  const [recordsResult, evidencesResult, assetsResult] = await Promise.all([
+  const [recordsResult, evidencesResult, assetsResult, templateResult] = await Promise.all([
     listRecords(props.projectId),
     listEvidences(props.projectId),
     listAssets(props.projectId),
+    getProjectReferenceTemplate(props.projectId).catch(() => ({ data: null })),
   ])
   records.value = recordsResult.data
   evidences.value = evidencesResult.data
   assets.value = assetsResult.data
+  templateSummary.value = templateResult.data
   if (!generateEvidenceId.value) {
     generateEvidenceId.value = evidences.value[0]?.id || ''
   }
@@ -233,18 +287,36 @@ function getReasons(record: EvaluationRecord): MatchReasons {
   return reasons && typeof reasons === 'object' ? (reasons as MatchReasons) : {}
 }
 
+function getTemplateSnapshot(record: EvaluationRecord): RecordTemplateSnapshot {
+  const snapshot = record.template_snapshot_json
+  return snapshot && typeof snapshot === 'object' ? (snapshot as RecordTemplateSnapshot) : {}
+}
+
 function getTopCandidates(record: EvaluationRecord): MatchCandidate[] {
   return Array.isArray(record.match_candidates) ? (record.match_candidates as MatchCandidate[]) : []
 }
 
-function getMissingFields(record: EvaluationRecord): string[] {
+function getMissingEvidence(record: EvaluationRecord): string[] {
   const reasons = getReasons(record)
-  return Array.isArray(reasons.missing_required_fields) ? reasons.missing_required_fields : []
+  const generation = reasons.record_generation
+  return Array.isArray(generation?.missing_evidence) ? generation?.missing_evidence || [] : []
 }
 
-function getReasonSummary(record: EvaluationRecord) {
+function getSupportSummary(record: EvaluationRecord) {
   const reasons = getReasons(record)
-  return Array.isArray(reasons.summary) && reasons.summary.length ? reasons.summary.slice(0, 3).join('；') : '—'
+  const generation = reasons.record_generation
+  const summary = Array.isArray(generation?.evidence_summary) ? generation?.evidence_summary || [] : []
+  return summary.length ? summary.slice(0, 3).join('；') : '—'
+}
+
+function getTemplateSummary(record: EvaluationRecord) {
+  const snapshot = getTemplateSnapshot(record)
+  return [snapshot.extension_standard, snapshot.control_point, snapshot.evaluation_item, snapshot.default_compliance].filter(Boolean).join(' / ') || '—'
+}
+
+function formatCandidateLabel(candidate: MatchCandidate) {
+  const position = [candidate.sheet_name, candidate.record_no || candidate.item_no || candidate.item_code].filter(Boolean).join(' / ')
+  return `${position || candidate.item_code || candidate.template_code || '未命名候选'} · ${candidate.score ?? '-'} 分`
 }
 
 function canMarkReviewed(status: string) {
@@ -320,3 +392,11 @@ function go(path: string) {
 
 onMounted(loadData)
 </script>
+
+<style scoped>
+.cell-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+</style>

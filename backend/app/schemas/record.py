@@ -64,6 +64,8 @@ class RecordReviewRequest(BaseModel):
 class RecordRead(TimestampSchema):
     id: str
     project_id: str
+    template_id: str | None = None
+    evaluation_item_id: str | None = None
     asset_id: str | None
     evidence_ids: list[str]
     title: str | None
@@ -79,6 +81,10 @@ class RecordRead(TimestampSchema):
     match_reasons: dict | list | None
     template_code: str | None
     item_code: str | None
+    record_no: str | None = None
+    sheet_name: str | None = None
+    source_row_no: int | None = None
+    template_snapshot_json: dict | list | None = None
     conclusion: str | None
 
     model_config = ConfigDict(from_attributes=True)
@@ -89,6 +95,8 @@ class RecordRead(TimestampSchema):
             payload = {
                 "id": obj.id,
                 "project_id": obj.project_id,
+                "template_id": obj.template_id,
+                "evaluation_item_id": obj.evaluation_item_id,
                 "asset_id": obj.asset_id,
                 "evidence_ids": [link.evidence_id for link in getattr(obj, "evidence_links", [])],
                 "title": obj.title,
@@ -104,6 +112,10 @@ class RecordRead(TimestampSchema):
                 "match_reasons": obj.match_reasons_json,
                 "template_code": obj.template_code,
                 "item_code": obj.item_code,
+                "record_no": obj.record_no,
+                "sheet_name": obj.sheet_name,
+                "source_row_no": obj.source_row_no,
+                "template_snapshot_json": obj.template_snapshot_json,
                 "conclusion": obj.conclusion,
                 "created_at": obj.created_at,
                 "updated_at": obj.updated_at,

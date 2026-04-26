@@ -1,5 +1,13 @@
 import apiClient, { unwrapResponse } from './http'
-import type { Evidence, EvidenceHistoryMatchResult, EvidencePageClassification, EvidenceUploadPayload, ExtractedField, OcrResult } from '@/types/domain'
+import type {
+  Evidence,
+  EvidenceHistoryMatchResult,
+  EvidencePageClassification,
+  EvidenceTemplateItemMatchResult,
+  EvidenceUploadPayload,
+  ExtractedField,
+  OcrResult,
+} from '@/types/domain'
 
 function buildEvidenceFormData(payload: EvidenceUploadPayload) {
   const formData = new FormData()
@@ -70,6 +78,10 @@ export async function confirmEvidenceGuidance(evidenceId: string, guidanceId?: s
 
 export async function matchEvidenceHistory(evidenceId: string, payload: Record<string, unknown> = {}) {
   return unwrapResponse<EvidenceHistoryMatchResult>(apiClient.post(`/evidences/${evidenceId}/match-history`, payload))
+}
+
+export async function matchEvidenceTemplateItem(evidenceId: string, payload: Record<string, unknown> = {}) {
+  return unwrapResponse<EvidenceTemplateItemMatchResult>(apiClient.post(`/evidences/${evidenceId}/match-template-item`, payload))
 }
 
 export async function classifyEvidencePage(evidenceId: string, payload: Record<string, unknown> = {}) {

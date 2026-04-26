@@ -14,9 +14,9 @@
         <el-menu :default-active="activeMenu" router class="workspace-shell__menu">
           <el-menu-item index="/dashboard">工作台 Dashboard</el-menu-item>
           <el-menu-item index="/projects">项目列表</el-menu-item>
-          <el-menu-item index="/history-records">历史记录库</el-menu-item>
-          <el-menu-item index="/guidance">指导书管理</el-menu-item>
-          <el-menu-item index="/template-rules">模板规则</el-menu-item>
+          <el-menu-item index="/assessment-templates">测评记录模板库</el-menu-item>
+          <el-menu-item index="/history-records">历史测评记录库</el-menu-item>
+          <el-menu-item index="/guidance">指导书依据库</el-menu-item>
         </el-menu>
       </div>
 
@@ -24,9 +24,9 @@
         <div class="workspace-shell__menu-title">项目工作区</div>
         <el-menu :default-active="activeMenu" router class="workspace-shell__menu workspace-shell__menu--project">
           <el-menu-item :index="`/projects/${projectId}`">项目详情</el-menu-item>
+          <el-menu-item :index="`/projects/${projectId}/evidence-wizard`">证据处理向导</el-menu-item>
           <el-menu-item :index="`/projects/${projectId}/assets`">设备资产</el-menu-item>
           <el-menu-item :index="`/projects/${projectId}/evidences`">证据中心</el-menu-item>
-          <el-menu-item :index="`/projects/${projectId}/review`">识别复核</el-menu-item>
           <el-menu-item :index="`/projects/${projectId}/records`">测评记录</el-menu-item>
           <el-menu-item :index="`/projects/${projectId}/exports`">导出中心</el-menu-item>
         </el-menu>
@@ -106,11 +106,12 @@ const activeMenu = computed(() => {
   const candidates = [
     '/dashboard',
     '/projects',
+    '/assessment-templates',
     '/history-records',
     '/guidance',
     projectId.value ? `/projects/${projectId.value}/exports` : '',
     projectId.value ? `/projects/${projectId.value}/records` : '',
-    projectId.value ? `/projects/${projectId.value}/review` : '',
+    projectId.value ? `/projects/${projectId.value}/evidence-wizard` : '',
     projectId.value ? `/projects/${projectId.value}/evidences` : '',
     projectId.value ? `/projects/${projectId.value}/assets` : '',
     projectId.value ? `/projects/${projectId.value}` : '',

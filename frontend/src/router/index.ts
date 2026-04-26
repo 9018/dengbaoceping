@@ -33,6 +33,15 @@ const router = createRouter({
       props: true,
     },
     {
+      path: '/projects/:projectId/evidence-wizard',
+      name: 'evidence-wizard',
+      component: () => import('@/views/EvidenceWizardView.vue'),
+      props: (route) => ({
+        projectId: route.params.projectId,
+        evidenceId: route.query.evidenceId as string | undefined,
+      }),
+    },
+    {
       path: '/projects/:projectId/review',
       name: 'review',
       component: () => import('@/views/ReviewView.vue'),
@@ -54,14 +63,14 @@ const router = createRouter({
       props: true,
     },
     {
-      path: '/template-rules',
-      name: 'template-rules',
-      component: () => import('@/views/TemplateRulesView.vue'),
-    },
-    {
       path: '/history-records',
       name: 'history-records',
       component: () => import('@/views/HistoryRecordsView.vue'),
+    },
+    {
+      path: '/assessment-templates',
+      name: 'assessment-templates',
+      component: () => import('@/views/AssessmentTemplateView.vue'),
     },
     {
       path: '/guidance',

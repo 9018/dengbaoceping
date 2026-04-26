@@ -202,6 +202,31 @@ export interface EvidenceHistoryMatchResult {
   page_confidence: number
 }
 
+export interface EvidenceTemplateItemCandidate {
+  id: string
+  sheet_name: string
+  row_index: number
+  item_code: string | null
+  object_type: string | null
+  object_category: string | null
+  control_point: string | null
+  item_text: string | null
+  record_template: string | null
+  default_compliance_result: string | null
+  page_types_json: string[]
+  score: number
+  reasons: string[]
+  matched_keywords: string[]
+}
+
+export interface EvidenceTemplateItemMatchResult {
+  matched_template_item: EvidenceTemplateItemCandidate | null
+  candidates: EvidenceTemplateItemCandidate[]
+  score: number
+  confidence: number
+  reason: string[]
+}
+
 export interface EvidenceUploadPayload {
   file: File
   title?: string
@@ -272,6 +297,31 @@ export interface MatchFieldSnapshot {
   status: string | null
 }
 
+export interface RecordTemplateSnapshot {
+  template_id?: string | null
+  template_name?: string | null
+  template_type?: string | null
+  sheet_name?: string | null
+  row_no?: number | null
+  item_no?: string | null
+  extension_standard?: string | null
+  control_point?: string | null
+  evaluation_item?: string | null
+  record_template?: string | null
+  default_compliance?: string | null
+  score_weight?: number | null
+}
+
+export interface RecordGenerationDetails {
+  compliance_result?: string | null
+  confidence?: number | null
+  evidence_summary?: string[]
+  missing_evidence?: string[]
+  page_type?: string | null
+  history_record_ids?: string[]
+  template_snapshot?: RecordTemplateSnapshot | null
+}
+
 export interface MatchReasons {
   summary?: string[]
   matched_required_fields?: string[]
@@ -293,14 +343,23 @@ export interface MatchReasons {
   domain?: string | null
   level2?: string | null
   level3?: string | null
+  match_source?: string | null
   selected?: MatchReasons
   best_match_item_code?: string | null
   selection_mode?: string
+  record_generation?: RecordGenerationDetails
 }
 
 export interface MatchCandidate {
+  match_source?: string | null
   item_code: string | null
+  item_no?: string | null
   template_code: string | null
+  template_id?: string | null
+  evaluation_item_id?: string | null
+  sheet_name?: string | null
+  record_no?: string | null
+  source_row_no?: number | null
   score: number | null
   pass_score: number | null
   missing_fields: string[]
@@ -311,6 +370,8 @@ export interface MatchCandidate {
 export interface EvaluationRecord extends Timestamped {
   id: string
   project_id: string
+  template_id?: string | null
+  evaluation_item_id?: string | null
   asset_id: string | null
   evidence_ids: string[]
   title: string | null
@@ -326,6 +387,10 @@ export interface EvaluationRecord extends Timestamped {
   match_reasons: MatchReasons | Record<string, unknown> | null
   template_code: string | null
   item_code: string | null
+  record_no?: string | null
+  sheet_name?: string | null
+  source_row_no?: number | null
+  template_snapshot_json?: RecordTemplateSnapshot | Record<string, unknown> | null
   conclusion: string | null
 }
 
@@ -461,6 +526,50 @@ export interface GuidanceHistoryLinkResult {
   top_score: number | null
 }
 
+export interface TemplateGuidebookLinkResult {
+  template_item_id: string
+  linked_count: number
+  updated_count: number
+  top_score: number | null
+}
+
+export interface TemplateHistoryLinkResult {
+  template_item_id: string
+  linked_count: number
+  updated_count: number
+  top_score: number | null
+}
+
+export interface TemplateHistoryLink {
+  template_item_id: string
+  history_record_id: string
+  match_score: number
+  match_reason: {
+    summary: string[]
+    template_item_id?: string
+    history_record_id?: string
+    template_object_type?: string | null
+    template_object_category?: string | null
+    history_asset_type?: string | null
+    control_point_hits?: string[]
+    item_text_hits?: string[]
+    record_similarity?: number | null
+    template_compliance_result?: string | null
+    history_compliance_result?: string | null
+  }
+  history_record: HistoryRecord
+  sheet_name: string
+  asset_name: string
+  asset_type: string | null
+  control_point: string | null
+  item_text: string | null
+  evaluation_item: string | null
+  record_text: string | null
+  raw_text: string | null
+  compliance_result: string | null
+  compliance_status: string | null
+}
+
 export interface GuidanceItem extends Timestamped {
   id: string
   guidance_code: string
@@ -475,6 +584,31 @@ export interface GuidanceItem extends Timestamped {
   keywords_json: string[]
   check_points_json: string[]
   evidence_requirements_json: string[]
+  record_suggestion: string | null
+}
+
+export interface TemplateGuidebookLink {
+  template_item_id: string
+  guidance_item_id: string
+  match_score: number
+  match_reason: {
+    summary: string[]
+    template_item_id?: string
+    guidance_item_id?: string
+    template_object_type?: string | null
+    template_object_category?: string | null
+    guidance_asset_type?: string | null
+    control_point_hits?: string[]
+    item_text_hits?: string[]
+    evidence_hits?: string[]
+    item_no_match?: string | null
+  }
+  guidance_item: GuidanceItem
+  section_title: string
+  section_path: string
+  guidance_code: string
+  check_points: string[]
+  evidence_requirements: string[]
   record_suggestion: string | null
 }
 
@@ -540,42 +674,92 @@ export interface ProjectSummary {
   pendingReviewCount: number
 }
 
+export interface ProjectTemplateSummary extends Timestamped {
+  template_id: string
+  project_id: string
+  name: string
+  template_type: string
+  version: string | null
+  source_asset_id: string | null
+  source_file: string | null
+  sheet_count: number
+  sheet_names: string[]
+  item_count: number
+  is_active: boolean
+}
+
+export interface AssessmentTemplateImportResult {
+  workbook_id: string
+  source_file: string
+  name: string
+  version: string | null
+  sheet_count: number
+  sheet_names: string[]
+  item_count: number
+  imported_count: number
+  skipped_count: number
+}
+
+export interface AssessmentTemplateWorkbook extends Timestamped {
+  id: string
+  source_file: string
+  name: string
+  version: string | null
+  sheet_count: number
+  item_count: number
+}
+
+export interface AssessmentTemplateWorkbookDetail extends AssessmentTemplateWorkbook {
+  object_type_counts: Record<string, number>
+  object_category_counts: Record<string, number>
+  control_point_counts: Record<string, number>
+}
+
+export interface AssessmentTemplateSheet extends Timestamped {
+  id: string
+  workbook_id: string
+  sheet_name: string
+  object_type: string | null
+  object_category: string | null
+  object_subtype: string | null
+  is_physical: boolean
+  is_network: boolean
+  is_security_device: boolean
+  is_server: boolean
+  is_database: boolean
+  is_middleware: boolean
+  is_application: boolean
+  is_data_object: boolean
+  is_management: boolean
+  row_count: number
+}
+
+export interface AssessmentTemplateItem extends Timestamped {
+  id: string
+  workbook_id: string
+  sheet_id: string
+  sheet_name: string
+  row_index: number
+  standard_type: string | null
+  control_point: string | null
+  item_text: string | null
+  record_template: string | null
+  default_compliance_result: string | null
+  weight: number | null
+  item_code: string | null
+  object_type: string | null
+  object_category: string | null
+  page_types_json: string[] | Record<string, unknown> | null
+  required_facts_json: string[] | Record<string, unknown> | null
+  evidence_keywords_json: string[] | Record<string, unknown> | null
+  command_keywords_json: string[] | Record<string, unknown> | null
+  applicability_json: string[] | Record<string, unknown> | null
+  raw_row_json: Record<string, unknown> | unknown[] | null
+}
+
 export interface TemplateGenerationDefinition {
   title_template: string
   record_template: string
   fallbacks: Record<string, string>
   default_review_comment: string
-}
-
-export interface TemplateDefinition {
-  template_code: string
-  name: string
-  template_type: string
-  extension_type: string
-  domain: string
-  description: string
-  field_codes: string[]
-  generation: TemplateGenerationDefinition
-}
-
-export interface FieldRuleDefinition {
-  field_code: string
-  field_group: string
-  field_name: string
-  value_type: string
-  aliases: string[]
-  regex: string[]
-  required: boolean
-  status_when_missing: string
-}
-
-export interface EvaluationItemDefinition {
-  item_code: string
-  template_code: string
-  domain: string
-  level2: string
-  level3: string
-  required_fields: string[]
-  device_types: string[]
-  pass_score: number
 }

@@ -132,12 +132,15 @@ const workflowActive = computed(() => {
 const workflowStepLabel = computed(() => workflowSteps[Math.min(workflowActive.value, workflowSteps.length - 1)] || '项目建档')
 
 const quickEntries = computed(() => [
+  {
+    title: '证据处理向导',
+    description: '按步骤完成截图预览、OCR、测评项匹配、历史记录参考和结果记录生成。',
+    to: `/projects/${props.projectId}/evidence-wizard`,
+  },
   { title: '设备资产页', description: '维护项目内设备资产、来源和入库状态。', to: `/projects/${props.projectId}/assets` },
-  { title: '证据中心页', description: '上传证据并执行 OCR、字段抽取。', to: `/projects/${props.projectId}/evidences` },
-  { title: '识别复核页', description: '三栏联动复核 OCR 文本和字段修正结果。', to: `/projects/${props.projectId}/review` },
+  { title: '证据中心页', description: '上传证据并执行 OCR，作为进入向导前的准备入口。', to: `/projects/${props.projectId}/evidences` },
   { title: '测评记录页', description: '编辑 final_content，完成复核审批。', to: `/projects/${props.projectId}/records` },
   { title: '导出中心页', description: '查看导出门槛、创建导出任务并下载结果。', to: `/projects/${props.projectId}/exports` },
-  { title: '模板规则页', description: '查阅字段规则、测评项和模板内容。', to: '/template-rules' },
 ])
 
 async function loadData() {

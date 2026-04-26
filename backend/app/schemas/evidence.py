@@ -135,6 +135,14 @@ class EvidenceHistoryMatchRequest(BaseModel):
     extracted_fields: dict | list | None = None
 
 
+class EvidenceTemplateItemMatchRequest(BaseModel):
+    ocr_text: str | None = None
+    page_type: str | None = None
+    asset_type: str | None = None
+    extracted_fields: dict | list | None = None
+    evidence_facts: dict | list | None = None
+
+
 class EvidenceHistoryMatchedRecordRead(BaseModel):
     id: str
     sheet_name: str
@@ -161,6 +169,31 @@ class EvidenceHistoryMatchRead(BaseModel):
     reason: str
     page_type: str | None
     page_confidence: float
+
+
+class EvidenceTemplateItemCandidateRead(BaseModel):
+    id: str
+    sheet_name: str
+    row_index: int
+    item_code: str | None
+    object_type: str | None
+    object_category: str | None
+    control_point: str | None
+    item_text: str | None
+    record_template: str | None
+    default_compliance_result: str | None
+    page_types_json: list[str]
+    score: float
+    reasons: list[str]
+    matched_keywords: list[str]
+
+
+class EvidenceTemplateItemMatchRead(BaseModel):
+    matched_template_item: EvidenceTemplateItemCandidateRead | None
+    candidates: list[EvidenceTemplateItemCandidateRead]
+    score: float
+    confidence: float
+    reason: list[str]
 
 
 class EvidenceRead(EvidenceBase, TimestampSchema):
