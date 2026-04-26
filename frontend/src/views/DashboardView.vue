@@ -107,7 +107,7 @@
             <template #default="scope">
               <el-space wrap>
                 <el-button size="small" type="primary" @click="go(`/projects/${scope.row.id}`)">项目详情</el-button>
-                <el-button size="small" @click="go(`/projects/${scope.row.id}/evidence-wizard`)">证据处理向导</el-button>
+                <el-button size="small" @click="go(`/projects/${scope.row.id}/assessment-wizard`)">项目测评向导</el-button>
                 <el-button size="small" @click="go(`/projects/${scope.row.id}/records`)">测评记录</el-button>
               </el-space>
             </template>

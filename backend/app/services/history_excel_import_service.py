@@ -178,9 +178,23 @@ class HistoryExcelImportService:
                 if cell in aliases:
                     header_map[field_name] = cell_index
                     break
-        if len({field for field in self.REQUIRED_HEADERS if field in header_map}) == len(self.REQUIRED_HEADERS):
-            return header_map
-        return self._build_fallback_header_map(normalized_cells, header_map)
+        if len({field for field in self.REQUIRED_HEADERS if field in header_map}) != len(self.REQUIRED_HEADERS):
+            return self._build_fallback_header_map(normalized_cells, header_map)
+        return self._extend_header_map_with_fallback(normalized_cells, header_map)
+
+    def _extend_header_map_with_fallback(self, normalized_cells: list[str], header_map: dict[str, int]) -> dict[str, int]:
+        fallback_map = dict(header_map)
+        last_index = max(fallback_map.values(), default=-1)
+        for field_name in self.HEADER_FALLBACK_FIELD_ORDER:
+            if field_name in fallback_map:
+                last_index = max(last_index, fallback_map[field_name])
+                continue
+            next_index = last_index + 1
+            if next_index >= len(normalized_cells):
+                continue
+            fallback_map[field_name] = next_index
+            last_index = next_index
+        return fallback_map
 
     def _build_fallback_header_map(self, normalized_cells: list[str], header_map: dict[str, int]) -> dict[str, int] | None:
         if not header_map:

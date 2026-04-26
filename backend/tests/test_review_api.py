@@ -1,3 +1,19 @@
+import pytest
+
+from app.core.config import settings
+from app.services.ocr.paddle_adapter import PaddleOCRAdapter
+
+
+@pytest.fixture(autouse=True)
+def restore_ocr_provider():
+    previous_provider = settings.OCR_PROVIDER
+    settings.OCR_PROVIDER = "mock"
+    PaddleOCRAdapter.reset_engine()
+    yield
+    settings.OCR_PROVIDER = previous_provider
+    PaddleOCRAdapter.reset_engine()
+
+
 def create_project(client):
     resp = client.post(
         "/api/v1/projects",

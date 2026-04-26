@@ -30,5 +30,8 @@ class Asset(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     evidences = relationship("Evidence", back_populates="asset", foreign_keys="Evidence.asset_id")
     matched_evidences = relationship("Evidence", back_populates="matched_asset", foreign_keys="Evidence.matched_asset_id")
     extracted_fields = relationship("ExtractedField", back_populates="asset")
+    evidence_facts = relationship("EvidenceFact", back_populates="asset")
     source_templates = relationship("Template", back_populates="source_asset")
     evaluation_records = relationship("EvaluationRecord", back_populates="asset")
+    project_assessment_tables = relationship("ProjectAssessmentTable", back_populates="asset", cascade="all, delete-orphan")
+    project_assessment_items = relationship("ProjectAssessmentItem", back_populates="asset", cascade="all, delete-orphan")

@@ -10,6 +10,11 @@ const router = createRouter({
       component: () => import('@/views/DashboardView.vue'),
     },
     {
+      path: '/setup-wizard',
+      name: 'setup-wizard',
+      component: () => import('@/views/GlobalSetupWizardView.vue'),
+    },
+    {
       path: '/projects',
       name: 'projects',
       component: () => import('@/views/ProjectsView.vue'),
@@ -19,6 +24,15 @@ const router = createRouter({
       name: 'project-detail',
       component: () => import('@/views/ProjectDetailView.vue'),
       props: true,
+    },
+    {
+      path: '/projects/:projectId/assessment-wizard',
+      name: 'assessment-wizard',
+      component: () => import('@/views/ProjectAssessmentWizardView.vue'),
+      props: (route) => ({
+        projectId: route.params.projectId,
+        evidenceId: route.query.evidenceId as string | undefined,
+      }),
     },
     {
       path: '/projects/:projectId/assets',

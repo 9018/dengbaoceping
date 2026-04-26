@@ -418,13 +418,18 @@ class RecordService:
             or asset_reasons.get("confirmed_asset_type")
             or asset_reasons.get("suggested_asset_type")
         )
-        result = self.template_item_match_service.match(
-            db,
-            evidence.id,
-            asset_type=asset_type,
-            extracted_fields=fields,
-            evidence_facts=fields,
-        )
+        try:
+            result = self.template_item_match_service.match(
+                db,
+                evidence.id,
+                asset_type=asset_type,
+                extracted_fields=fields,
+                evidence_facts=fields,
+            )
+        except BadRequestException as exc:
+            if exc.code == "ASSESSMENT_TEMPLATE_LIBRARY_EMPTY":
+                return None
+            raise
         best = result.get("matched_template_item")
         if not best:
             return None

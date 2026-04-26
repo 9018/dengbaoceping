@@ -133,9 +133,9 @@ const workflowStepLabel = computed(() => workflowSteps[Math.min(workflowActive.v
 
 const quickEntries = computed(() => [
   {
-    title: '证据处理向导',
-    description: '按步骤完成截图预览、OCR、测评项匹配、历史记录参考和结果记录生成。',
-    to: `/projects/${props.projectId}/evidence-wizard`,
+    title: '项目测评向导',
+    description: '按步骤完成资产、项目测评表、证据 OCR、事实识别、模板行匹配、草稿生成和人工写回。',
+    to: `/projects/${props.projectId}/assessment-wizard`,
   },
   { title: '设备资产页', description: '维护项目内设备资产、来源和入库状态。', to: `/projects/${props.projectId}/assets` },
   { title: '证据中心页', description: '上传证据并执行 OCR，作为进入向导前的准备入口。', to: `/projects/${props.projectId}/evidences` },

@@ -67,6 +67,8 @@ class AssessmentTemplateItem(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     sheet = relationship("AssessmentTemplateSheet", back_populates="items")
     guidebook_links = relationship("TemplateGuidebookLink", back_populates="template_item", cascade="all, delete-orphan")
     history_links = relationship("TemplateHistoryLink", back_populates="template_item", cascade="all, delete-orphan")
+    project_assessment_items = relationship("ProjectAssessmentItem", back_populates="source_template_item")
+    evidence_facts = relationship("EvidenceFact", back_populates="matched_template_item")
 
 
 class TemplateGuidebookLink(Base, UUIDPrimaryKeyMixin, TimestampMixin):

@@ -136,10 +136,13 @@ class RecordGenerationService:
                 return f"通过执行 {command} 命令"
             self._append_missing(missing_evidence, "执行命令")
             return "通过命令行截图"
-        if self._is_firewall(asset_type) or page_type in {"password_policy", "access_control_policy", "login_failure_lock", "remote_management_protocol"}:
+        if page_type in {"password_policy", "access_control_policy", "login_failure_lock", "remote_management_protocol"}:
             if page_name:
                 return f"查看系统-{page_name}页面"
             self._append_missing(missing_evidence, "系统页面名称")
+            return "查看相关证据截图"
+        if self._is_firewall(asset_type) and page_name:
+            return f"查看系统-{page_name}页面"
         return "查看相关证据截图"
 
     def _build_fact_sentences(self, asset_name: str, page_type: str, facts: dict, matched_item: dict, missing_evidence: list[str]) -> str:

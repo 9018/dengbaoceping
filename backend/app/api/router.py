@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import assessment_template_items, assessment_templates, assets, evidences, exports, fields, guidance, history, history_records, project_templates, projects, records
+from app.api.v1.endpoints import assessment_template_items, assessment_templates, assets, evidences, exports, fields, guidance, history, history_records, project_templates, projects, records, workflow
 
 api_router = APIRouter()
 api_router.include_router(projects.router)
@@ -15,3 +15,4 @@ api_router.include_router(exports.router)
 api_router.include_router(history.router)
 api_router.include_router(history_records.router)
 api_router.include_router(guidance.router)
+api_router.include_router(workflow.router)

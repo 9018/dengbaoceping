@@ -157,7 +157,7 @@ async function runOcrFor(evidenceId: string) {
 }
 
 function goWizard(evidenceId: string) {
-  router.push(`/projects/${props.projectId}/evidence-wizard?evidenceId=${evidenceId}`)
+  router.push(`/projects/${props.projectId}/assessment-wizard?evidenceId=${evidenceId}`)
 }
 
 async function removeEvidence(evidenceId: string) {

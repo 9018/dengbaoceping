@@ -38,4 +38,5 @@ class Evidence(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     matched_asset = relationship("Asset", back_populates="matched_evidences", foreign_keys=[matched_asset_id])
     matched_guidance = relationship("GuidanceItem", back_populates="matched_evidences", foreign_keys=[matched_guidance_id])
     extracted_fields = relationship("ExtractedField", back_populates="evidence")
+    evidence_facts = relationship("EvidenceFact", back_populates="evidence", cascade="all, delete-orphan")
     evaluation_record_links = relationship("EvaluationRecordEvidence", back_populates="evidence", cascade="all, delete-orphan")

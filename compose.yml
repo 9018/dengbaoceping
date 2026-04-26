@@ -5,20 +5,33 @@ services:
       dockerfile: backend.Dockerfile
     env_file:
       - ./backend/.env
+    environment:
+      DATABASE_URL: sqlite:////app/runtime/app.db
+      UPLOAD_DIR: /app/uploads
+      EXPORT_DIR: /app/exports
+      SNAPSHOT_DIR: /app/snapshots
+      GUIDANCE_FILE_PATH: /app/md/指导书.md
     ports:
       - "${BACKEND_PORT:-18000}:8000"
     volumes:
+      - ./backend/runtime:/app/runtime
       - ./backend/uploads:/app/uploads
       - ./backend/exports:/app/exports
       - ./backend/snapshots:/app/snapshots
-      - ./backend/app.db:/app/app.db
       - ./md:/app/md:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   frontend:
     build:
       context: .
       dockerfile: frontend.Dockerfile
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
       - "${FRONTEND_PORT:-18080}:80"

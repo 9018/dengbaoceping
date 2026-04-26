@@ -757,6 +757,144 @@ export interface AssessmentTemplateItem extends Timestamped {
   raw_row_json: Record<string, unknown> | unknown[] | null
 }
 
+export interface WorkflowGlobalStatus {
+  template_workbook_count: number
+  template_item_count: number
+  guidance_item_count: number
+  history_record_count: number
+  canNext: boolean
+  status: string
+  summary: string
+}
+
+export interface WorkflowProjectStatus {
+  project_id: string
+  table_count: number
+  item_count: number
+  status: string
+  canNext: boolean
+  summary: string
+}
+
+export interface ProjectAssessmentTable extends Timestamped {
+  id: string
+  project_id: string
+  asset_id: string
+  source_workbook_id: string | null
+  name: string
+  status: string
+  item_count: number
+}
+
+export interface EvidenceFact extends Timestamped {
+  id: string
+  project_id: string
+  asset_id: string | null
+  evidence_id: string
+  project_assessment_item_id: string | null
+  matched_template_item_id: string | null
+  page_type: string | null
+  fact_group: string
+  fact_key: string
+  fact_name: string
+  raw_value: string | null
+  normalized_value: string | null
+  value_number: number | null
+  value_bool: boolean | null
+  value_json: Record<string, unknown> | unknown[] | null
+  source_text: string | null
+  source_page: number | null
+  confidence: number | null
+  status: string
+}
+
+export interface EvidenceFactExtractionResult {
+  page_type: string
+  confidence: number
+  reason: string
+  matched_keywords: string[]
+  facts: EvidenceFact[]
+}
+
+export interface ProjectAssessmentItem extends Timestamped {
+  id: string
+  table_id: string
+  project_id: string
+  asset_id: string
+  source_template_item_id: string | null
+  sheet_name: string
+  row_index: number
+  standard_type: string | null
+  control_point: string | null
+  item_text: string | null
+  record_template: string | null
+  default_compliance_result: string | null
+  weight: number | null
+  item_code: string | null
+  object_type: string | null
+  object_category: string | null
+  page_types_json: string[] | Record<string, unknown> | null
+  required_facts_json: string[] | Record<string, unknown> | null
+  evidence_keywords_json: string[] | Record<string, unknown> | null
+  command_keywords_json: string[] | Record<string, unknown> | null
+  applicability_json: string[] | Record<string, unknown> | null
+  evidence_ids_json: string[] | Record<string, unknown> | null
+  evidence_facts_json: Array<Record<string, unknown>> | Record<string, unknown> | null
+  guidance_refs_json: Array<Record<string, unknown>> | Record<string, unknown> | null
+  history_refs_json: Array<Record<string, unknown>> | Record<string, unknown> | null
+  draft_record_text: string | null
+  draft_compliance_result: string | null
+  final_record_text: string | null
+  final_compliance_result: string | null
+  confidence: number | null
+  match_score: number | null
+  match_reason_json: Record<string, unknown> | unknown[] | null
+  status: string
+  review_comment: string | null
+  reviewed_by: string | null
+  reviewed_at: string | null
+}
+
+export interface ProjectAssessmentItemMatchCandidate {
+  project_assessment_item_id: string
+  table_id: string
+  sheet_name: string
+  row_index: number
+  item_code: string | null
+  control_point: string | null
+  item_text: string | null
+  score: number
+  reasons: string[]
+  matched_keywords: string[]
+}
+
+export interface ProjectAssessmentItemMatchResult {
+  matched_project_assessment_item: ProjectAssessmentItemMatchCandidate | null
+  candidates: ProjectAssessmentItemMatchCandidate[]
+  score: number
+  confidence: number
+  reason: string[]
+}
+
+export interface ProjectAssessmentDraftResult {
+  project_assessment_item_id: string
+  draft_record_text: string | null
+  draft_compliance_result: string | null
+  confidence: number | null
+  reason: string[]
+  missing_evidence: string[]
+  guidance_refs: Array<Record<string, unknown>>
+  history_refs: Array<Record<string, unknown>>
+  evidence_facts: Array<Record<string, unknown>>
+}
+
+export interface ProjectAssessmentConfirmPayload {
+  final_record_text?: string | null
+  final_compliance_result?: string | null
+  review_comment?: string | null
+  reviewed_by?: string | null
+}
+
 export interface TemplateGenerationDefinition {
   title_template: string
   record_template: string

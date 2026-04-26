@@ -10,32 +10,33 @@
       </div>
 
       <div class="workspace-shell__nav-block">
-        <div class="workspace-shell__menu-title">全局导航</div>
+        <div class="workspace-shell__menu-title">全局流程</div>
         <el-menu :default-active="activeMenu" router class="workspace-shell__menu">
           <el-menu-item index="/dashboard">工作台 Dashboard</el-menu-item>
+          <el-menu-item index="/setup-wizard">初始化向导</el-menu-item>
+          <el-menu-item index="/assessment-templates">模板库</el-menu-item>
+          <el-menu-item index="/guidance">指导书库</el-menu-item>
+          <el-menu-item index="/history-records">历史记录库</el-menu-item>
           <el-menu-item index="/projects">项目列表</el-menu-item>
-          <el-menu-item index="/assessment-templates">测评记录模板库</el-menu-item>
-          <el-menu-item index="/history-records">历史测评记录库</el-menu-item>
-          <el-menu-item index="/guidance">指导书依据库</el-menu-item>
         </el-menu>
       </div>
 
       <div v-if="projectId" class="workspace-shell__nav-block workspace-shell__nav-block--stretch">
-        <div class="workspace-shell__menu-title">项目工作区</div>
+        <div class="workspace-shell__menu-title">项目流程</div>
         <el-menu :default-active="activeMenu" router class="workspace-shell__menu workspace-shell__menu--project">
           <el-menu-item :index="`/projects/${projectId}`">项目详情</el-menu-item>
-          <el-menu-item :index="`/projects/${projectId}/evidence-wizard`">证据处理向导</el-menu-item>
-          <el-menu-item :index="`/projects/${projectId}/assets`">设备资产</el-menu-item>
+          <el-menu-item :index="`/projects/${projectId}/assessment-wizard`">项目测评向导</el-menu-item>
+          <el-menu-item :index="`/projects/${projectId}/assets`">项目资产</el-menu-item>
           <el-menu-item :index="`/projects/${projectId}/evidences`">证据中心</el-menu-item>
-          <el-menu-item :index="`/projects/${projectId}/records`">测评记录</el-menu-item>
+          <el-menu-item :index="`/projects/${projectId}/records`">项目测评表</el-menu-item>
           <el-menu-item :index="`/projects/${projectId}/exports`">导出中心</el-menu-item>
         </el-menu>
       </div>
 
       <div class="workspace-shell__aside-foot">
         <div class="workspace-shell__aside-caption">闭环路径</div>
-        <div class="workspace-shell__aside-title">项目建档 → 证据采集 → OCR → 字段复核 → 记录复核 → 项目导出</div>
-        <div class="workspace-shell__aside-text">以项目为抓手，把采集、识别、审校、导出拉通成一个可交付的测评工作台。</div>
+        <div class="workspace-shell__aside-title">导入模板 → 导入指导书 → 导入历史记录 → 创建资产 → 生成测评表 → 上传截图 → OCR → 识别事实 → 匹配模板行 → 生成 D/E 列 → 人工确认</div>
+        <div class="workspace-shell__aside-text">以模板库、依据库、历史样本库和项目测评表为抓手，把项目测评流程拉通成一个可交付的工作台。</div>
       </div>
     </el-aside>
 
@@ -104,17 +105,19 @@ const projectId = computed(() => props.projectId || (typeof route.params.project
 const activeMenu = computed(() => {
   const currentPath = route.path
   const candidates = [
+    projectId.value ? `/projects/${projectId.value}/exports` : '',
+    projectId.value ? `/projects/${projectId.value}/records` : '',
+    projectId.value ? `/projects/${projectId.value}/evidences` : '',
+    projectId.value ? `/projects/${projectId.value}/assets` : '',
+    projectId.value ? `/projects/${projectId.value}/assessment-wizard` : '',
+    projectId.value ? `/projects/${projectId.value}/evidence-wizard` : '',
+    projectId.value ? `/projects/${projectId.value}` : '',
     '/dashboard',
-    '/projects',
+    '/setup-wizard',
     '/assessment-templates',
     '/history-records',
     '/guidance',
-    projectId.value ? `/projects/${projectId.value}/exports` : '',
-    projectId.value ? `/projects/${projectId.value}/records` : '',
-    projectId.value ? `/projects/${projectId.value}/evidence-wizard` : '',
-    projectId.value ? `/projects/${projectId.value}/evidences` : '',
-    projectId.value ? `/projects/${projectId.value}/assets` : '',
-    projectId.value ? `/projects/${projectId.value}` : '',
+    '/projects',
   ].filter(Boolean)
 
   return candidates.find((item) => currentPath === item || currentPath.startsWith(`${item}/`)) || currentPath

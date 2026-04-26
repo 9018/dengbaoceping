@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+*.pyc
 .pytest_cache/
 
 # Virtual environments
@@ -17,10 +18,17 @@ frontend/.env
 
 # Runtime data
 app.db
+*.db
+*.sqlite
+*.sqlite3
 backend/app.db
+uploads/
+exports/
+snapshots/
 backend/uploads/
 backend/exports/
 backend/snapshots/
+backend/runtime/
 logs/
 
 # Tooling noise
