@@ -1,3 +1,5 @@
+from io import BytesIO
+
 from openpyxl import Workbook
 
 from app.models.assessment_template import TemplateHistoryLink
@@ -59,11 +61,32 @@ def build_missing_header_excel() -> bytes:
     worksheet.append(["错误列", "控制点", "测评项", "结果记录", "符合情况", "分值", "编号"])
     worksheet.append(["安全通信网络", "边界访问控制", "应限制非授权访问", "已配置", "符合", 1.0, "A-01"])
 
-    from io import BytesIO
+    stream = BytesIO()
+    workbook.save(stream)
+    return stream.getvalue()
+
+
+def build_history_excel_with_duplicate_row() -> bytes:
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "出口防火墙"
+    worksheet.append(["扩展标准", "控制点", "测评项", "结果记录", "符合情况", "分值", "编号"])
+    worksheet.append(["安全通信网络", "边界访问控制", "应限制非授权访问", "经现场核查，已配置访问控制策略。", "符合", 1.0, "A-01"])
+    worksheet.append(["安全通信网络", "边界访问控制", "应限制非授权访问", "经现场核查，已配置访问控制策略。", "符合", 1.0, "A-01-DUP"])
+    worksheet.append(["安全通信网络", "边界访问控制", "应保留访问控制日志", "查看日志审计配置，当前已开启日志留存。", "部分符合", 0.6, "A-02"])
 
     stream = BytesIO()
     workbook.save(stream)
     return stream.getvalue()
+
+
+def import_history_with_duplicates(client):
+    resp = client.post(
+        "/api/v1/history/import-excel",
+        files={"file": ("history-duplicates.xlsx", build_history_excel_with_duplicate_row(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+    assert resp.status_code == 201
+    return resp.json()["data"]
 
 
 def test_import_history_excel_api(client):
@@ -127,6 +150,117 @@ def test_delete_history_records_by_source(client):
     delete_resp = client.delete("/api/v1/history-records/by-source", params={"source_file": source_file})
     assert delete_resp.status_code == 200
     assert delete_resp.json()["data"]["deleted_count"] >= 1
+
+
+def test_history_records_summary_api(client):
+    import_sample_history(client)
+    import_history_with_duplicates(client)
+
+    resp = client.get("/api/v1/history-records/summary")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["total"] == 7
+    assert data["sheet_count"] == 2
+    assert data["source_file_count"] == 2
+    assert data["duplicate_group_count"] >= 1
+    assert data["duplicate_record_count"] >= 2
+    assert data["asset_type_counts"]["firewall"] >= 3
+
+
+def test_history_record_duplicates_api_and_keep_first(client):
+    import_history_with_duplicates(client)
+
+    list_resp = client.get("/api/v1/history-records/duplicates")
+    assert list_resp.status_code == 200
+    groups = list_resp.json()["data"]
+    assert len(groups) == 1
+    assert groups[0]["duplicate_count"] == 2
+    assert len(groups[0]["records"]) == 2
+
+    delete_resp = client.delete("/api/v1/history-records/duplicates", params={"strategy": "keep_first"})
+    assert delete_resp.status_code == 200
+    assert delete_resp.json()["data"]["deleted_count"] == 1
+
+    after_resp = client.get("/api/v1/history-records/duplicates")
+    assert after_resp.status_code == 200
+    assert after_resp.json()["data"] == []
+
+
+def test_history_record_duplicates_force_required_when_linked(client, db_session):
+    import_assessment_template(client)
+    import_history_with_duplicates(client)
+    groups = client.get("/api/v1/history-records/duplicates").json()["data"]
+    duplicate_record = groups[0]["records"][1]
+    template_item = client.get("/api/v1/assessment-templates/items").json()["data"]["items"][0]
+
+    db_session.add(
+        TemplateHistoryLink(
+            template_item_id=template_item["id"],
+            history_record_id=duplicate_record["id"],
+            match_score=0.88,
+            match_reason={"reason": "duplicate-link"},
+        )
+    )
+    db_session.commit()
+
+    resp = client.delete("/api/v1/history-records/duplicates", params={"strategy": "keep_first"})
+    assert resp.status_code == 409
+    assert resp.json()["error"]["code"] == "HISTORY_RECORD_IN_USE"
+
+    force_resp = client.delete("/api/v1/history-records/duplicates", params={"strategy": "keep_first", "force": True})
+    assert force_resp.status_code == 200
+    assert force_resp.json()["data"]["linked_template_count"] == 1
+    assert force_resp.json()["data"]["forced"] is True
+
+
+def test_history_record_field_value_management(client):
+    import_sample_history(client)
+
+    values_resp = client.get("/api/v1/history-records/field-values/asset_type")
+    assert values_resp.status_code == 200
+    values = values_resp.json()["data"]
+    assert any(item["value"] == "firewall" and item["count"] == 2 for item in values)
+
+    rename_resp = client.patch(
+        "/api/v1/history-records/field-values/asset_type",
+        json={"from_value": "switch", "to_value": "switch-core"},
+    )
+    assert rename_resp.status_code == 200
+    assert rename_resp.json()["data"]["updated_count"] == 2
+
+    renamed_list = client.get("/api/v1/history-records", params={"asset_type": "switch-core"})
+    assert renamed_list.status_code == 200
+    assert renamed_list.json()["data"]["total"] == 2
+
+    delete_resp = client.delete("/api/v1/history-records/field-values/asset_type", params={"value": "switch-core"})
+    assert delete_resp.status_code == 200
+    assert delete_resp.json()["data"]["deleted_count"] == 2
+
+
+def test_history_record_field_value_delete_requires_force_when_linked(client, db_session):
+    import_assessment_template(client)
+    import_sample_history(client)
+    history_record = client.get("/api/v1/history-records", params={"asset_type": "firewall"}).json()["data"]["items"][0]
+    template_item = client.get("/api/v1/assessment-templates/items").json()["data"]["items"][0]
+
+    db_session.add(
+        TemplateHistoryLink(
+            template_item_id=template_item["id"],
+            history_record_id=history_record["id"],
+            match_score=0.95,
+            match_reason={"reason": "field-delete-link"},
+        )
+    )
+    db_session.commit()
+
+    resp = client.delete("/api/v1/history-records/field-values/asset_type", params={"value": "firewall"})
+    assert resp.status_code == 409
+    assert resp.json()["error"]["code"] == "HISTORY_RECORD_IN_USE"
+
+    force_resp = client.delete("/api/v1/history-records/field-values/asset_type", params={"value": "firewall", "force": True})
+    assert force_resp.status_code == 200
+    assert force_resp.json()["data"]["linked_template_count"] == 1
+    assert force_resp.json()["data"]["forced"] is True
 
 
 def test_import_final_assessment_excel_api_parses_asset_metadata_and_inherited_columns(client):

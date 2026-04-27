@@ -14,6 +14,12 @@ from app.repositories.history_record_repository import HistoryRecordRepository
 
 class HistoryRecordSearchService:
     PHRASES = ("经现场核查", "查看", "未提供", "当前", "已配置", "不适用")
+    MANAGEABLE_FIELDS = {
+        "sheet_name": "工作表",
+        "asset_type": "资产类型",
+        "compliance_result": "符合情况",
+        "compliance_status": "符合状态",
+    }
 
     def __init__(self) -> None:
         self.repository = HistoryRecordRepository()
@@ -145,8 +151,7 @@ class HistoryRecordSearchService:
         if not records:
             raise NotFoundException("HISTORY_SOURCE_NOT_FOUND", "未找到对应来源的历史记录")
         record_ids = [item.id for item in records]
-        template_link_count = db.query(func.count(TemplateHistoryLink.id)).filter(TemplateHistoryLink.history_record_id.in_(record_ids)).scalar() or 0
-        guidance_link_count = db.query(func.count(GuidanceHistoryLink.id)).filter(GuidanceHistoryLink.history_record_id.in_(record_ids)).scalar() or 0
+        template_link_count, guidance_link_count = self._count_links(db, record_ids)
         if (template_link_count or guidance_link_count) and not force:
             raise ConflictException(
                 "HISTORY_RECORD_IN_USE",
@@ -157,10 +162,7 @@ class HistoryRecordSearchService:
                     "record_count": len(record_ids),
                 },
             )
-        if force and template_link_count:
-            db.query(TemplateHistoryLink).filter(TemplateHistoryLink.history_record_id.in_(record_ids)).delete(synchronize_session=False)
-        if force and guidance_link_count:
-            db.query(GuidanceHistoryLink).filter(GuidanceHistoryLink.history_record_id.in_(record_ids)).delete(synchronize_session=False)
+        self._delete_links(db, record_ids, force=force)
         deleted_count = query.delete(synchronize_session=False)
         db.commit()
         return {
@@ -184,6 +186,191 @@ class HistoryRecordSearchService:
             "total": self.repository.count(db),
             "compliance_status_counts": self._group_to_dict(self.repository.group_by_status(db), fallback="未标注"),
             "asset_type_counts": self._group_to_dict(self.repository.group_by_asset_type(db), fallback="未分类"),
+        }
+
+    def summary(self, db: Session) -> dict:
+        return {
+            "total": self.repository.count(db),
+            "sheet_count": self.repository.count_distinct_sheets(db),
+            "source_file_count": self.repository.count_distinct_source_files(db),
+            "duplicate_group_count": self.repository.count_duplicate_groups(db),
+            "duplicate_record_count": self.repository.count_duplicate_records(db),
+            "compliance_status_counts": self._group_to_dict(self.repository.group_by_status(db), fallback="未标注"),
+            "asset_type_counts": self._group_to_dict(self.repository.group_by_asset_type(db), fallback="未分类"),
+        }
+
+    def list_field_values(self, db: Session, field_name: str) -> list[dict]:
+        normalized_field = self._normalize_manageable_field(field_name)
+        rows = self.repository.list_distinct_field_values(db, normalized_field)
+        return [
+            {
+                "value": (value or "").strip() or "未填写",
+                "count": count,
+            }
+            for value, count in rows
+            if (value or "").strip()
+        ]
+
+    def rename_field_value(self, db: Session, field_name: str, from_value: str, to_value: str) -> dict:
+        normalized_field = self._normalize_manageable_field(field_name)
+        source_value = self._required_value(from_value, "HISTORY_FIELD_VALUE_REQUIRED", "请提供待重命名的字段值")
+        target_value = self._required_value(to_value, "HISTORY_FIELD_VALUE_REQUIRED", "请提供新的字段值")
+        if source_value == target_value:
+            raise BadRequestException("HISTORY_FIELD_VALUE_UNCHANGED", "新旧字段值不能相同")
+        updated_count = self.repository.update_field_value(db, normalized_field, source_value, target_value)
+        if updated_count <= 0:
+            raise NotFoundException("HISTORY_FIELD_VALUE_NOT_FOUND", "未找到对应字段值的历史记录")
+        db.commit()
+        return {
+            "field_name": normalized_field,
+            "from_value": source_value,
+            "to_value": target_value,
+            "updated_count": updated_count,
+        }
+
+    def delete_by_field_value(self, db: Session, field_name: str, field_value: str, *, force: bool = False) -> dict:
+        normalized_field = self._normalize_manageable_field(field_name)
+        normalized_value = self._required_value(field_value, "HISTORY_FIELD_VALUE_REQUIRED", "请提供字段值")
+        records = self.repository.list_records_by_field_value(db, normalized_field, normalized_value)
+        if not records:
+            raise NotFoundException("HISTORY_FIELD_VALUE_NOT_FOUND", "未找到对应字段值的历史记录")
+        record_ids = [item.id for item in records]
+        template_link_count, guidance_link_count = self._count_links(db, record_ids)
+        if (template_link_count or guidance_link_count) and not force:
+            raise ConflictException(
+                "HISTORY_RECORD_IN_USE",
+                "该字段值对应历史记录已被知识库关联引用，无法直接删除",
+                details={
+                    "field_name": normalized_field,
+                    "field_value": normalized_value,
+                    "linked_template_count": template_link_count,
+                    "linked_guidance_count": guidance_link_count,
+                    "record_count": len(record_ids),
+                },
+            )
+        self._delete_links(db, record_ids, force=force)
+        deleted_count = self.repository.delete_by_field_value(db, normalized_field, normalized_value)
+        db.commit()
+        return {
+            "field_name": normalized_field,
+            "field_value": normalized_value,
+            "deleted_count": deleted_count,
+            "linked_template_count": template_link_count,
+            "linked_guidance_count": guidance_link_count,
+            "forced": force,
+        }
+
+    def list_duplicate_groups(
+        self,
+        db: Session,
+        *,
+        asset_name: str | None = None,
+        asset_type: str | None = None,
+        sheet_name: str | None = None,
+        control_point: str | None = None,
+        item_text: str | None = None,
+        compliance_result: str | None = None,
+        compliance_status: str | None = None,
+        keyword: str | None = None,
+        project_name: str | None = None,
+        asset_ip: str | None = None,
+        standard_type: str | None = None,
+        item_code: str | None = None,
+    ) -> list[dict]:
+        rows = self.repository.find_duplicate_groups(
+            db,
+            asset_name=self._clean(asset_name),
+            asset_type=self._clean(asset_type),
+            sheet_name=self._clean(sheet_name),
+            control_point=self._clean(control_point),
+            item_text=self._clean(item_text),
+            compliance_result=self._clean(compliance_result),
+            compliance_status=self._clean(compliance_status or compliance_result),
+            keyword=self._clean(keyword),
+            project_name=self._clean(project_name),
+            asset_ip=self._clean(asset_ip),
+            standard_type=self._clean(standard_type),
+            item_code=self._clean(item_code),
+        )
+        result: list[dict] = []
+        for fingerprint, duplicate_count, source_file_count, group_sheet_name, group_asset_name, group_asset_type, group_control_point, group_item_text, group_compliance_result in rows:
+            records = self.repository.list_records_by_duplicate_fingerprint(
+                db,
+                fingerprint,
+                asset_name=self._clean(asset_name),
+                asset_type=self._clean(asset_type),
+                sheet_name=self._clean(sheet_name),
+                control_point=self._clean(control_point),
+                item_text=self._clean(item_text),
+                compliance_result=self._clean(compliance_result),
+                compliance_status=self._clean(compliance_status or compliance_result),
+                keyword=self._clean(keyword),
+                project_name=self._clean(project_name),
+                asset_ip=self._clean(asset_ip),
+                standard_type=self._clean(standard_type),
+                item_code=self._clean(item_code),
+            )
+            result.append(
+                {
+                    "fingerprint": fingerprint,
+                    "duplicate_count": duplicate_count,
+                    "source_file_count": source_file_count,
+                    "sheet_name": group_sheet_name,
+                    "asset_name": group_asset_name,
+                    "asset_type": group_asset_type,
+                    "control_point": group_control_point,
+                    "item_text": group_item_text,
+                    "compliance_result": group_compliance_result,
+                    "records": records,
+                }
+            )
+        return result
+
+    def delete_duplicate_groups(self, db: Session, *, strategy: str = "keep_first", force: bool = False) -> dict:
+        normalized_strategy = (strategy or "keep_first").strip().lower()
+        if normalized_strategy != "keep_first":
+            raise BadRequestException("HISTORY_DUPLICATE_STRATEGY_INVALID", "重复记录删除策略仅支持 keep_first")
+        groups = self.list_duplicate_groups(db)
+        if not groups:
+            return {
+                "strategy": normalized_strategy,
+                "duplicate_group_count": 0,
+                "deleted_count": 0,
+                "linked_template_count": 0,
+                "linked_guidance_count": 0,
+                "forced": force,
+            }
+        delete_ids: list[str] = []
+        for group in groups:
+            group_records = group["records"]
+            if len(group_records) <= 1:
+                continue
+            delete_ids.extend(record.id for record in group_records[1:])
+        template_link_count, guidance_link_count = self._count_links(db, delete_ids)
+        if (template_link_count or guidance_link_count) and not force:
+            raise ConflictException(
+                "HISTORY_RECORD_IN_USE",
+                "重复历史记录中存在被知识库引用的数据，无法直接删除",
+                details={
+                    "linked_template_count": template_link_count,
+                    "linked_guidance_count": guidance_link_count,
+                    "record_count": len(delete_ids),
+                    "duplicate_group_count": len(groups),
+                },
+            )
+        self._delete_links(db, delete_ids, force=force)
+        deleted_count = 0
+        for record_id in delete_ids:
+            db.delete(self.get_record(db, record_id))
+            deleted_count += 1
+        db.commit()
+        return {
+            "strategy": normalized_strategy,
+            "duplicate_group_count": len(groups),
+            "deleted_count": deleted_count,
+            "linked_template_count": template_link_count,
+            "linked_guidance_count": guidance_link_count,
+            "forced": force,
         }
 
     def search_similar(
@@ -324,6 +511,31 @@ class HistoryRecordSearchService:
         left_tokens = {item for item in left.replace("/", " ").replace("、", " ").split() if len(item) >= 2}
         right_tokens = {item for item in right.replace("/", " ").replace("、", " ").split() if len(item) >= 2}
         return bool(left_tokens.intersection(right_tokens))
+
+    def _count_links(self, db: Session, record_ids: list[str]) -> tuple[int, int]:
+        if not record_ids:
+            return 0, 0
+        template_link_count = db.query(func.count(TemplateHistoryLink.id)).filter(TemplateHistoryLink.history_record_id.in_(record_ids)).scalar() or 0
+        guidance_link_count = db.query(func.count(GuidanceHistoryLink.id)).filter(GuidanceHistoryLink.history_record_id.in_(record_ids)).scalar() or 0
+        return template_link_count, guidance_link_count
+
+    def _delete_links(self, db: Session, record_ids: list[str], *, force: bool) -> None:
+        if not force or not record_ids:
+            return
+        db.query(TemplateHistoryLink).filter(TemplateHistoryLink.history_record_id.in_(record_ids)).delete(synchronize_session=False)
+        db.query(GuidanceHistoryLink).filter(GuidanceHistoryLink.history_record_id.in_(record_ids)).delete(synchronize_session=False)
+
+    def _normalize_manageable_field(self, field_name: str) -> str:
+        normalized = (field_name or "").strip()
+        if normalized not in self.MANAGEABLE_FIELDS:
+            raise BadRequestException("HISTORY_FIELD_NOT_SUPPORTED", "仅支持管理 sheet_name、asset_type、compliance_result、compliance_status")
+        return normalized
+
+    def _required_value(self, value: str | None, code: str, message: str) -> str:
+        normalized = self._clean(value)
+        if not normalized:
+            raise BadRequestException(code, message)
+        return normalized
 
     def _clean(self, value: str | None) -> str | None:
         normalized = value.strip() if value else None

@@ -58,6 +58,21 @@ class ProjectRead(ProjectBase, TimestampSchema):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ProjectAssessmentTableUpdate(BaseModel):
+    name: str | None = None
+    status: str | None = None
+
+
+class ProjectAssessmentTableDeleteRead(BaseModel):
+    id: str
+    item_count: int
+    confirmed_item_count: int = 0
+    edited_item_count: int = 0
+    linked_evidence_item_count: int = 0
+    linked_fact_count: int = 0
+    forced: bool = False
+
+
 class ProjectAssessmentTableRead(TimestampSchema):
     id: str
     project_id: str
@@ -68,6 +83,49 @@ class ProjectAssessmentTableRead(TimestampSchema):
     item_count: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ProjectAssessmentItemUpdate(BaseModel):
+    sheet_name: str | None = None
+    row_index: int | None = None
+    standard_type: str | None = None
+    control_point: str | None = None
+    item_text: str | None = None
+    record_template: str | None = None
+    default_compliance_result: str | None = None
+    weight: float | None = None
+    item_code: str | None = None
+    object_type: str | None = None
+    object_category: str | None = None
+    page_types_json: list[str] | dict | None = None
+    required_facts_json: list[str] | dict | None = None
+    evidence_keywords_json: list[str] | dict | None = None
+    command_keywords_json: list[str] | dict | None = None
+    applicability_json: list[str] | dict | None = None
+    evidence_ids_json: list[str] | dict | None = None
+    evidence_facts_json: list[dict] | dict | None = None
+    guidance_refs_json: list[dict] | dict | None = None
+    history_refs_json: list[dict] | dict | None = None
+    draft_record_text: str | None = None
+    draft_compliance_result: str | None = None
+    final_record_text: str | None = None
+    final_compliance_result: str | None = None
+    confidence: float | None = None
+    match_score: float | None = None
+    match_reason_json: dict | list | None = None
+    status: str | None = None
+    review_comment: str | None = None
+    reviewed_by: str | None = None
+
+
+class ProjectAssessmentItemDeleteRead(BaseModel):
+    id: str
+    table_id: str
+    confirmed: bool = False
+    edited: bool = False
+    linked_evidence: bool = False
+    linked_fact_count: int = 0
+    forced: bool = False
 
 
 class ProjectAssessmentItemRead(TimestampSchema):

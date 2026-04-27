@@ -422,3 +422,125 @@ def test_project_workflow_status_completed_after_item_confirmed(db_session, clie
     assert status["stats"]["confirmed_item_count"] == 1
     assert status["stats"]["pending_item_count"] == 0
     assert next_action["stage"] == "completed"
+
+
+def test_assessment_table_detail_update_and_delete_api(db_session, client):
+    project_id = create_project(client)
+    asset = create_test_object_asset(db_session, project_id)
+    table, _ = create_project_table_with_item(db_session, project_id, asset.id)
+
+    detail_resp = client.get(f"/api/v1/assessment-tables/{table.id}")
+    assert detail_resp.status_code == 200
+    assert detail_resp.json()["data"]["id"] == table.id
+
+    update_resp = client.patch(
+        f"/api/v1/assessment-tables/{table.id}",
+        json={"name": "新的项目测评表", "status": "in_review"},
+    )
+    assert update_resp.status_code == 200
+    updated = update_resp.json()["data"]
+    assert updated["name"] == "新的项目测评表"
+    assert updated["status"] == "in_review"
+
+    delete_resp = client.delete(f"/api/v1/assessment-tables/{table.id}")
+    assert delete_resp.status_code == 200
+    data = delete_resp.json()["data"]
+    assert data["id"] == table.id
+    assert data["item_count"] == 1
+    assert data["forced"] is False
+
+
+def test_assessment_table_delete_requires_force_when_table_has_manual_edits(db_session, client):
+    project_id = create_project(client)
+    asset = create_test_object_asset(db_session, project_id)
+    table, item = create_project_table_with_item(db_session, project_id, asset.id)
+    item.draft_record_text = "人工补充草稿"
+    item.status = "drafted"
+    db_session.add(item)
+    db_session.commit()
+
+    resp = client.delete(f"/api/v1/assessment-tables/{table.id}")
+    assert resp.status_code == 409
+    assert resp.json()["error"]["code"] == "PROJECT_ASSESSMENT_TABLE_IN_USE"
+
+    force_resp = client.delete(f"/api/v1/assessment-tables/{table.id}", params={"force": True})
+    assert force_resp.status_code == 200
+    data = force_resp.json()["data"]
+    assert data["edited_item_count"] == 1
+    assert data["forced"] is True
+
+
+def test_generate_assessment_table_requires_force_when_existing_table_has_manual_edits(db_session, client):
+    project_id = create_project(client)
+    _, template_item = create_template_workbook_with_item(db_session)
+    create_guidance_item(db_session)
+    create_history_record(db_session)
+    asset = create_test_object_asset(db_session, project_id)
+    table, item = create_project_table_with_item(db_session, project_id, asset.id, source_template_item_id=template_item.id)
+    item.draft_record_text = "人工补充草稿"
+    item.status = "drafted"
+    db_session.add(item)
+    db_session.commit()
+
+    resp = client.post(f"/api/v1/projects/{project_id}/assets/{asset.id}/generate-assessment-table")
+    assert resp.status_code == 409
+    assert resp.json()["error"]["code"] == "PROJECT_ASSESSMENT_TABLE_REGENERATE_REQUIRES_FORCE"
+
+    force_resp = client.post(
+        f"/api/v1/projects/{project_id}/assets/{asset.id}/generate-assessment-table",
+        params={"force": True},
+    )
+    assert force_resp.status_code == 200
+    data = force_resp.json()["data"]
+    assert data["asset_id"] == asset.id
+    assert data["id"] != table.id
+
+
+def test_project_assessment_item_update_and_delete_api(db_session, client):
+    project_id = create_project(client)
+    asset = create_test_object_asset(db_session, project_id)
+    table, item = create_project_table_with_item(db_session, project_id, asset.id)
+
+    update_resp = client.patch(
+        f"/api/v1/project-assessment-items/{item.id}",
+        json={"draft_record_text": "经核查，配置有效", "status": "drafted"},
+    )
+    assert update_resp.status_code == 200
+    updated = update_resp.json()["data"]
+    assert updated["draft_record_text"] == "经核查，配置有效"
+    assert updated["status"] == "drafted"
+
+    delete_resp = client.delete(f"/api/v1/project-assessment-items/{item.id}", params={"force": True})
+    assert delete_resp.status_code == 200
+    data = delete_resp.json()["data"]
+    assert data["id"] == item.id
+    assert data["table_id"] == table.id
+    assert data["forced"] is True
+
+    table_resp = client.get(f"/api/v1/assessment-tables/{table.id}")
+    assert table_resp.status_code == 200
+    assert table_resp.json()["data"]["item_count"] == 0
+
+
+def test_project_assessment_item_delete_requires_force_when_linked(db_session, client):
+    project_id = create_project(client)
+    asset = create_test_object_asset(db_session, project_id)
+    _, item = create_project_table_with_item(db_session, project_id, asset.id)
+    evidence_id = upload_evidence(client, project_id, "item-linked.txt")
+    item.evidence_ids_json = [evidence_id]
+    item.status = "confirmed"
+    db_session.add(item)
+    db_session.commit()
+    create_evidence_fact(db_session, project_id, evidence_id, asset_id=asset.id, item_id=item.id)
+
+    resp = client.delete(f"/api/v1/project-assessment-items/{item.id}")
+    assert resp.status_code == 409
+    assert resp.json()["error"]["code"] == "PROJECT_ASSESSMENT_ITEM_IN_USE"
+
+    force_resp = client.delete(f"/api/v1/project-assessment-items/{item.id}", params={"force": True})
+    assert force_resp.status_code == 200
+    data = force_resp.json()["data"]
+    assert data["confirmed"] is True
+    assert data["linked_evidence"] is True
+    assert data["linked_fact_count"] == 1
+    assert data["forced"] is True

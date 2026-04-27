@@ -5,7 +5,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import ConflictException, NotFoundException
+from app.core.exceptions import BadRequestException, ConflictException, NotFoundException
 from app.models.evidence_fact import EvidenceFact
 from app.models.project_assessment_table import ProjectAssessmentItem, ProjectAssessmentTable
 from app.repositories.asset_repository import AssetRepository
@@ -57,7 +57,14 @@ class ProjectAssessmentTableService:
 
         existing = self.repository.get_by_project_and_asset(db, project_id, asset_id)
         if existing and not force:
-            raise ConflictException("PROJECT_ASSESSMENT_TABLE_ALREADY_EXISTS", "当前资产已生成项目测评表")
+            conflict = self._build_table_conflict(existing)
+            if self._table_has_protected_content(conflict):
+                raise ConflictException(
+                    "PROJECT_ASSESSMENT_TABLE_REGENERATE_REQUIRES_FORCE",
+                    "当前资产的项目测评表已存在人工处理痕迹，需显式确认后才能重新生成",
+                    details=conflict,
+                )
+            raise ConflictException("PROJECT_ASSESSMENT_TABLE_ALREADY_EXISTS", "当前资产已生成项目测评表", details=conflict)
         if existing and force:
             self.repository.delete(db, existing)
 
@@ -93,6 +100,34 @@ class ProjectAssessmentTableService:
         self._require_project(db, project_id)
         return self.repository.list_by_project_page(db, project_id, page=page, page_size=page_size)
 
+    def get_table(self, db: Session, table_id: str) -> ProjectAssessmentTable:
+        return self._require_table(db, table_id)
+
+    def update_table(self, db: Session, table_id: str, **payload) -> ProjectAssessmentTable:
+        table = self._require_table(db, table_id)
+        updates = {key: value for key, value in payload.items() if value is not None}
+        if not updates:
+            raise BadRequestException("PROJECT_ASSESSMENT_TABLE_UPDATE_EMPTY", "请至少提供一个需要更新的字段")
+        for field_name, value in updates.items():
+            setattr(table, field_name, value.strip() if isinstance(value, str) else value)
+        return self.repository.update(db, table)
+
+    def delete_table(self, db: Session, table_id: str, *, force: bool = False) -> dict[str, Any]:
+        table = self._require_table(db, table_id)
+        conflict = self._build_table_conflict(table)
+        if self._table_has_protected_content(conflict) and not force:
+            raise ConflictException(
+                "PROJECT_ASSESSMENT_TABLE_IN_USE",
+                "项目测评表存在已确认项、人工编辑或证据事实关联，无法直接删除",
+                details=conflict,
+            )
+        self.repository.delete(db, table)
+        return {
+            "id": table.id,
+            **conflict,
+            "forced": force,
+        }
+
     def list_table_items(self, db: Session, table_id: str) -> list[ProjectAssessmentItem]:
         self._require_table(db, table_id)
         return self.repository.list_items(db, table_id)
@@ -106,6 +141,16 @@ class ProjectAssessmentTableService:
         if not item:
             raise NotFoundException("PROJECT_ASSESSMENT_ITEM_NOT_FOUND", "项目测评项不存在")
         return item
+
+    def update_item(self, db: Session, item_id: str, **payload) -> ProjectAssessmentItem:
+        item = self.get_item(db, item_id)
+        updates = {key: value for key, value in payload.items() if value is not None}
+        if not updates:
+            raise BadRequestException("PROJECT_ASSESSMENT_ITEM_UPDATE_EMPTY", "请至少提供一个需要更新的字段")
+        for field_name, value in updates.items():
+            setattr(item, field_name, value.strip() if isinstance(value, str) else value)
+        self._sync_table_item_count(item.table_id, db)
+        return self.repository.update_item(db, item)
 
     def update_item_draft(self, db: Session, item_id: str, payload: dict[str, Any]) -> ProjectAssessmentItem:
         item = self.get_item(db, item_id)
@@ -124,6 +169,27 @@ class ProjectAssessmentTableService:
             if key in payload:
                 setattr(item, key, payload[key])
         return self.repository.update_item(db, item)
+
+    def delete_item(self, db: Session, item_id: str, *, force: bool = False) -> dict[str, Any]:
+        item = self.get_item(db, item_id)
+        conflict = self._build_item_conflict(db, item)
+        if self._item_has_protected_content(conflict) and not force:
+            raise ConflictException(
+                "PROJECT_ASSESSMENT_ITEM_IN_USE",
+                "项目测评项存在已确认、人工编辑或证据事实关联，无法直接删除",
+                details=conflict,
+            )
+        table_id = item.table_id
+        self.repository.delete_item(db, item)
+        table = self._require_table(db, table_id)
+        table.item_count = len(self.repository.list_items(db, table_id))
+        self.repository.update(db, table)
+        return {
+            "id": item_id,
+            "table_id": table_id,
+            **conflict,
+            "forced": force,
+        }
 
     def confirm_item(self, db: Session, item_id: str, *, final_record_text: str | None, final_compliance_result: str | None, review_comment: str | None = None, reviewed_by: str | None = None) -> ProjectAssessmentItem:
         item = self.get_item(db, item_id)
@@ -346,6 +412,20 @@ class ProjectAssessmentTableService:
     def _item_has_draft(self, item: ProjectAssessmentItem) -> bool:
         return bool((item.draft_record_text or "").strip()) or item.status in {"drafted", "pending_review", "confirmed"}
 
+    def _item_has_manual_edits(self, item: ProjectAssessmentItem) -> bool:
+        return any(
+            [
+                bool((item.draft_record_text or "").strip()),
+                bool((item.draft_compliance_result or "").strip()),
+                bool((item.final_record_text or "").strip()),
+                bool((item.final_compliance_result or "").strip()),
+                bool((item.review_comment or "").strip()),
+                bool((item.reviewed_by or "").strip()),
+                item.reviewed_at is not None,
+                item.status in {"drafted", "pending_review", "confirmed"},
+            ]
+        )
+
     def _first_evidence_id(self, item: ProjectAssessmentItem) -> str | None:
         raw_value = item.evidence_ids_json
         if isinstance(raw_value, list):
@@ -417,6 +497,52 @@ class ProjectAssessmentTableService:
             applicability_json=template_item.applicability_json,
             status="pending",
         )
+
+    def _build_table_conflict(self, table: ProjectAssessmentTable) -> dict[str, Any]:
+        items = list(table.items or [])
+        linked_fact_count = sum(len(item.evidence_facts or []) for item in items)
+        return {
+            "item_count": len(items),
+            "confirmed_item_count": sum(1 for item in items if item.status == "confirmed"),
+            "edited_item_count": sum(1 for item in items if self._item_has_manual_edits(item)),
+            "linked_evidence_item_count": sum(1 for item in items if self._first_evidence_id(item) is not None),
+            "linked_fact_count": linked_fact_count,
+        }
+
+    def _build_item_conflict(self, db: Session, item: ProjectAssessmentItem) -> dict[str, Any]:
+        linked_fact_count = len(self.evidence_fact_repository.list_by_project_assessment_item(db, item.id))
+        return {
+            "confirmed": item.status == "confirmed",
+            "edited": self._item_has_manual_edits(item),
+            "linked_evidence": self._first_evidence_id(item) is not None,
+            "linked_fact_count": linked_fact_count,
+        }
+
+    def _table_has_protected_content(self, conflict: dict[str, Any]) -> bool:
+        return any(
+            [
+                conflict["confirmed_item_count"] > 0,
+                conflict["edited_item_count"] > 0,
+                conflict["linked_evidence_item_count"] > 0,
+                conflict["linked_fact_count"] > 0,
+            ]
+        )
+
+    def _item_has_protected_content(self, conflict: dict[str, Any]) -> bool:
+        return any(
+            [
+                conflict["confirmed"],
+                conflict["edited"],
+                conflict["linked_evidence"],
+                conflict["linked_fact_count"] > 0,
+            ]
+        )
+
+    def _sync_table_item_count(self, table_id: str, db: Session) -> None:
+        table = self._require_table(db, table_id)
+        table.item_count = len(self.repository.list_items(db, table_id))
+        db.add(table)
+        db.flush()
 
     def _require_project(self, db: Session, project_id: str) -> None:
         if not self.project_repository.get(db, project_id):

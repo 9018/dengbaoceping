@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from app.core.exceptions import BadRequestException, NotFoundException
+from app.core.config import settings
+from app.core.exceptions import AppException, BadRequestException, NotFoundException, StorageException
 from app.repositories.evidence_repository import EvidenceRepository
 from app.services.ocr.factory import OCRAdapterFactory
+from app.services.ocr.mock_adapter import MOCK_OCR_SAMPLES
+from app.services.ocr.paddle_adapter import PaddleOCRAdapter
 
 
 class OCRService:
@@ -23,13 +26,32 @@ class OCRService:
         if not force and evidence.ocr_result_json and evidence.ocr_status in self.TERMINAL_STATUSES:
             return evidence
 
-        adapter = self.adapter_factory.create()
-        result = adapter.run(
-            evidence_id=evidence_id,
-            filename=evidence.asset.filename,
-            file_path=evidence.asset.absolute_path,
-            sample_id=sample_id,
-        )
+        try:
+            adapter = self.adapter_factory.create()
+            result = adapter.run(
+                evidence_id=evidence_id,
+                filename=evidence.asset.filename,
+                file_path=evidence.asset.absolute_path,
+                sample_id=sample_id,
+            )
+        except StorageException as exc:
+            result = self._build_failed_result(
+                evidence_id=evidence.id,
+                filename=evidence.asset.filename,
+                file_path=evidence.asset.absolute_path,
+                sample_id=sample_id,
+                error=self._serialize_exception(exc),
+            )
+        except AppException as exc:
+            if exc.code != "REAL_OCR_NOT_CONFIGURED":
+                raise
+            result = self._build_failed_result(
+                evidence_id=evidence.id,
+                filename=evidence.asset.filename,
+                file_path=evidence.asset.absolute_path,
+                sample_id=sample_id,
+                error=self._serialize_exception(exc),
+            )
         return self._persist_ocr_result(db, evidence, result)
 
     def save_manual_result(self, db, evidence_id: str, text_content: str):
@@ -71,6 +93,94 @@ class OCRService:
             raise NotFoundException("OCR_RESULT_NOT_FOUND", "OCR结果不存在")
         return evidence.ocr_result_json
 
+    def get_health(self) -> dict:
+        provider = settings.OCR_PROVIDER
+        base = {
+            "provider": provider,
+            "provider_name": self._provider_name(provider),
+            "adapter": None,
+            "status": "failed",
+            "available": False,
+            "initialized": False,
+            "can_run_ocr": False,
+            "supports_manual_input": True,
+            "timeout_seconds": settings.OCR_TIMEOUT_SECONDS,
+            "error": None,
+            "details": {},
+        }
+
+        try:
+            adapter = self.adapter_factory.create()
+        except AppException as exc:
+            return {
+                **base,
+                "error": self._serialize_exception(exc),
+                "details": {"configured_provider": provider},
+            }
+
+        base["adapter"] = adapter.__class__.__name__
+
+        if provider == "mock":
+            return {
+                **base,
+                "status": "ready",
+                "available": True,
+                "initialized": True,
+                "can_run_ocr": True,
+                "details": {"sample_count": len(MOCK_OCR_SAMPLES)},
+            }
+
+        if provider == "real":
+            error = {
+                "code": "REAL_OCR_NOT_CONFIGURED",
+                "message": "真实OCR提供方尚未配置，请先完成provider接入",
+                "details": {"provider": provider},
+            }
+            return {
+                **base,
+                "status": "not_configured",
+                "available": True,
+                "error": error,
+                "details": {"configured_provider": provider},
+            }
+
+        if provider == "paddle":
+            try:
+                adapter._get_engine()
+            except StorageException as exc:
+                return {
+                    **base,
+                    "error": self._serialize_exception(exc),
+                    "details": {
+                        "configured_provider": provider,
+                        "lang": settings.PADDLE_OCR_LANG,
+                        "use_angle_cls": settings.PADDLE_OCR_USE_ANGLE_CLS,
+                        "use_gpu": settings.PADDLE_OCR_USE_GPU,
+                    },
+                }
+            return {
+                **base,
+                "status": "ready",
+                "available": True,
+                "initialized": True,
+                "can_run_ocr": True,
+                "details": {
+                    "configured_provider": provider,
+                    "lang": settings.PADDLE_OCR_LANG,
+                    "use_angle_cls": settings.PADDLE_OCR_USE_ANGLE_CLS,
+                    "use_gpu": settings.PADDLE_OCR_USE_GPU,
+                },
+            }
+
+        return {
+            **base,
+            "status": "ready",
+            "available": True,
+            "initialized": True,
+            "can_run_ocr": True,
+            "details": {"configured_provider": provider},
+        }
+
     def _persist_ocr_result(self, db, evidence, result: dict):
         normalized_result = self._normalize_result(result)
         error = normalized_result.get("error") if isinstance(normalized_result.get("error"), dict) else None
@@ -107,3 +217,40 @@ class OCRService:
         if full_text:
             return "completed" if raw_status == "completed" else "completed_with_warning"
         return "failed"
+
+    def _build_failed_result(
+        self,
+        *,
+        evidence_id: str,
+        filename: str | None,
+        file_path: str | None,
+        sample_id: str | None,
+        error: dict,
+    ) -> dict:
+        return {
+            "provider": self._provider_name(),
+            "status": "failed",
+            "full_text": "",
+            "lines": [],
+            "processed_at": datetime.now(UTC).isoformat(),
+            "evidence_id": evidence_id,
+            "filename": filename,
+            "file_path": file_path,
+            "sample_id": sample_id,
+            "error": error,
+        }
+
+    def _provider_name(self, provider: str | None = None) -> str:
+        provider = provider or settings.OCR_PROVIDER
+        return {
+            "mock": "mock_ocr",
+            "paddle": "paddle_ocr",
+            "real": "real_ocr",
+        }.get(provider, provider)
+
+    def _serialize_exception(self, exc: AppException) -> dict:
+        return {
+            "code": exc.code,
+            "message": exc.message,
+            "details": exc.details,
+        }

@@ -1,25 +1,26 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    AutoImport({
+      imports: ['vue'],
+      resolvers: [ElementPlusResolver()],
+      dts: false,
+    }),
+    Components({
+      resolvers: [ElementPlusResolver({ importStyle: 'css' })],
+      dts: false,
+    }),
+  ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-    },
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return undefined
-          if (id.includes('element-plus')) return 'element-plus'
-          if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router')) return 'vue-vendor'
-          if (id.includes('axios')) return 'axios'
-          return 'vendor'
-        },
-      },
     },
   },
   server: {
@@ -27,6 +28,3 @@ export default defineConfig({
     port: 5173,
   },
 })
-
-
-

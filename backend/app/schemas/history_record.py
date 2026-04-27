@@ -88,6 +88,39 @@ class HistoryStatsRead(BaseModel):
     asset_type_counts: dict[str, int]
 
 
+class HistorySummaryRead(BaseModel):
+    total: int
+    sheet_count: int
+    source_file_count: int
+    duplicate_group_count: int
+    duplicate_record_count: int
+    compliance_status_counts: dict[str, int]
+    asset_type_counts: dict[str, int]
+
+
+class HistoryFieldValueRead(BaseModel):
+    value: str
+    count: int
+
+
+class HistoryFieldValueRenameRequest(BaseModel):
+    from_value: str
+    to_value: str
+
+
+class HistoryDuplicateGroupRead(BaseModel):
+    fingerprint: str
+    duplicate_count: int
+    source_file_count: int
+    sheet_name: str | None = None
+    asset_name: str | None = None
+    asset_type: str | None = None
+    control_point: str | None = None
+    item_text: str | None = None
+    compliance_result: str | None = None
+    records: list[HistoryRecordRead]
+
+
 class HistorySimilarRead(BaseModel):
     id: str
     source_file: str | None = None

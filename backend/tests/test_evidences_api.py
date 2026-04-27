@@ -5,6 +5,7 @@ import pytest
 from openpyxl import Workbook
 
 from app.core.config import settings
+from app.core.exceptions import StorageException
 from app.models.evaluation_record import EvaluationRecord
 from app.services.ocr.mock_adapter import MOCK_OCR_SAMPLES
 from app.services.ocr.paddle_adapter import PaddleOCRAdapter
@@ -140,6 +141,21 @@ def test_upload_evidence_under_missing_project(client):
     )
     assert resp.status_code == 404
     assert resp.json()["error"]["code"] == "PROJECT_NOT_FOUND"
+
+
+def test_get_ocr_health_for_mock_provider(client):
+    resp = client.get("/api/v1/ocr/health")
+
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["provider"] == "mock"
+    assert body["provider_name"] == "mock_ocr"
+    assert body["status"] == "ready"
+    assert body["available"] is True
+    assert body["initialized"] is True
+    assert body["can_run_ocr"] is True
+    assert body["details"]["sample_count"] >= 1
+
 
 
 def test_run_ocr_and_extract_fields(client):
@@ -491,6 +507,40 @@ def test_run_paddle_ocr_failure_returns_structured_result(client, monkeypatch):
     assert result["lines"] == []
 
 
+def test_run_paddle_ocr_init_failure_persists_structured_result(client, monkeypatch):
+    settings.OCR_PROVIDER = "paddle"
+    PaddleOCRAdapter.reset_engine()
+
+    monkeypatch.setattr(
+        PaddleOCRAdapter,
+        "_create_engine",
+        classmethod(
+            lambda cls: (_ for _ in ()).throw(
+                StorageException("PADDLE_OCR_INIT_FAILED", "PaddleOCR 初始化失败", {"error": "init boom"})
+            )
+        ),
+    )
+
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "init-broken-image.png")
+
+    resp = client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={})
+
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["ocr_status"] == "failed"
+    assert body["ocr_provider"] == "paddle_ocr"
+    assert body["ocr_error_message"] == "PaddleOCR 初始化失败"
+    assert body["text_content"] == ""
+
+    result_resp = client.get(f"/api/v1/evidences/{evidence_id}/ocr-result")
+    assert result_resp.status_code == 200
+    result = result_resp.json()["data"]
+    assert result["status"] == "failed"
+    assert result["error"]["code"] == "PADDLE_OCR_INIT_FAILED"
+    assert result["error"]["details"]["error"] == "init boom"
+
+
 def test_run_paddle_ocr_normalizes_failed_with_text_to_completed_with_warning(client, monkeypatch):
     settings.OCR_PROVIDER = "paddle"
     PaddleOCRAdapter.reset_engine()
@@ -521,6 +571,36 @@ def test_run_paddle_ocr_normalizes_failed_with_text_to_completed_with_warning(cl
     assert result["status"] == "completed_with_warning"
     assert result["raw_status"] == "failed"
     assert result["error"]["code"] == "PADDLE_OCR_LINES_NORMALIZED_EMPTY"
+
+
+def test_get_ocr_health_for_paddle_provider_init_failure(client, monkeypatch):
+    settings.OCR_PROVIDER = "paddle"
+    PaddleOCRAdapter.reset_engine()
+
+    monkeypatch.setattr(
+        PaddleOCRAdapter,
+        "_create_engine",
+        classmethod(
+            lambda cls: (_ for _ in ()).throw(
+                StorageException("PADDLE_OCR_INIT_FAILED", "PaddleOCR 初始化失败", {"error": "init boom"})
+            )
+        ),
+    )
+
+    resp = client.get("/api/v1/ocr/health")
+
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["provider"] == "paddle"
+    assert body["provider_name"] == "paddle_ocr"
+    assert body["status"] == "failed"
+    assert body["available"] is False
+    assert body["initialized"] is False
+    assert body["can_run_ocr"] is False
+    assert body["error"]["code"] == "PADDLE_OCR_INIT_FAILED"
+    assert body["error"]["details"]["error"] == "init boom"
+
+
 def test_classify_page_api_uses_ocr_text(client):
     project_id = create_project(client)
     evidence_id = upload_evidence(client, project_id, "password-policy.txt")
@@ -686,3 +766,41 @@ def test_run_real_ocr_without_provider_config_returns_400(client):
     resp = client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={})
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "REAL_OCR_NOT_CONFIGURED"
+
+
+def test_run_real_ocr_persists_structured_result(client):
+    settings.OCR_PROVIDER = "real"
+
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "real-provider.png")
+
+    resp = client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={})
+
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["ocr_status"] == "failed"
+    assert body["ocr_provider"] == "real_ocr"
+    assert body["ocr_error_message"] == "真实OCR提供方尚未配置，请先完成provider接入"
+    assert body["text_content"] == ""
+
+    result_resp = client.get(f"/api/v1/evidences/{evidence_id}/ocr-result")
+    assert result_resp.status_code == 200
+    result = result_resp.json()["data"]
+    assert result["status"] == "failed"
+    assert result["error"]["code"] == "REAL_OCR_NOT_CONFIGURED"
+
+
+def test_get_ocr_health_for_real_provider(client):
+    settings.OCR_PROVIDER = "real"
+
+    resp = client.get("/api/v1/ocr/health")
+
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["provider"] == "real"
+    assert body["provider_name"] == "real_ocr"
+    assert body["status"] == "not_configured"
+    assert body["available"] is True
+    assert body["initialized"] is False
+    assert body["can_run_ocr"] is False
+    assert body["error"]["code"] == "REAL_OCR_NOT_CONFIGURED"

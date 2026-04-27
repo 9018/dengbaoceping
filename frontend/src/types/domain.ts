@@ -143,6 +143,7 @@ export interface Evidence extends Timestamped {
   ocr_status: string | null
   ocr_provider: string | null
   ocr_error_message: string | null
+  ocr_error_json: { code?: string; message?: string; details?: unknown } | Record<string, unknown> | null
   ocr_processed_at: string | null
   device: string | null
   ports_json: unknown
@@ -265,6 +266,20 @@ export interface OcrResult {
   file_path?: string
   processed_at?: string
   error?: { code?: string; message?: string; details?: unknown } | null
+}
+
+export interface OcrHealth {
+  provider: string
+  provider_name: string
+  adapter?: string | null
+  status: string
+  available: boolean
+  initialized: boolean
+  can_run_ocr: boolean
+  supports_manual_input: boolean
+  timeout_seconds: number
+  error?: { code?: string; message?: string; details?: unknown } | null
+  details?: Record<string, unknown> | unknown[] | null
 }
 
 export interface ExtractedField extends Timestamped {
@@ -469,6 +484,39 @@ export interface HistoryStats {
   total: number
   compliance_status_counts: Record<string, number>
   asset_type_counts: Record<string, number>
+}
+
+export interface HistorySummary {
+  total: number
+  sheet_count: number
+  source_file_count: number
+  duplicate_group_count: number
+  duplicate_record_count: number
+  compliance_status_counts: Record<string, number>
+  asset_type_counts: Record<string, number>
+}
+
+export interface HistoryFieldValue {
+  value: string
+  count: number
+}
+
+export interface HistoryFieldValueRenamePayload {
+  from_value: string
+  to_value: string
+}
+
+export interface HistoryDuplicateGroup {
+  fingerprint: string
+  duplicate_count: number
+  source_file_count: number
+  sheet_name: string | null
+  asset_name: string | null
+  asset_type: string | null
+  control_point: string | null
+  item_text: string | null
+  compliance_result: string | null
+  records: HistoryRecord[]
 }
 
 export interface HistorySimilarRecord {
@@ -844,6 +892,34 @@ export interface ProjectAssessmentTable extends Timestamped {
   name: string
   status: string
   item_count: number
+}
+
+export interface ProjectAssessmentTableUpdatePayload {
+  name?: string | null
+  status?: string | null
+}
+
+export interface ProjectAssessmentTableConflictDetails {
+  item_count: number
+  confirmed_item_count: number
+  edited_item_count: number
+  linked_evidence_item_count: number
+  linked_fact_count: number
+}
+
+export interface ProjectAssessmentTableDeleteResult extends ProjectAssessmentTableConflictDetails {
+  id: string
+  forced: boolean
+}
+
+export interface ProjectAssessmentItemDeleteResult {
+  id: string
+  table_id: string
+  confirmed: boolean
+  edited: boolean
+  linked_evidence: boolean
+  linked_fact_count: number
+  forced: boolean
 }
 
 export interface EvidenceFact extends Timestamped {

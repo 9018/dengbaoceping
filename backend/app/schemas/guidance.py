@@ -39,6 +39,27 @@ class GuidanceItemRead(TimestampSchema):
     model_config = ConfigDict(from_attributes=True)
 
 
+class GuidanceSummaryRead(BaseModel):
+    total: int
+    source_file_count: int
+    duplicate_group_count: int
+    duplicate_item_count: int
+    level1_counts: dict[str, int]
+    level2_counts: dict[str, int]
+
+
+class GuidanceDuplicateGroupRead(BaseModel):
+    fingerprint: str
+    duplicate_count: int
+    source_file_count: int
+    section_title: str | None = None
+    section_path: str | None = None
+    level1: str | None = None
+    level2: str | None = None
+    record_suggestion: str | None = None
+    items: list[GuidanceItemRead]
+
+
 class GuidanceHistoryLinkRead(BaseModel):
     guidance_item_id: str
     history_record_id: str

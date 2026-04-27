@@ -5,8 +5,11 @@ import type {
   ProjectAssessmentConfirmPayload,
   ProjectAssessmentDraftResult,
   ProjectAssessmentItem,
+  ProjectAssessmentItemDeleteResult,
   ProjectAssessmentItemMatchResult,
   ProjectAssessmentTable,
+  ProjectAssessmentTableDeleteResult,
+  ProjectAssessmentTableUpdatePayload,
   WorkflowGlobalStatus,
   WorkflowNextAction,
   WorkflowProjectStatus,
@@ -60,10 +63,30 @@ export async function listProjectAssessmentTables(projectId: string, page = 1, p
   )
 }
 
+export async function getProjectAssessmentTable(tableId: string) {
+  return unwrapResponse<ProjectAssessmentTable>(apiClient.get(`/assessment-tables/${tableId}`))
+}
+
+export async function updateProjectAssessmentTable(tableId: string, payload: ProjectAssessmentTableUpdatePayload) {
+  return unwrapResponse<ProjectAssessmentTable>(apiClient.patch(`/assessment-tables/${tableId}`, payload))
+}
+
+export async function deleteProjectAssessmentTable(tableId: string, force = false) {
+  return unwrapResponse<ProjectAssessmentTableDeleteResult>(apiClient.delete(`/assessment-tables/${tableId}`, { params: { force } }))
+}
+
 export async function listProjectAssessmentItems(tableId: string, page = 1, pageSize = 50) {
   return unwrapResponse<PageResult<ProjectAssessmentItem>>(
     apiClient.get(`/assessment-tables/${tableId}/items`, { params: { page, page_size: pageSize } }),
   )
+}
+
+export async function updateProjectAssessmentItem(itemId: string, payload: Partial<ProjectAssessmentItem>) {
+  return unwrapResponse<ProjectAssessmentItem>(apiClient.patch(`/project-assessment-items/${itemId}`, payload))
+}
+
+export async function deleteProjectAssessmentItem(itemId: string, force = false) {
+  return unwrapResponse<ProjectAssessmentItemDeleteResult>(apiClient.delete(`/project-assessment-items/${itemId}`, { params: { force } }))
 }
 
 export async function extractEvidenceFacts(evidenceId: string) {

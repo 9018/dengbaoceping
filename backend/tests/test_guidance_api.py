@@ -4,6 +4,8 @@ import pytest
 
 from app.core.config import settings
 from app.models.assessment_template import TemplateGuidebookLink
+from app.models.evidence import Evidence
+from app.models.project import Project
 from tests.assessment_template_excel_utils import build_assessment_template_excel
 from tests.history_excel_utils import build_history_excel
 
@@ -46,6 +48,23 @@ def import_network_guidance(client, tmp_path: Path):
     content = """
 # 网络安全
 ## 边界防护
+应核查出口防火墙访问控制策略。
+应查看访问控制日志留存情况。
+记录建议：经现场核查，防火墙已配置访问控制策略，并开启日志留存。
+""".strip()
+    file_path = write_guidance_file(tmp_path, content)
+    configure_guidance_path(file_path)
+    return client.post("/api/v1/guidance/import-md")
+
+
+def import_duplicate_guidance(client, tmp_path: Path):
+    content = """
+# 网络安全
+## 边界防护-A
+应核查出口防火墙访问控制策略。
+应查看访问控制日志留存情况。
+记录建议：经现场核查，防火墙已配置访问控制策略，并开启日志留存。
+## 边界防护-B
 应核查出口防火墙访问控制策略。
 应查看访问控制日志留存情况。
 记录建议：经现场核查，防火墙已配置访问控制策略，并开启日志留存。
@@ -106,6 +125,84 @@ def test_guidance_import_and_items_api(client, tmp_path: Path):
     detail_resp = client.get(f"/api/v1/guidance/items/{detail_item['id']}")
     assert detail_resp.status_code == 200
     assert detail_resp.json()["data"]["section_title"] == "安全通用要求"
+
+
+def test_guidance_summary_api(client, tmp_path: Path):
+    import_sample_guidance(client, tmp_path)
+    import_duplicate_guidance(client, tmp_path)
+
+    resp = client.get("/api/v1/guidance/summary")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["total"] == 3
+    assert data["source_file_count"] == 1
+    assert data["duplicate_group_count"] == 1
+    assert data["duplicate_item_count"] == 2
+    assert data["level1_counts"]["网络安全"] == 3
+    assert data["level2_counts"]["边界防护-A"] == 1
+
+
+def test_guidance_duplicates_api_and_keep_first(client, tmp_path: Path):
+    import_duplicate_guidance(client, tmp_path)
+
+    list_resp = client.get("/api/v1/guidance/duplicates")
+    assert list_resp.status_code == 200
+    groups = list_resp.json()["data"]
+    assert len(groups) == 1
+    assert groups[0]["duplicate_count"] == 2
+    assert len(groups[0]["items"]) == 2
+
+    delete_resp = client.delete("/api/v1/guidance/duplicates", params={"strategy": "keep_first"})
+    assert delete_resp.status_code == 200
+    assert delete_resp.json()["data"]["deleted_count"] == 1
+
+    after_resp = client.get("/api/v1/guidance/duplicates")
+    assert after_resp.status_code == 200
+    assert after_resp.json()["data"] == []
+
+
+def test_guidance_duplicates_force_required_when_linked(client, db_session, tmp_path: Path):
+    import_assessment_template(client)
+    import_duplicate_guidance(client, tmp_path)
+    groups = client.get("/api/v1/guidance/duplicates").json()["data"]
+    duplicate_item = groups[0]["items"][1]
+    template_item = client.get("/api/v1/assessment-templates/items").json()["data"]["items"][0]
+
+    db_session.add(
+        TemplateGuidebookLink(
+            template_item_id=template_item["id"],
+            guidance_item_id=duplicate_item["id"],
+            match_score=0.88,
+            match_reason={"reason": "duplicate-link"},
+        )
+    )
+    db_session.commit()
+
+    resp = client.delete("/api/v1/guidance/duplicates", params={"strategy": "keep_first"})
+    assert resp.status_code == 409
+    assert resp.json()["error"]["code"] == "GUIDANCE_ITEM_IN_USE"
+
+    force_resp = client.delete("/api/v1/guidance/duplicates", params={"strategy": "keep_first", "force": True})
+    assert force_resp.status_code == 200
+    assert force_resp.json()["data"]["linked_template_count"] == 1
+    assert force_resp.json()["data"]["forced"] is True
+
+
+def test_guidance_duplicates_force_clears_history_and_evidence_links(client, db_session, tmp_path: Path):
+    import_duplicate_guidance(client, tmp_path)
+    groups = client.get("/api/v1/guidance/duplicates").json()["data"]
+    duplicate_item = groups[0]["items"][1]
+
+    project = Project(code="PJT-GUIDE", name="指导书测试项目", project_type="等级保护测评", status="draft")
+    db_session.add(project)
+    db_session.flush()
+    db_session.add(Evidence(project_id=project.id, evidence_type="image", title="evidence", matched_guidance_id=duplicate_item["id"]))
+    db_session.commit()
+
+    force_resp = client.delete("/api/v1/guidance/duplicates", params={"strategy": "keep_first", "force": True})
+    assert force_resp.status_code == 200
+    assert force_resp.json()["data"]["matched_evidence_count"] == 1
 
 
 def test_update_and_delete_guidance_item(client, tmp_path: Path):

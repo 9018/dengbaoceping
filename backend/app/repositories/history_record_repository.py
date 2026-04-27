@@ -1,4 +1,4 @@
-from sqlalchemy import func
+from sqlalchemy import func, literal
 from sqlalchemy.orm import Session
 
 from app.models.history_record import HistoryRecord
@@ -137,6 +137,9 @@ class HistoryRecordRepository:
     def count_distinct_sheets(self, db: Session) -> int:
         return db.query(func.count(func.distinct(HistoryRecord.sheet_name))).scalar() or 0
 
+    def count_distinct_source_files(self, db: Session) -> int:
+        return db.query(func.count(func.distinct(HistoryRecord.source_file))).scalar() or 0
+
     def count_by_source_file_hash(self, db: Session, source_file_hash: str) -> int:
         return db.query(func.count(HistoryRecord.id)).filter(HistoryRecord.source_file_hash == source_file_hash).scalar() or 0
 
@@ -169,6 +172,150 @@ class HistoryRecordRepository:
             db.query(HistoryRecord.asset_type, func.count(HistoryRecord.id))
             .group_by(HistoryRecord.asset_type)
             .all()
+        )
+
+    def list_distinct_field_values(self, db: Session, field_name: str) -> list[tuple[str | None, int]]:
+        column = getattr(HistoryRecord, field_name)
+        return db.query(column, func.count(HistoryRecord.id)).group_by(column).order_by(func.count(HistoryRecord.id).desc(), column.asc()).all()
+
+    def find_duplicate_groups(
+        self,
+        db: Session,
+        *,
+        sheet_name: str | None = None,
+        control_point: str | None = None,
+        compliance_status: str | None = None,
+        asset_type: str | None = None,
+        asset_name: str | None = None,
+        item_text: str | None = None,
+        compliance_result: str | None = None,
+        keyword: str | None = None,
+        project_name: str | None = None,
+        asset_ip: str | None = None,
+        standard_type: str | None = None,
+        item_code: str | None = None,
+    ) -> list[tuple[str, int, int, str | None, str | None, str | None, str | None, str | None, str | None]]:
+        fingerprint = self._duplicate_fingerprint()
+        query = self.build_query(
+            db,
+            sheet_name=sheet_name,
+            control_point=control_point,
+            compliance_status=compliance_status,
+            asset_type=asset_type,
+            asset_name=asset_name,
+            item_text=item_text,
+            compliance_result=compliance_result,
+            keyword=keyword,
+            project_name=project_name,
+            asset_ip=asset_ip,
+            standard_type=standard_type,
+            item_code=item_code,
+        )
+        return (
+            query.with_entities(
+                fingerprint.label("fingerprint"),
+                func.count(HistoryRecord.id).label("duplicate_count"),
+                func.count(func.distinct(HistoryRecord.source_file)).label("source_file_count"),
+                func.min(HistoryRecord.sheet_name).label("sheet_name"),
+                func.min(HistoryRecord.asset_name).label("asset_name"),
+                func.min(HistoryRecord.asset_type).label("asset_type"),
+                func.min(HistoryRecord.control_point).label("control_point"),
+                func.min(func.coalesce(HistoryRecord.item_text, HistoryRecord.evaluation_item)).label("item_text"),
+                func.min(func.coalesce(HistoryRecord.compliance_result, HistoryRecord.compliance_status)).label("compliance_result"),
+            )
+            .group_by(fingerprint)
+            .having(func.count(HistoryRecord.id) > 1)
+            .order_by(func.count(HistoryRecord.id).desc(), func.min(HistoryRecord.created_at).desc())
+            .all()
+        )
+
+    def list_records_by_duplicate_fingerprint(
+        self,
+        db: Session,
+        fingerprint_value: str,
+        *,
+        sheet_name: str | None = None,
+        control_point: str | None = None,
+        compliance_status: str | None = None,
+        asset_type: str | None = None,
+        asset_name: str | None = None,
+        item_text: str | None = None,
+        compliance_result: str | None = None,
+        keyword: str | None = None,
+        project_name: str | None = None,
+        asset_ip: str | None = None,
+        standard_type: str | None = None,
+        item_code: str | None = None,
+    ) -> list[HistoryRecord]:
+        fingerprint = self._duplicate_fingerprint()
+        query = self.build_query(
+            db,
+            sheet_name=sheet_name,
+            control_point=control_point,
+            compliance_status=compliance_status,
+            asset_type=asset_type,
+            asset_name=asset_name,
+            item_text=item_text,
+            compliance_result=compliance_result,
+            keyword=keyword,
+            project_name=project_name,
+            asset_ip=asset_ip,
+            standard_type=standard_type,
+            item_code=item_code,
+        )
+        return (
+            query.filter(fingerprint == fingerprint_value)
+            .order_by(HistoryRecord.created_at.asc(), HistoryRecord.row_index.asc(), HistoryRecord.id.asc())
+            .all()
+        )
+
+    def count_duplicate_groups(self, db: Session) -> int:
+        fingerprint = self._duplicate_fingerprint()
+        rows = (
+            db.query(fingerprint)
+            .group_by(fingerprint)
+            .having(func.count(HistoryRecord.id) > 1)
+            .all()
+        )
+        return len(rows)
+
+    def count_duplicate_records(self, db: Session) -> int:
+        fingerprint = self._duplicate_fingerprint()
+        rows = (
+            db.query(func.count(HistoryRecord.id))
+            .group_by(fingerprint)
+            .having(func.count(HistoryRecord.id) > 1)
+            .all()
+        )
+        return sum(total for (total,) in rows)
+
+    def list_records_by_field_value(self, db: Session, field_name: str, field_value: str) -> list[HistoryRecord]:
+        column = getattr(HistoryRecord, field_name)
+        return db.query(HistoryRecord).filter(column == field_value).order_by(HistoryRecord.created_at.desc(), HistoryRecord.row_index.asc()).all()
+
+    def update_field_value(self, db: Session, field_name: str, from_value: str, to_value: str) -> int:
+        column = getattr(HistoryRecord, field_name)
+        return db.query(HistoryRecord).filter(column == from_value).update({column: to_value}, synchronize_session=False)
+
+    def delete_by_field_value(self, db: Session, field_name: str, field_value: str) -> int:
+        column = getattr(HistoryRecord, field_name)
+        return db.query(HistoryRecord).filter(column == field_value).delete(synchronize_session=False)
+
+    def _duplicate_fingerprint(self):
+        return func.lower(
+            func.coalesce(HistoryRecord.sheet_name, "")
+            + literal("|")
+            + func.coalesce(HistoryRecord.asset_name, "")
+            + literal("|")
+            + func.coalesce(HistoryRecord.asset_type, "")
+            + literal("|")
+            + func.coalesce(HistoryRecord.control_point, "")
+            + literal("|")
+            + func.coalesce(HistoryRecord.item_text, HistoryRecord.evaluation_item, "")
+            + literal("|")
+            + func.coalesce(HistoryRecord.record_text, HistoryRecord.raw_text, "")
+            + literal("|")
+            + func.coalesce(HistoryRecord.compliance_result, HistoryRecord.compliance_status, "")
         )
 
     def _keyword_filter(self, keyword: str):

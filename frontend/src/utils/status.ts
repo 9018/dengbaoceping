@@ -22,7 +22,9 @@ const statusRegistry: Record<StatusKind, Record<string, StatusMeta>> = {
   },
   ocr: {
     pending: { label: '识别中', type: 'warning' },
+    processing: { label: '识别中', type: 'warning' },
     completed: { label: '已完成', type: 'success' },
+    completed_with_warning: { label: '完成但有告警', type: 'warning' },
     failed: { label: '识别失败', type: 'danger' },
   },
   field: {

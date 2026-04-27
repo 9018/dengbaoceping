@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections import defaultdict
 from dataclasses import asdict
 from pathlib import Path
 
@@ -42,6 +43,87 @@ class GuidanceService:
             "file_message": file_info["message"],
             "imported": total > 0,
             "total": total,
+        }
+
+    def summary(self, db: Session) -> dict:
+        return {
+            "total": self._count_items(db),
+            "source_file_count": self._count_distinct_source_files(db),
+            "duplicate_group_count": self._count_duplicate_groups(db),
+            "duplicate_item_count": self._count_duplicate_items(db),
+            "level1_counts": self._group_to_dict(self._group_by_level(db, "level1"), fallback="未分类"),
+            "level2_counts": self._group_to_dict(self._group_by_level(db, "level2"), fallback="未分类"),
+        }
+
+    def list_duplicate_groups(self, db: Session, *, keyword: str | None = None) -> list[dict]:
+        rows = self._find_duplicate_groups(db, keyword=keyword)
+        result: list[dict] = []
+        for fingerprint, duplicate_count, source_file_count, section_title, section_path, level1, level2, record_suggestion in rows:
+            items = self._list_items_by_duplicate_fingerprint(db, fingerprint, keyword=keyword)
+            result.append(
+                {
+                    "fingerprint": fingerprint,
+                    "duplicate_count": duplicate_count,
+                    "source_file_count": source_file_count,
+                    "section_title": section_title,
+                    "section_path": section_path,
+                    "level1": level1,
+                    "level2": level2,
+                    "record_suggestion": record_suggestion,
+                    "items": items,
+                }
+            )
+        return result
+
+    def delete_duplicate_groups(self, db: Session, *, strategy: str = "keep_first", force: bool = False) -> dict:
+        normalized_strategy = (strategy or "keep_first").strip().lower()
+        if normalized_strategy != "keep_first":
+            raise BadRequestException("GUIDANCE_DUPLICATE_STRATEGY_INVALID", "指导书重复记录删除策略仅支持 keep_first")
+        groups = self.list_duplicate_groups(db)
+        if not groups:
+            return {
+                "strategy": normalized_strategy,
+                "duplicate_group_count": 0,
+                "deleted_count": 0,
+                "linked_template_count": 0,
+                "linked_history_count": 0,
+                "matched_evidence_count": 0,
+                "forced": force,
+            }
+        delete_ids: list[str] = []
+        for group in groups:
+            group_items = group["items"]
+            if len(group_items) <= 1:
+                continue
+            delete_ids.extend(item.id for item in group_items[1:])
+        template_link_count, history_link_count, matched_evidence_count = self._count_links(db, delete_ids)
+        if (template_link_count or history_link_count or matched_evidence_count) and not force:
+            raise ConflictException(
+                "GUIDANCE_ITEM_IN_USE",
+                "重复指导书章节中存在被知识库引用的数据，无法直接删除",
+                details={
+                    "linked_template_count": template_link_count,
+                    "linked_history_count": history_link_count,
+                    "matched_evidence_count": matched_evidence_count,
+                    "item_count": len(delete_ids),
+                    "duplicate_group_count": len(groups),
+                },
+            )
+        if force:
+            self._delete_links(db, delete_ids)
+        deleted_count = 0
+        for guidance_id in delete_ids:
+            db.delete(self.get_item(db, guidance_id))
+            deleted_count += 1
+        db.commit()
+        return {
+            "strategy": normalized_strategy,
+            "duplicate_group_count": len(groups),
+            "deleted_count": deleted_count,
+            "linked_template_count": template_link_count,
+            "linked_history_count": history_link_count,
+            "matched_evidence_count": matched_evidence_count,
+            "forced": force,
         }
 
     def import_markdown(self, db: Session) -> dict:
@@ -256,6 +338,87 @@ class GuidanceService:
 
     def _count_items(self, db: Session) -> int:
         return db.query(func.count(GuidanceItem.id)).scalar() or 0
+
+    def _count_distinct_source_files(self, db: Session) -> int:
+        return db.query(func.count(func.distinct(GuidanceItem.source_file))).scalar() or 0
+
+    def _group_by_level(self, db: Session, field_name: str) -> list[tuple[str | None, int]]:
+        column = getattr(GuidanceItem, field_name)
+        return db.query(column, func.count(GuidanceItem.id)).group_by(column).all()
+
+    def _duplicate_fingerprint(self):
+        normalized_plain_text = func.trim(
+            func.replace(
+                func.coalesce(GuidanceItem.plain_text, ""),
+                func.coalesce(GuidanceItem.section_title, ""),
+                "",
+            )
+        )
+        return func.lower(
+            normalized_plain_text
+            + "|"
+            + func.coalesce(GuidanceItem.record_suggestion, "")
+        )
+
+    def _find_duplicate_groups(self, db: Session, *, keyword: str | None = None):
+        fingerprint = self._duplicate_fingerprint()
+        query = self._query_items(db, keyword)
+        return (
+            query.with_entities(
+                fingerprint.label("fingerprint"),
+                func.count(GuidanceItem.id).label("duplicate_count"),
+                func.count(func.distinct(GuidanceItem.source_file)).label("source_file_count"),
+                func.min(GuidanceItem.section_title).label("section_title"),
+                func.min(GuidanceItem.section_path).label("section_path"),
+                func.min(GuidanceItem.level1).label("level1"),
+                func.min(GuidanceItem.level2).label("level2"),
+                func.min(GuidanceItem.record_suggestion).label("record_suggestion"),
+            )
+            .group_by(fingerprint)
+            .having(func.count(GuidanceItem.id) > 1)
+            .order_by(func.count(GuidanceItem.id).desc(), func.min(GuidanceItem.created_at).desc())
+            .all()
+        )
+
+    def _list_items_by_duplicate_fingerprint(self, db: Session, fingerprint_value: str, *, keyword: str | None = None) -> list[GuidanceItem]:
+        fingerprint = self._duplicate_fingerprint()
+        return (
+            self._query_items(db, keyword)
+            .filter(fingerprint == fingerprint_value)
+            .order_by(GuidanceItem.created_at.asc(), GuidanceItem.id.asc())
+            .all()
+        )
+
+    def _count_duplicate_groups(self, db: Session) -> int:
+        fingerprint = self._duplicate_fingerprint()
+        rows = db.query(fingerprint).group_by(fingerprint).having(func.count(GuidanceItem.id) > 1).all()
+        return len(rows)
+
+    def _count_duplicate_items(self, db: Session) -> int:
+        fingerprint = self._duplicate_fingerprint()
+        rows = db.query(func.count(GuidanceItem.id)).group_by(fingerprint).having(func.count(GuidanceItem.id) > 1).all()
+        return sum(total for (total,) in rows)
+
+    def _count_links(self, db: Session, guidance_ids: list[str]) -> tuple[int, int, int]:
+        if not guidance_ids:
+            return 0, 0, 0
+        template_link_count = db.query(func.count(TemplateGuidebookLink.id)).filter(TemplateGuidebookLink.guidance_item_id.in_(guidance_ids)).scalar() or 0
+        history_link_count = db.query(func.count(GuidanceHistoryLink.id)).filter(GuidanceHistoryLink.guidance_item_id.in_(guidance_ids)).scalar() or 0
+        matched_evidence_count = db.query(func.count(Evidence.id)).filter(Evidence.matched_guidance_id.in_(guidance_ids)).scalar() or 0
+        return template_link_count, history_link_count, matched_evidence_count
+
+    def _delete_links(self, db: Session, guidance_ids: list[str]) -> None:
+        if not guidance_ids:
+            return
+        db.query(TemplateGuidebookLink).filter(TemplateGuidebookLink.guidance_item_id.in_(guidance_ids)).delete(synchronize_session=False)
+        db.query(GuidanceHistoryLink).filter(GuidanceHistoryLink.guidance_item_id.in_(guidance_ids)).delete(synchronize_session=False)
+        db.query(Evidence).filter(Evidence.matched_guidance_id.in_(guidance_ids)).update({Evidence.matched_guidance_id: None}, synchronize_session=False)
+
+    def _group_to_dict(self, rows: list[tuple[str | None, int]], fallback: str) -> dict[str, int]:
+        result: dict[str, int] = {}
+        for key, total in rows:
+            result[key or fallback] = total
+        return result
 
     def _read_file_state(self, raise_on_error: bool = False) -> dict:
         if not self.guidance_path.exists():

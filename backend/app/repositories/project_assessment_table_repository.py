@@ -99,3 +99,7 @@ class ProjectAssessmentTableRepository:
         db.commit()
         db.refresh(item)
         return item
+
+    def delete_item(self, db: Session, item: ProjectAssessmentItem) -> None:
+        db.delete(item)
+        db.commit()

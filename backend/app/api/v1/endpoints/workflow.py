@@ -4,7 +4,16 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.repositories.history_record_repository import HistoryRecordRepository
 from app.schemas.common import ApiResponse, paged_response, success_response
-from app.schemas.project import ProjectAssessmentItemRead, ProjectAssessmentTableRead, WorkflowNextActionRead, WorkflowProjectStatusRead
+from app.schemas.project import (
+    ProjectAssessmentItemDeleteRead,
+    ProjectAssessmentItemRead,
+    ProjectAssessmentItemUpdate,
+    ProjectAssessmentTableDeleteRead,
+    ProjectAssessmentTableRead,
+    ProjectAssessmentTableUpdate,
+    WorkflowNextActionRead,
+    WorkflowProjectStatusRead,
+)
 from app.services.assessment_template_import_service import AssessmentTemplateImportService
 from app.services.assessment_template_service import AssessmentTemplateService
 from app.services.evidence_fact_service import EvidenceFactService
@@ -114,6 +123,24 @@ def list_project_assessment_tables(
     )
 
 
+@router.get("/assessment-tables/{table_id}", response_model=ApiResponse)
+def get_project_assessment_table(table_id: str, db: Session = Depends(get_db)):
+    result = project_assessment_table_service.get_table(db, table_id)
+    return success_response(ProjectAssessmentTableRead.model_validate(result), "项目测评表详情获取成功")
+
+
+@router.patch("/assessment-tables/{table_id}", response_model=ApiResponse)
+def update_project_assessment_table(table_id: str, payload: ProjectAssessmentTableUpdate, db: Session = Depends(get_db)):
+    result = project_assessment_table_service.update_table(db, table_id, **payload.model_dump())
+    return success_response(ProjectAssessmentTableRead.model_validate(result), "项目测评表更新成功")
+
+
+@router.delete("/assessment-tables/{table_id}", response_model=ApiResponse)
+def delete_project_assessment_table(table_id: str, force: bool = Query(default=False), db: Session = Depends(get_db)):
+    result = project_assessment_table_service.delete_table(db, table_id, force=force)
+    return success_response(ProjectAssessmentTableDeleteRead.model_validate(result), "项目测评表删除成功")
+
+
 @router.get("/assessment-tables/{table_id}/items", response_model=ApiResponse)
 def list_project_assessment_items(
     table_id: str,
@@ -129,6 +156,18 @@ def list_project_assessment_items(
         page_size,
         "项目测评项列表获取成功",
     )
+
+
+@router.patch("/project-assessment-items/{item_id}", response_model=ApiResponse)
+def update_project_assessment_item(item_id: str, payload: ProjectAssessmentItemUpdate, db: Session = Depends(get_db)):
+    result = project_assessment_table_service.update_item(db, item_id, **payload.model_dump())
+    return success_response(ProjectAssessmentItemRead.model_validate(result), "项目测评项更新成功")
+
+
+@router.delete("/project-assessment-items/{item_id}", response_model=ApiResponse)
+def delete_project_assessment_item(item_id: str, force: bool = Query(default=False), db: Session = Depends(get_db)):
+    result = project_assessment_table_service.delete_item(db, item_id, force=force)
+    return success_response(ProjectAssessmentItemDeleteRead.model_validate(result), "项目测评项删除成功")
 
 
 @router.post("/evidences/{evidence_id}/extract-facts", response_model=ApiResponse)

@@ -75,20 +75,33 @@
             v-else-if="activeStep === 1"
             :assets="assets"
             :tables="workflowStore.projectTables"
+            :items="workflowStore.projectItems"
             :selected-asset-id="selectedAssetId"
+            :current-table-id="workflowStore.currentTableId"
+            :current-item-id="workflowStore.currentProjectAssessmentItemId"
+            :conflict-message="tableConflictMessage"
             @select-asset="selectAsset"
             @generate="handleGenerateTable"
             @refresh="loadTablesOnly"
+            @select-table="handleSelectTable"
+            @rename-table="handleRenameTable"
+            @regenerate-for-asset="handleRegenerateTable"
+            @delete-table="handleDeleteTable"
+            @select-item="selectProjectAssessmentItem"
+            @edit-item="handleEditItem"
+            @delete-item="handleDeleteItem"
           />
           <EvidenceUploadOcrStep
             v-else-if="activeStep === 2"
             :evidences="evidences"
             :selected-evidence-id="selectedEvidenceId"
             :ocr-text="ocrText"
+            :ocr-health="ocrHealth"
             @upload="evidenceDialogVisible = true"
             @ocr="handleRunOcr"
             @refresh="loadEvidenceOnly"
             @select-evidence="selectEvidence"
+            @save-manual-ocr="handleSaveManualOcr"
           />
           <EvidenceFactStep
             v-else-if="activeStep === 3"
@@ -148,9 +161,10 @@
 </template>
 
 <script setup lang="ts">
+import type { AxiosError } from 'axios'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import AppShell from '@/components/AppShell.vue'
 import AssetFormDialog from '@/components/AssetFormDialog.vue'
 import AssetCreateStep from '@/components/assessment/AssetCreateStep.vue'
@@ -164,9 +178,11 @@ import EvidenceUploadDialog from '@/components/EvidenceUploadDialog.vue'
 import StepFooterActions from '@/components/workflow/StepFooterActions.vue'
 import WorkflowStepper from '@/components/workflow/WorkflowStepper.vue'
 import { createAsset, listAssets } from '@/api/assets'
-import { getOcrResult, listEvidences, runOcr, uploadEvidence } from '@/api/evidences'
+import { getOcrHealth, getOcrResult, listEvidences, runOcr, saveManualOcrResult, uploadEvidence } from '@/api/evidences'
 import {
   confirmProjectAssessmentItem,
+  deleteProjectAssessmentItem,
+  deleteProjectAssessmentTable,
   extractEvidenceFacts,
   generateProjectAssessmentDraft,
   generateProjectAssessmentTable,
@@ -175,10 +191,20 @@ import {
   listProjectAssessmentItems,
   listProjectAssessmentTables,
   matchProjectAssessmentItem,
+  updateProjectAssessmentItem,
+  updateProjectAssessmentTable,
 } from '@/api/workflow'
 import { useAppStore } from '@/stores/app'
 import { useWorkflowStore } from '@/stores/workflow'
-import type { Asset, Evidence } from '@/types/domain'
+import type {
+  ApiResponse,
+  Asset,
+  Evidence,
+  OcrHealth,
+  ProjectAssessmentItem,
+  ProjectAssessmentTable,
+  ProjectAssessmentTableConflictDetails,
+} from '@/types/domain'
 
 const props = defineProps<{ projectId: string; evidenceId?: string }>()
 
@@ -189,6 +215,7 @@ const workflowStore = useWorkflowStore()
 const activeStep = ref(0)
 const assets = ref<Asset[]>([])
 const evidences = ref<Evidence[]>([])
+const ocrHealth = ref<OcrHealth | null>(null)
 const ocrText = ref('')
 const selectedAssetId = ref('')
 const selectedEvidenceId = ref('')
@@ -199,6 +226,7 @@ const finalRecordText = ref('')
 const finalComplianceResult = ref('')
 const reviewComment = ref('')
 const reviewedBy = ref('')
+const tableConflictMessage = ref('')
 
 const steps = [
   { key: 'asset', title: '创建资产', summary: '维护项目测试对象' },
@@ -229,6 +257,7 @@ const nextDisabled = computed(() => {
 
 function selectAsset(value: string) {
   selectedAssetId.value = value
+  tableConflictMessage.value = ''
 }
 
 function selectEvidence(value: string) {
@@ -270,6 +299,21 @@ function applyNextActionSelection() {
   if (nextAction.step_key && nextAction.step_key !== 'setup' && nextAction.step_key !== 'export') {
     activeStep.value = getActiveStepByKey(nextAction.step_key)
   }
+}
+
+function getApiError(error: unknown) {
+  return (error as AxiosError<ApiResponse<unknown>>)?.response?.data?.error || null
+}
+
+function formatTableConflict(details?: Partial<ProjectAssessmentTableConflictDetails> | null) {
+  if (!details) return '当前项目测评表存在受保护内容，需要显式确认。'
+  return [
+    `总条目 ${details.item_count ?? 0}`,
+    `已确认 ${details.confirmed_item_count ?? 0}`,
+    `人工编辑 ${details.edited_item_count ?? 0}`,
+    `挂证据 ${details.linked_evidence_item_count ?? 0}`,
+    `关联事实 ${details.linked_fact_count ?? 0}`,
+  ].join('，')
 }
 
 async function loadProjectStatus() {
@@ -317,7 +361,9 @@ async function loadProjectItems(tableId: string) {
 
 async function loadEvidenceOnly() {
   const { data } = await listEvidences(props.projectId)
+  const health = await getOcrHealth()
   evidences.value = data
+  ocrHealth.value = health.data
   const preferredEvidenceId = selectedEvidenceId.value || workflowStore.currentEvidenceId || props.evidenceId
   if (preferredEvidenceId && evidences.value.some((item) => item.id === preferredEvidenceId)) {
     selectedEvidenceId.value = preferredEvidenceId
@@ -396,15 +442,154 @@ async function createProjectAsset(payload: Record<string, unknown>) {
   applyNextActionSelection()
 }
 
+async function generateTableForAsset(assetId: string, force = false) {
+  const { data, message } = await generateProjectAssessmentTable(props.projectId, assetId, force)
+  workflowStore.setCurrentTableId(data.id)
+  selectedAssetId.value = assetId
+  tableConflictMessage.value = ''
+  ElMessage.success(message || (force ? '项目测评表已重新生成' : '项目测评表生成成功'))
+  await Promise.all([loadProjectStatus(), loadNextAction(), loadTablesOnly()])
+  applyNextActionSelection()
+}
+
 async function handleGenerateTable() {
   if (!selectedAssetId.value) {
     ElMessage.warning('请先选择资产')
     return
   }
-  const { data, message } = await generateProjectAssessmentTable(props.projectId, selectedAssetId.value)
-  workflowStore.setCurrentTableId(data.id)
-  ElMessage.success(message || '项目测评表生成成功')
-  await Promise.all([loadProjectStatus(), loadNextAction(), loadTablesOnly()])
+  try {
+    await generateTableForAsset(selectedAssetId.value)
+  } catch (error) {
+    const apiError = getApiError(error)
+    if (!apiError) return
+    if (apiError.code === 'PROJECT_ASSESSMENT_TABLE_REGENERATE_REQUIRES_FORCE') {
+      const summary = formatTableConflict(apiError.details as Partial<ProjectAssessmentTableConflictDetails>)
+      tableConflictMessage.value = `重新生成被保护：${summary}`
+      try {
+        await ElMessageBox.confirm(`当前资产的项目测评表已有处理痕迹：${summary}。是否确认强制重建？`, '重新生成确认', {
+          type: 'warning',
+          confirmButtonText: '确认重建',
+          cancelButtonText: '取消',
+        })
+      } catch {
+        return
+      }
+      await generateTableForAsset(selectedAssetId.value, true)
+      return
+    }
+    if (apiError.code === 'PROJECT_ASSESSMENT_TABLE_ALREADY_EXISTS') {
+      const summary = formatTableConflict(apiError.details as Partial<ProjectAssessmentTableConflictDetails>)
+      tableConflictMessage.value = `当前资产已存在测评表：${summary}`
+      return
+    }
+  }
+}
+
+async function handleSelectTable(tableId: string) {
+  const table = workflowStore.projectTables.find((item) => item.id === tableId) || null
+  if (!table) return
+  workflowStore.setCurrentTableId(tableId)
+  selectedAssetId.value = table.asset_id
+  tableConflictMessage.value = ''
+  await loadProjectItems(tableId)
+}
+
+async function handleRenameTable(table: ProjectAssessmentTable) {
+  const { value } = await ElMessageBox.prompt('请输入新的项目测评表名称', '重命名测评表', {
+    inputValue: table.name,
+    inputPlaceholder: '项目测评表名称',
+    confirmButtonText: '保存',
+    cancelButtonText: '取消',
+  })
+  const name = value?.trim()
+  if (!name || name === table.name) return
+  const { message } = await updateProjectAssessmentTable(table.id, { name })
+  ElMessage.success(message || '项目测评表重命名成功')
+  await loadTablesOnly()
+}
+
+async function handleRegenerateTable(table: ProjectAssessmentTable) {
+  selectedAssetId.value = table.asset_id
+  await handleGenerateTable()
+}
+
+async function handleDeleteTable(table: ProjectAssessmentTable) {
+  try {
+    const { message } = await deleteProjectAssessmentTable(table.id)
+    ElMessage.success(message || '项目测评表删除成功')
+    if (workflowStore.currentTableId === table.id) {
+      workflowStore.setCurrentTableId('')
+      workflowStore.setProjectItems([])
+      workflowStore.setCurrentProjectAssessmentItemId('')
+    }
+    tableConflictMessage.value = ''
+    await Promise.all([loadProjectStatus(), loadNextAction(), loadTablesOnly()])
+    applyNextActionSelection()
+  } catch (error) {
+    const apiError = getApiError(error)
+    if (!apiError || apiError.code !== 'PROJECT_ASSESSMENT_TABLE_IN_USE') return
+    const summary = formatTableConflict(apiError.details as Partial<ProjectAssessmentTableConflictDetails>)
+    tableConflictMessage.value = `删除被保护：${summary}`
+    try {
+      await ElMessageBox.confirm(`当前测评表存在受保护内容：${summary}。是否确认强制删除？`, '删除确认', {
+        type: 'warning',
+        confirmButtonText: '确认删除',
+        cancelButtonText: '取消',
+      })
+    } catch {
+      return
+    }
+    const { message } = await deleteProjectAssessmentTable(table.id, true)
+    ElMessage.success(message || '项目测评表已强制删除')
+    if (workflowStore.currentTableId === table.id) {
+      workflowStore.setCurrentTableId('')
+      workflowStore.setProjectItems([])
+      workflowStore.setCurrentProjectAssessmentItemId('')
+    }
+    tableConflictMessage.value = ''
+    await Promise.all([loadProjectStatus(), loadNextAction(), loadTablesOnly()])
+    applyNextActionSelection()
+  }
+}
+
+async function handleEditItem(item: ProjectAssessmentItem) {
+  const { value } = await ElMessageBox.prompt('请输入新的测评项文本', '编辑测评项', {
+    inputValue: item.item_text || '',
+    inputType: 'textarea',
+    inputPlaceholder: '测评项文本',
+    confirmButtonText: '保存',
+    cancelButtonText: '取消',
+  })
+  const itemText = value?.trim()
+  if (!itemText || itemText === (item.item_text || '')) return
+  const { message } = await updateProjectAssessmentItem(item.id, { item_text: itemText })
+  ElMessage.success(message || '项目测评项更新成功')
+  await reloadCurrentTableItems()
+}
+
+async function handleDeleteItem(item: ProjectAssessmentItem) {
+  try {
+    const { message } = await deleteProjectAssessmentItem(item.id)
+    ElMessage.success(message || '项目测评项删除成功')
+  } catch (error) {
+    const apiError = getApiError(error)
+    if (!apiError || apiError.code !== 'PROJECT_ASSESSMENT_ITEM_IN_USE') return
+    try {
+      await ElMessageBox.confirm('当前测评项存在已确认、人工编辑或证据事实关联，是否确认强制删除？', '删除确认', {
+        type: 'warning',
+        confirmButtonText: '确认删除',
+        cancelButtonText: '取消',
+      })
+    } catch {
+      return
+    }
+    const { message } = await deleteProjectAssessmentItem(item.id, true)
+    ElMessage.success(message || '项目测评项已强制删除')
+  }
+  if (workflowStore.currentProjectAssessmentItemId === item.id) {
+    workflowStore.setCurrentProjectAssessmentItemId('')
+  }
+  await Promise.all([reloadCurrentTableItems(), loadProjectStatus(), loadNextAction(), loadTablesOnly()])
   applyNextActionSelection()
 }
 
@@ -424,12 +609,12 @@ async function submitEvidenceUpload(payload: Record<string, unknown>) {
   applyNextActionSelection()
 }
 
-async function handleRunOcr() {
+async function handleRunOcr(force = false) {
   if (!selectedEvidenceId.value) {
     ElMessage.warning('请先选择证据')
     return
   }
-  const { data, message } = await runOcr(selectedEvidenceId.value)
+  const { data, message } = await runOcr(selectedEvidenceId.value, undefined, force)
   const ocrStatus = data.ocr_status
   if (ocrStatus === 'completed_with_warning') {
     ElMessage.warning(data.ocr_error_message || message || 'OCR 已完成，但存在告警')
@@ -438,6 +623,20 @@ async function handleRunOcr() {
   } else {
     ElMessage.success(message || 'OCR 执行成功')
   }
+  await loadEvidenceOnly()
+  await loadOcrText()
+  await loadProjectStatus()
+  await loadNextAction()
+  applyNextActionSelection()
+}
+
+async function handleSaveManualOcr(text: string) {
+  if (!selectedEvidenceId.value) {
+    ElMessage.warning('请先选择证据')
+    return
+  }
+  await saveManualOcrResult(selectedEvidenceId.value, text)
+  ElMessage.success('手工 OCR 保存成功')
   await loadEvidenceOnly()
   await loadOcrText()
   await loadProjectStatus()

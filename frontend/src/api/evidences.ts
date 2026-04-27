@@ -6,6 +6,7 @@ import type {
   EvidenceTemplateItemMatchResult,
   EvidenceUploadPayload,
   ExtractedField,
+  OcrHealth,
   OcrResult,
 } from '@/types/domain'
 
@@ -42,8 +43,16 @@ export async function uploadEvidence(projectId: string, payload: EvidenceUploadP
   )
 }
 
+export async function getOcrHealth() {
+  return unwrapResponse<OcrHealth>(apiClient.get('/ocr/health'))
+}
+
 export async function runOcr(evidenceId: string, sampleId?: string, force = false) {
   return unwrapResponse<Evidence>(apiClient.post(`/evidences/${evidenceId}/ocr`, { sample_id: sampleId || null, force }))
+}
+
+export async function saveManualOcrResult(evidenceId: string, textContent: string) {
+  return unwrapResponse<Evidence>(apiClient.patch(`/evidences/${evidenceId}/ocr-result`, { text_content: textContent }))
 }
 
 export async function getOcrResult(evidenceId: string) {

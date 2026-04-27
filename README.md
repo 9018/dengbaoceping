@@ -169,11 +169,37 @@ README.md                    仓库说明
 - `GET /api/v1/projects/{project_id}/assessment-next-action`
 - `POST /api/v1/projects/{project_id}/assets/{asset_id}/generate-assessment-table`
 - `GET /api/v1/projects/{project_id}/assessment-tables`
+- `GET /api/v1/assessment-tables/{table_id}`
+- `PATCH /api/v1/assessment-tables/{table_id}`
+- `DELETE /api/v1/assessment-tables/{table_id}`
 - `GET /api/v1/assessment-tables/{table_id}/items`
+- `PATCH /api/v1/project-assessment-items/{item_id}`
+- `DELETE /api/v1/project-assessment-items/{item_id}`
 - `POST /api/v1/evidences/{evidence_id}/extract-facts`
 - `POST /api/v1/evidences/{evidence_id}/match-project-assessment-item`
 - `POST /api/v1/project-assessment-items/{item_id}/generate-draft`
 - `POST /api/v1/project-assessment-items/{item_id}/confirm`
+
+### 项目测评表再生成与删除保护
+
+项目测评表不再默认静默覆盖：
+
+- 当前资产没有旧表时，可直接生成
+- 当前资产已有旧表但没有人工处理痕迹时，可按正常流程重建
+- 当前资产已有旧表且存在已确认项、人工编辑、证据挂载或事实关联时，默认返回冲突
+- 只有显式 `force=true` 时，才允许重建或强制删除
+
+前端项目测评向导会把这些冲突摘要直接展示出来，并要求用户二次确认，而不是静默覆盖旧数据。
+
+### 项目测评项编辑与删除保护
+
+项目测评项支持在向导中直接做轻量维护：
+
+- 设置当前项
+- 编辑测评项文本
+- 删除无依赖项
+
+若测评项已确认、存在人工编辑痕迹、已挂证据或已有事实关联，删除接口默认返回 `PROJECT_ASSESSMENT_ITEM_IN_USE`，前端需显式确认后再执行 `force=true` 强制删除。
 
 ## 知识库分页与 CRUD 约定
 
@@ -215,6 +241,22 @@ README.md                    仓库说明
 - `PATCH /api/v1/assessment-template-items/{item_id}`
 - `PATCH /api/v1/guidance/items/{guidance_id}`
 - `PATCH /api/v1/history-records/{record_id}`
+
+### 知识库统计与去重接口
+
+用于支持历史库、指导书的 summary、重复组查看和批量清理：
+
+- `GET /api/v1/history-records/summary`
+- `GET /api/v1/history-records/duplicates`
+- `DELETE /api/v1/history-records/duplicates`
+- `GET /api/v1/guidance/summary`
+- `GET /api/v1/guidance/duplicates`
+- `DELETE /api/v1/guidance/duplicates`
+
+历史库还支持围绕字段值做批量治理：
+
+- 工作表名称、资产类型、符合性状态等字段值可做重命名或按值批量删除
+- 若记录仍被模板或指导书关联引用，默认返回冲突；只有 `force=true` 才会先清理关联再删记录
 
 ### 知识库删除接口
 
@@ -284,6 +326,23 @@ OCR 状态统一为：
 - 识别成功且存在文本：`completed`
 - 底层返回失败但仍提取到文本：`completed_with_warning`
 - 失败且没有文本：`failed`
+
+### OCR 健康检查
+
+系统提供独立健康检查接口：
+
+- `GET /api/v1/ocr/health`
+
+返回内容包含：
+
+- 当前 provider 与 provider_name
+- adapter 名称
+- `available / initialized / can_run_ocr`
+- `timeout_seconds`
+- 初始化失败或依赖缺失时的结构化 `error`
+- 便于定位问题的 `details`
+
+证据中心和项目测评向导都会直接展示这组健康信息，便于判断是继续自动 OCR、强制重跑，还是直接走手工回填。
 
 ### 手工 OCR
 

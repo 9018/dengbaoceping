@@ -4,12 +4,16 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.common import ApiResponse, list_response, paged_response, success_response
 from app.schemas.history_record import (
+    HistoryDuplicateGroupRead,
+    HistoryFieldValueRead,
+    HistoryFieldValueRenameRequest,
     HistoryGuidanceLinkRead,
     HistoryImportRead,
     HistoryPhraseSummaryRead,
     HistoryRecordRead,
     HistorySimilarRead,
     HistoryStatsRead,
+    HistorySummaryRead,
 )
 from app.services.guidance_history_link_service import GuidanceHistoryLinkService
 from app.services.history_import_service import HistoryImportService
@@ -30,6 +34,73 @@ async def import_history_excel(
     content = await file.read()
     result = import_service.import_excel(db, file.filename or "history.xlsx", content, duplicate_policy=duplicate_policy)
     return success_response(HistoryImportRead.model_validate(result), "历史测评记录导入成功")
+
+
+@router.get("/summary", response_model=ApiResponse)
+def get_history_summary(db: Session = Depends(get_db)):
+    result = search_service.summary(db)
+    return success_response(HistorySummaryRead.model_validate(result), "历史测评记录汇总获取成功")
+
+
+@router.get("/duplicates", response_model=ApiResponse)
+def list_history_duplicates(
+    asset_name: str | None = Query(default=None),
+    asset_type: str | None = Query(default=None),
+    sheet_name: str | None = Query(default=None),
+    control_point: str | None = Query(default=None),
+    item_text: str | None = Query(default=None),
+    compliance_result: str | None = Query(default=None),
+    keyword: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    result = search_service.list_duplicate_groups(
+        db,
+        asset_name=asset_name,
+        asset_type=asset_type,
+        sheet_name=sheet_name,
+        control_point=control_point,
+        item_text=item_text,
+        compliance_result=compliance_result,
+        keyword=keyword,
+    )
+    return list_response([HistoryDuplicateGroupRead.model_validate(item) for item in result], "历史重复记录获取成功")
+
+
+@router.delete("/duplicates", response_model=ApiResponse)
+def delete_history_duplicates(
+    strategy: str = Query(default="keep_first"),
+    force: bool = Query(default=False),
+    db: Session = Depends(get_db),
+):
+    result = search_service.delete_duplicate_groups(db, strategy=strategy, force=force)
+    return success_response(result, "历史重复记录删除成功")
+
+
+@router.get("/field-values/{field_name}", response_model=ApiResponse)
+def list_history_field_values(field_name: str, db: Session = Depends(get_db)):
+    result = search_service.list_field_values(db, field_name)
+    return list_response([HistoryFieldValueRead.model_validate(item) for item in result], "历史记录字段值获取成功")
+
+
+@router.patch("/field-values/{field_name}", response_model=ApiResponse)
+def rename_history_field_value(
+    field_name: str,
+    payload: HistoryFieldValueRenameRequest,
+    db: Session = Depends(get_db),
+):
+    result = search_service.rename_field_value(db, field_name, payload.from_value, payload.to_value)
+    return success_response(result, "历史记录字段值更新成功")
+
+
+@router.delete("/field-values/{field_name}", response_model=ApiResponse)
+def delete_history_by_field_value(
+    field_name: str,
+    value: str = Query(...),
+    force: bool = Query(default=False),
+    db: Session = Depends(get_db),
+):
+    result = search_service.delete_by_field_value(db, field_name, value, force=force)
+    return success_response(result, "历史记录按字段值删除成功")
 
 
 @router.get("/records", response_model=ApiResponse)

@@ -2,13 +2,15 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.schemas.common import ApiResponse, MetaSchema, paged_response, success_response
+from app.schemas.common import ApiResponse, MetaSchema, list_response, paged_response, success_response
 from app.schemas.guidance import (
+    GuidanceDuplicateGroupRead,
     GuidanceHistoryLinkRead,
     GuidanceHistoryLinkResult,
     GuidanceImportRead,
     GuidanceItemRead,
     GuidanceItemUpdate,
+    GuidanceSummaryRead,
 )
 from app.services.guidance_history_link_service import GuidanceHistoryLinkService
 from app.services.guidance_service import GuidanceService
@@ -22,6 +24,31 @@ link_service = GuidanceHistoryLinkService()
 def import_guidance_markdown(db: Session = Depends(get_db)):
     result = service.import_markdown(db)
     return success_response(GuidanceImportRead.model_validate(result), "指导书导入成功")
+
+
+@router.get("/summary", response_model=ApiResponse)
+def get_guidance_summary(db: Session = Depends(get_db)):
+    result = service.summary(db)
+    return success_response(GuidanceSummaryRead.model_validate(result), "指导书汇总获取成功")
+
+
+@router.get("/duplicates", response_model=ApiResponse)
+def list_guidance_duplicates(
+    keyword: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    result = service.list_duplicate_groups(db, keyword=keyword)
+    return list_response([GuidanceDuplicateGroupRead.model_validate(item) for item in result], "指导书重复记录获取成功")
+
+
+@router.delete("/duplicates", response_model=ApiResponse)
+def delete_guidance_duplicates(
+    strategy: str = Query(default="keep_first"),
+    force: bool = Query(default=False),
+    db: Session = Depends(get_db),
+):
+    result = service.delete_duplicate_groups(db, strategy=strategy, force=force)
+    return success_response(result, "指导书重复记录删除成功")
 
 
 @router.get("/items", response_model=ApiResponse)

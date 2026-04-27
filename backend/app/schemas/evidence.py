@@ -62,6 +62,20 @@ class EvidenceManualOCRRequest(BaseModel):
     text_content: str = Field(..., description="手工录入的 OCR 文本")
 
 
+class OCRHealthRead(BaseModel):
+    provider: str
+    provider_name: str
+    adapter: str | None = None
+    status: str
+    available: bool
+    initialized: bool
+    can_run_ocr: bool
+    supports_manual_input: bool
+    timeout_seconds: int
+    error: dict | None = None
+    details: dict | list | None = None
+
+
 class EvidenceExtractRequest(BaseModel):
     template_code: str | None = Field(default=None, description="抽取模板编码")
     force: bool = Field(default=False, description="是否强制重新执行")

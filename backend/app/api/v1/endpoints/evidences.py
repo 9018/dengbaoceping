@@ -24,6 +24,7 @@ from app.schemas.evidence import (
     EvidenceTemplateItemMatchRead,
     EvidenceTemplateItemMatchRequest,
     EvidenceUploadData,
+    OCRHealthRead,
 )
 from app.services.asset_match_service import AssetMatchService
 from app.services.evidence_service import EvidenceService
@@ -90,6 +91,11 @@ def upload_evidence(
 @router.get("/evidences/{evidence_id}", response_model=ApiResponse)
 def get_evidence(evidence_id: str, db: Session = Depends(get_db)):
     return success_response(serialize_evidence(service.get_evidence(db, evidence_id)))
+
+
+@router.get("/ocr/health", response_model=ApiResponse)
+def get_ocr_health():
+    return success_response(OCRHealthRead.model_validate(ocr_service.get_health()), "OCR健康状态获取成功")
 
 
 @router.post("/evidences/{evidence_id}/ocr", response_model=ApiResponse)
