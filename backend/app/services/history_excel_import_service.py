@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 import unicodedata
 from collections import Counter
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import BadRequestException
 from app.models.history_record import HistoryRecord
+from app.models.knowledge_import_batch import KnowledgeImportBatch
 from app.repositories.history_record_repository import HistoryRecordRepository
 
 
@@ -52,6 +54,8 @@ class ParsedAssetInfo:
 
 
 class HistoryExcelImportService:
+    ALLOWED_DUPLICATE_POLICIES = {"skip", "overwrite"}
+    LIBRARY_TYPE = "history_record"
     REQUIRED_HEADERS = {
         "standard_type": ("扩展标准", "标准类型"),
         "control_point": ("控制点",),
@@ -101,7 +105,9 @@ class HistoryExcelImportService:
     def __init__(self) -> None:
         self.repository = HistoryRecordRepository()
 
-    def import_excel(self, db: Session, filename: str, content: bytes) -> dict:
+    def import_excel(self, db: Session, filename: str, content: bytes, duplicate_policy: str = "skip") -> dict:
+        policy = self._normalize_duplicate_policy(duplicate_policy)
+        source_file_hash = self._build_source_file_hash(content)
         workbook = self._load_workbook(filename, content)
         parsed_rows: list[ParsedHistoricalAssessmentRow] = []
         skipped_count = 0
@@ -117,15 +123,105 @@ class HistoryExcelImportService:
             raise BadRequestException("HISTORY_EXCEL_HEADER_NOT_FOUND", "未识别到历史测评记录表头，请确认包含扩展标准/控制点/测评项/结果记录/符合情况")
         if not parsed_rows:
             raise BadRequestException("HISTORY_EXCEL_EMPTY", "Excel 未解析出有效历史记录")
-        records = [HistoryRecord(**asdict(row)) for row in parsed_rows]
+
+        duplicate_record = self.repository.find_one_by_source_file_hash(db, source_file_hash)
+        batch = KnowledgeImportBatch(
+            library_type=self.LIBRARY_TYPE,
+            source_file=filename,
+            source_file_hash=source_file_hash,
+            file_size=len(content),
+            item_count=len(parsed_rows),
+            status="pending",
+            duplicate_of_id=duplicate_record.import_batch_id if duplicate_record else None,
+            import_mode=policy,
+        )
+        db.add(batch)
+        db.flush()
+
+        duplicate = duplicate_record is not None
+        if duplicate and policy == "skip":
+            batch.status = "skipped"
+            batch.summary_json = self._build_batch_summary(
+                sheet_count=len(workbook.sheetnames),
+                imported_count=0,
+                skipped_count=len(parsed_rows),
+                compliance_status_counts={},
+            )
+            db.commit()
+            return {
+                "batch_id": batch.id,
+                "source_file": filename,
+                "source_file_hash": source_file_hash,
+                "sheet_count": len(workbook.sheetnames),
+                "imported_count": 0,
+                "skipped_count": len(parsed_rows),
+                "compliance_status_counts": {},
+                "duplicate": True,
+                "duplicate_policy": policy,
+                "duplicate_of_id": batch.duplicate_of_id,
+                "status": batch.status,
+            }
+
+        if policy == "overwrite":
+            self.repository.delete_by_source_file_hash(db, source_file_hash)
+
+        records = [
+            HistoryRecord(
+                **asdict(row),
+                source_file_hash=source_file_hash,
+                import_batch_id=batch.id,
+            )
+            for row in parsed_rows
+        ]
         self.repository.create_many(db, records)
+        compliance_status_counts = self._build_status_counts(records)
+        batch.status = "imported"
+        batch.summary_json = self._build_batch_summary(
+            sheet_count=len(workbook.sheetnames),
+            imported_count=len(records),
+            skipped_count=skipped_count,
+            compliance_status_counts=compliance_status_counts,
+        )
         db.commit()
         return {
+            "batch_id": batch.id,
             "source_file": filename,
+            "source_file_hash": source_file_hash,
             "sheet_count": len(workbook.sheetnames),
             "imported_count": len(records),
             "skipped_count": skipped_count,
-            "compliance_status_counts": self._build_status_counts(records),
+            "compliance_status_counts": compliance_status_counts,
+            "duplicate": duplicate,
+            "duplicate_policy": policy,
+            "duplicate_of_id": batch.duplicate_of_id,
+            "status": batch.status,
+        }
+
+    def _normalize_duplicate_policy(self, duplicate_policy: str) -> str:
+        normalized = (duplicate_policy or "skip").strip().lower()
+        if normalized not in self.ALLOWED_DUPLICATE_POLICIES:
+            raise BadRequestException(
+                "HISTORY_DUPLICATE_POLICY_INVALID",
+                "duplicate_policy 仅支持 skip、overwrite",
+            )
+        return normalized
+
+    def _build_source_file_hash(self, content: bytes) -> str:
+        return hashlib.sha256(content).hexdigest()
+
+    def _build_batch_summary(
+        self,
+        *,
+        sheet_count: int,
+        imported_count: int,
+        skipped_count: int,
+        compliance_status_counts: dict[str, int],
+    ) -> dict:
+        return {
+            "sheet_count": sheet_count,
+            "imported_count": imported_count,
+            "skipped_count": skipped_count,
+            "compliance_status_counts": compliance_status_counts,
         }
 
     def _load_workbook(self, filename: str, content: bytes):
@@ -169,8 +265,8 @@ class HistoryExcelImportService:
     def _match_header_row(self, row: list[object]) -> dict[str, int] | None:
         normalized_cells = [self._normalize_cell(cell) for cell in row]
         normalized_required_headers = {
-            field_name: {self._normalize_cell(alias) for alias in aliases}
-            for field_name, aliases in self.OPTIONAL_HEADERS.items()
+            field_name: {self._normalize_cell(alias) for alias in self.OPTIONAL_HEADERS[field_name]}
+            for field_name in self.OPTIONAL_HEADERS
         }
         header_map: dict[str, int] = {}
         for field_name, aliases in normalized_required_headers.items():

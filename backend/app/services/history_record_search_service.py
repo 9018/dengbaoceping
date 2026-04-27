@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from collections import defaultdict
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import BadRequestException, NotFoundException
+from app.core.exceptions import BadRequestException, ConflictException, NotFoundException
+from app.models.assessment_template import TemplateHistoryLink
+from app.models.guidance_history_link import GuidanceHistoryLink
 from app.models.history_record import HistoryRecord
 from app.repositories.history_record_repository import HistoryRecordRepository
 
@@ -48,11 +51,124 @@ class HistoryRecordSearchService:
             item_code=self._clean(item_code),
         )
 
+    def list_records_page(
+        self,
+        db: Session,
+        *,
+        page: int = 1,
+        page_size: int = 20,
+        asset_name: str | None = None,
+        asset_type: str | None = None,
+        sheet_name: str | None = None,
+        control_point: str | None = None,
+        item_text: str | None = None,
+        compliance_result: str | None = None,
+        compliance_status: str | None = None,
+        keyword: str | None = None,
+        project_name: str | None = None,
+        asset_ip: str | None = None,
+        standard_type: str | None = None,
+        item_code: str | None = None,
+    ) -> tuple[list[HistoryRecord], int]:
+        return self.repository.list_records_page(
+            db,
+            page=page,
+            page_size=page_size,
+            asset_name=self._clean(asset_name),
+            asset_type=self._clean(asset_type),
+            sheet_name=self._clean(sheet_name),
+            control_point=self._clean(control_point),
+            item_text=self._clean(item_text),
+            compliance_result=self._clean(compliance_result),
+            compliance_status=self._clean(compliance_status or compliance_result),
+            keyword=self._clean(keyword),
+            project_name=self._clean(project_name),
+            asset_ip=self._clean(asset_ip),
+            standard_type=self._clean(standard_type),
+            item_code=self._clean(item_code),
+        )
+
     def get_record(self, db: Session, record_id: str) -> HistoryRecord:
         record = self.repository.get(db, record_id)
         if not record:
             raise NotFoundException("HISTORY_RECORD_NOT_FOUND", "历史测评记录不存在")
         return record
+
+    def update_record(self, db: Session, record_id: str, **payload) -> HistoryRecord:
+        record = self.get_record(db, record_id)
+        updates = {key: value for key, value in payload.items() if value is not None}
+        if not updates:
+            raise BadRequestException("HISTORY_RECORD_UPDATE_EMPTY", "请至少提供一个需要更新的字段")
+        for field_name, value in updates.items():
+            setattr(record, field_name, value.strip() if isinstance(value, str) else value)
+        db.commit()
+        db.refresh(record)
+        return record
+
+    def delete_record(self, db: Session, record_id: str, *, force: bool = False) -> dict:
+        record = self.get_record(db, record_id)
+        template_link_count = db.query(func.count(TemplateHistoryLink.id)).filter(TemplateHistoryLink.history_record_id == record.id).scalar() or 0
+        guidance_link_count = db.query(func.count(GuidanceHistoryLink.id)).filter(GuidanceHistoryLink.history_record_id == record.id).scalar() or 0
+        if (template_link_count or guidance_link_count) and not force:
+            raise ConflictException(
+                "HISTORY_RECORD_IN_USE",
+                "历史记录已被知识库关联引用，无法直接删除",
+                details={
+                    "linked_template_count": template_link_count,
+                    "linked_guidance_count": guidance_link_count,
+                },
+            )
+        if force and template_link_count:
+            db.query(TemplateHistoryLink).filter(TemplateHistoryLink.history_record_id == record.id).delete(synchronize_session=False)
+        if force and guidance_link_count:
+            db.query(GuidanceHistoryLink).filter(GuidanceHistoryLink.history_record_id == record.id).delete(synchronize_session=False)
+        db.delete(record)
+        db.commit()
+        return {
+            "id": record.id,
+            "linked_template_count": template_link_count,
+            "linked_guidance_count": guidance_link_count,
+            "forced": force,
+        }
+
+    def delete_by_source(self, db: Session, *, source_file: str | None = None, source_file_hash: str | None = None, force: bool = False) -> dict:
+        normalized_source_file = self._clean(source_file)
+        normalized_source_file_hash = self._clean(source_file_hash)
+        if not normalized_source_file and not normalized_source_file_hash:
+            raise BadRequestException("HISTORY_SOURCE_REQUIRED", "请提供 source_file 或 source_file_hash")
+        query = db.query(HistoryRecord)
+        if normalized_source_file:
+            query = query.filter(HistoryRecord.source_file == normalized_source_file)
+        if normalized_source_file_hash:
+            query = query.filter(HistoryRecord.source_file_hash == normalized_source_file_hash)
+        records = query.all()
+        if not records:
+            raise NotFoundException("HISTORY_SOURCE_NOT_FOUND", "未找到对应来源的历史记录")
+        record_ids = [item.id for item in records]
+        template_link_count = db.query(func.count(TemplateHistoryLink.id)).filter(TemplateHistoryLink.history_record_id.in_(record_ids)).scalar() or 0
+        guidance_link_count = db.query(func.count(GuidanceHistoryLink.id)).filter(GuidanceHistoryLink.history_record_id.in_(record_ids)).scalar() or 0
+        if (template_link_count or guidance_link_count) and not force:
+            raise ConflictException(
+                "HISTORY_RECORD_IN_USE",
+                "该来源历史记录已被知识库关联引用，无法直接删除",
+                details={
+                    "linked_template_count": template_link_count,
+                    "linked_guidance_count": guidance_link_count,
+                    "record_count": len(record_ids),
+                },
+            )
+        if force and template_link_count:
+            db.query(TemplateHistoryLink).filter(TemplateHistoryLink.history_record_id.in_(record_ids)).delete(synchronize_session=False)
+        if force and guidance_link_count:
+            db.query(GuidanceHistoryLink).filter(GuidanceHistoryLink.history_record_id.in_(record_ids)).delete(synchronize_session=False)
+        deleted_count = query.delete(synchronize_session=False)
+        db.commit()
+        return {
+            "deleted_count": deleted_count,
+            "linked_template_count": template_link_count,
+            "linked_guidance_count": guidance_link_count,
+            "forced": force,
+        }
 
     def search(self, db: Session, keyword: str) -> list[HistoryRecord]:
         normalized = keyword.strip()

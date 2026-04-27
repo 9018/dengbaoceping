@@ -14,6 +14,12 @@ class ProjectAssessmentTableRepository:
             .all()
         )
 
+    def list_by_project_page(self, db: Session, project_id: str, *, page: int = 1, page_size: int = 20) -> tuple[list[ProjectAssessmentTable], int]:
+        query = db.query(ProjectAssessmentTable).filter(ProjectAssessmentTable.project_id == project_id)
+        total = query.count()
+        items = query.order_by(ProjectAssessmentTable.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
+        return items, total
+
     def list_by_project_and_asset(self, db: Session, project_id: str, asset_id: str) -> list[ProjectAssessmentTable]:
         return (
             db.query(ProjectAssessmentTable)
@@ -55,6 +61,12 @@ class ProjectAssessmentTableRepository:
             .order_by(ProjectAssessmentItem.sheet_name.asc(), ProjectAssessmentItem.row_index.asc())
             .all()
         )
+
+    def list_items_page(self, db: Session, table_id: str, *, page: int = 1, page_size: int = 50) -> tuple[list[ProjectAssessmentItem], int]:
+        query = db.query(ProjectAssessmentItem).filter(ProjectAssessmentItem.table_id == table_id)
+        total = query.count()
+        items = query.order_by(ProjectAssessmentItem.sheet_name.asc(), ProjectAssessmentItem.row_index.asc()).offset((page - 1) * page_size).limit(page_size).all()
+        return items, total
 
     def list_items_by_project(self, db: Session, project_id: str) -> list[ProjectAssessmentItem]:
         return (

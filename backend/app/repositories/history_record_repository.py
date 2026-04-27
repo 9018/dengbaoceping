@@ -10,7 +10,7 @@ class HistoryRecordRepository:
         db.flush()
         return records
 
-    def list_records(
+    def build_query(
         self,
         db: Session,
         *,
@@ -26,7 +26,7 @@ class HistoryRecordRepository:
         asset_ip: str | None = None,
         standard_type: str | None = None,
         item_code: str | None = None,
-    ) -> list[HistoryRecord]:
+    ):
         query = db.query(HistoryRecord)
         if sheet_name:
             query = query.filter(HistoryRecord.sheet_name == sheet_name)
@@ -54,7 +54,79 @@ class HistoryRecordRepository:
             query = query.filter(HistoryRecord.item_code.ilike(f"%{item_code}%") | HistoryRecord.item_no.ilike(f"%{item_code}%"))
         if keyword:
             query = query.filter(self._keyword_filter(keyword))
+        return query
+
+    def list_records(
+        self,
+        db: Session,
+        *,
+        sheet_name: str | None = None,
+        control_point: str | None = None,
+        compliance_status: str | None = None,
+        asset_type: str | None = None,
+        asset_name: str | None = None,
+        item_text: str | None = None,
+        compliance_result: str | None = None,
+        keyword: str | None = None,
+        project_name: str | None = None,
+        asset_ip: str | None = None,
+        standard_type: str | None = None,
+        item_code: str | None = None,
+    ) -> list[HistoryRecord]:
+        query = self.build_query(
+            db,
+            sheet_name=sheet_name,
+            control_point=control_point,
+            compliance_status=compliance_status,
+            asset_type=asset_type,
+            asset_name=asset_name,
+            item_text=item_text,
+            compliance_result=compliance_result,
+            keyword=keyword,
+            project_name=project_name,
+            asset_ip=asset_ip,
+            standard_type=standard_type,
+            item_code=item_code,
+        )
         return query.order_by(HistoryRecord.created_at.desc(), HistoryRecord.row_index.asc()).all()
+
+    def list_records_page(
+        self,
+        db: Session,
+        *,
+        page: int = 1,
+        page_size: int = 20,
+        sheet_name: str | None = None,
+        control_point: str | None = None,
+        compliance_status: str | None = None,
+        asset_type: str | None = None,
+        asset_name: str | None = None,
+        item_text: str | None = None,
+        compliance_result: str | None = None,
+        keyword: str | None = None,
+        project_name: str | None = None,
+        asset_ip: str | None = None,
+        standard_type: str | None = None,
+        item_code: str | None = None,
+    ) -> tuple[list[HistoryRecord], int]:
+        query = self.build_query(
+            db,
+            sheet_name=sheet_name,
+            control_point=control_point,
+            compliance_status=compliance_status,
+            asset_type=asset_type,
+            asset_name=asset_name,
+            item_text=item_text,
+            compliance_result=compliance_result,
+            keyword=keyword,
+            project_name=project_name,
+            asset_ip=asset_ip,
+            standard_type=standard_type,
+            item_code=item_code,
+        )
+        total = query.count()
+        items = query.order_by(HistoryRecord.created_at.desc(), HistoryRecord.row_index.asc()).offset((page - 1) * page_size).limit(page_size).all()
+        return items, total
 
     def get(self, db: Session, record_id: str) -> HistoryRecord | None:
         return db.get(HistoryRecord, record_id)
@@ -64,6 +136,15 @@ class HistoryRecordRepository:
 
     def count_distinct_sheets(self, db: Session) -> int:
         return db.query(func.count(func.distinct(HistoryRecord.sheet_name))).scalar() or 0
+
+    def count_by_source_file_hash(self, db: Session, source_file_hash: str) -> int:
+        return db.query(func.count(HistoryRecord.id)).filter(HistoryRecord.source_file_hash == source_file_hash).scalar() or 0
+
+    def find_one_by_source_file_hash(self, db: Session, source_file_hash: str) -> HistoryRecord | None:
+        return db.query(HistoryRecord).filter(HistoryRecord.source_file_hash == source_file_hash).order_by(HistoryRecord.created_at.desc()).first()
+
+    def delete_by_source_file_hash(self, db: Session, source_file_hash: str) -> int:
+        return db.query(HistoryRecord).filter(HistoryRecord.source_file_hash == source_file_hash).delete()
 
     def list_by_keyword(self, db: Session, keyword: str) -> list[HistoryRecord]:
         return (

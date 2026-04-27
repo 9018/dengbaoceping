@@ -35,6 +35,26 @@ class GuidanceHistoryLinkRepository:
             query = query.filter(HistoryRecord.compliance_status == compliance_status)
         return query.order_by(GuidanceHistoryLink.match_score.desc(), HistoryRecord.created_at.desc(), HistoryRecord.row_index.asc()).all()
 
+    def list_history_by_guidance_page(
+        self,
+        db: Session,
+        guidance_item_id: str,
+        compliance_status: str | None = None,
+        *,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> tuple[list[tuple[GuidanceHistoryLink, HistoryRecord]], int]:
+        query = (
+            db.query(GuidanceHistoryLink, HistoryRecord)
+            .join(HistoryRecord, HistoryRecord.id == GuidanceHistoryLink.history_record_id)
+            .filter(GuidanceHistoryLink.guidance_item_id == guidance_item_id)
+        )
+        if compliance_status:
+            query = query.filter(HistoryRecord.compliance_status == compliance_status)
+        total = query.count()
+        rows = query.order_by(GuidanceHistoryLink.match_score.desc(), HistoryRecord.created_at.desc(), HistoryRecord.row_index.asc()).offset((page - 1) * page_size).limit(page_size).all()
+        return rows, total
+
     def list_history_by_guidance_ids(self, db: Session, guidance_item_ids: list[str]):
         if not guidance_item_ids:
             return []

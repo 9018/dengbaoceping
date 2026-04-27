@@ -52,7 +52,7 @@ def test_template_item_link_guidebook_and_list_api(client, tmp_path: Path):
         params={"sheet_name": "外联防火墙A", "item_code": "A-01"},
     )
     assert items_resp.status_code == 200
-    item_id = items_resp.json()["data"][0]["id"]
+    item_id = items_resp.json()["data"]["items"][0]["id"]
 
     link_resp = client.post(f"/api/v1/assessment-template-items/{item_id}/link-guidebook")
     assert link_resp.status_code == 200
@@ -77,7 +77,7 @@ def test_template_item_link_guidebook_acceptance_case_hits_identity_guidance(cli
         "/api/v1/assessment-templates/items",
         params={"sheet_name": "外联防火墙A", "item_code": "A-01"},
     )
-    item_id = items_resp.json()["data"][0]["id"]
+    item_id = items_resp.json()["data"]["items"][0]["id"]
 
     client.post(f"/api/v1/assessment-template-items/{item_id}/link-guidebook")
     rows = client.get(f"/api/v1/assessment-template-items/{item_id}/guidebook-links").json()["data"]

@@ -6,6 +6,7 @@ from openpyxl import Workbook
 
 from app.core.config import settings
 from app.models.evaluation_record import EvaluationRecord
+from app.services.ocr.mock_adapter import MOCK_OCR_SAMPLES
 from app.services.ocr.paddle_adapter import PaddleOCRAdapter
 from tests.assessment_template_excel_utils import build_assessment_template_match_excel
 
@@ -151,6 +152,7 @@ def test_run_ocr_and_extract_fields(client):
     assert ocr_body["message"] == "OCR执行成功"
     assert ocr_body["data"]["ocr_status"] == "completed"
     assert ocr_body["data"]["ocr_provider"] == "mock_ocr"
+    assert ocr_body["data"]["ocr_error_message"] is None
     assert "设备名称" in ocr_body["data"]["text_content"]
 
     ocr_result_resp = client.get(f"/api/v1/evidences/{evidence_id}/ocr-result")
@@ -158,6 +160,7 @@ def test_run_ocr_and_extract_fields(client):
     ocr_result = ocr_result_resp.json()["data"]
     assert ocr_result["sample_id"] == "firewall_basic"
     assert ocr_result["status"] == "completed"
+    assert ocr_result["raw_status"] == "completed"
     assert ocr_result["lines"]
     assert ocr_result["full_text"] == "\n".join(item["text"] for item in ocr_result["lines"])
     assert set(ocr_result["lines"][0]) == {"text", "confidence", "bbox"}
@@ -183,6 +186,87 @@ def test_run_ocr_and_extract_fields(client):
     assert list_fields_body["meta"]["total"] == 4
 
 
+def test_run_ocr_reuses_existing_result_without_force(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "firewall_basic.txt")
+
+    first_resp = client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={"sample_id": "firewall_basic"})
+    assert first_resp.status_code == 200
+    first_processed_at = first_resp.json()["data"]["ocr_processed_at"]
+
+    second_resp = client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={"sample_id": "missing-sample"})
+    assert second_resp.status_code == 200
+    second_body = second_resp.json()["data"]
+    assert second_body["ocr_processed_at"] == first_processed_at
+    assert second_body["ocr_status"] == "completed"
+    assert second_body["ocr_provider"] == "mock_ocr"
+
+
+def test_run_ocr_force_reruns_and_replaces_previous_result(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "firewall_basic.txt")
+
+    first_resp = client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={"sample_id": "firewall_basic"})
+    assert first_resp.status_code == 200
+
+    MOCK_OCR_SAMPLES["force_warning"] = {
+        "provider": "mock_ocr",
+        "status": "failed",
+        "sample_id": "force_warning",
+        "full_text": "补录文本仍可使用",
+        "pages": [{"page": 1, "confidence": 0.8, "text": "补录文本仍可使用", "segments": []}],
+        "error": {"code": "MOCK_WARNING", "message": "存在告警", "details": {"kind": "partial"}},
+    }
+    try:
+        forced_resp = client.post(f"/api/v1/evidences/{evidence_id}/ocr", json={"sample_id": "force_warning", "force": True})
+    finally:
+        MOCK_OCR_SAMPLES.pop("force_warning", None)
+
+    assert forced_resp.status_code == 200
+    body = forced_resp.json()["data"]
+    assert body["ocr_status"] == "completed_with_warning"
+    assert body["ocr_error_message"] == "存在告警"
+    assert body["text_content"] == "补录文本仍可使用"
+
+
+def test_manual_ocr_result_marks_completed_and_provider_manual(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "manual-ocr.txt")
+
+    resp = client.patch(
+        f"/api/v1/evidences/{evidence_id}/ocr-result",
+        json={"text_content": "第一行\n第二行"},
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["ocr_status"] == "completed"
+    assert body["ocr_provider"] == "manual"
+    assert body["ocr_error_message"] is None
+    assert body["text_content"] == "第一行\n第二行"
+
+    result_resp = client.get(f"/api/v1/evidences/{evidence_id}/ocr-result")
+    assert result_resp.status_code == 200
+    result = result_resp.json()["data"]
+    assert result["provider"] == "manual"
+    assert result["status"] == "completed"
+    assert result["lines"] == [
+        {"text": "第一行", "confidence": 1.0, "bbox": []},
+        {"text": "第二行", "confidence": 1.0, "bbox": []},
+    ]
+
+
+def test_manual_ocr_result_rejects_empty_text(client):
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "manual-empty.txt")
+
+    resp = client.patch(
+        f"/api/v1/evidences/{evidence_id}/ocr-result",
+        json={"text_content": "   \n"},
+    )
+
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "OCR_MANUAL_TEXT_EMPTY"
 def test_match_asset_hits_asset_name(client):
     project_id = create_project(client)
     create_asset(client, project_id, filename="FW-01", category="firewall", category_label="防火墙")
@@ -366,6 +450,7 @@ def test_run_paddle_ocr_success_with_stubbed_engine(client, monkeypatch):
     body = resp.json()
     assert body["data"]["ocr_status"] == "completed"
     assert body["data"]["ocr_provider"] == "paddle_ocr"
+    assert body["data"]["ocr_error_message"] is None
     assert body["data"]["text_content"] == "设备名称：FW-01\n管理IP：10.0.0.1"
 
     result_resp = client.get(f"/api/v1/evidences/{evidence_id}/ocr-result")
@@ -395,6 +480,7 @@ def test_run_paddle_ocr_failure_returns_structured_result(client, monkeypatch):
     body = resp.json()
     assert body["data"]["ocr_status"] == "failed"
     assert body["data"]["ocr_provider"] == "paddle_ocr"
+    assert body["data"]["ocr_error_message"] == "PaddleOCR 执行失败"
     assert body["data"]["text_content"] == ""
 
     result_resp = client.get(f"/api/v1/evidences/{evidence_id}/ocr-result")
@@ -405,6 +491,36 @@ def test_run_paddle_ocr_failure_returns_structured_result(client, monkeypatch):
     assert result["lines"] == []
 
 
+def test_run_paddle_ocr_normalizes_failed_with_text_to_completed_with_warning(client, monkeypatch):
+    settings.OCR_PROVIDER = "paddle"
+    PaddleOCRAdapter.reset_engine()
+
+    class FakeEngine:
+        def predict(self, file_path, use_textline_orientation=True):
+            return {"full_text": "兜底文本"}
+
+    monkeypatch.setattr(PaddleOCRAdapter, "_create_engine", classmethod(lambda cls: FakeEngine()))
+
+    project_id = create_project(client)
+    evidence_id = upload_evidence(client, project_id, "warning-image.png")
+
+    resp = client.post(
+        f"/api/v1/evidences/{evidence_id}/ocr",
+        json={"force": True},
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["ocr_status"] == "completed_with_warning"
+    assert body["ocr_provider"] == "paddle_ocr"
+    assert body["ocr_error_message"] == "PaddleOCR 原始结果未能完整解析为结构化行，已降级保留文本摘要"
+    assert body["text_content"] == "兜底文本"
+
+    result_resp = client.get(f"/api/v1/evidences/{evidence_id}/ocr-result")
+    result = result_resp.json()["data"]
+    assert result["status"] == "completed_with_warning"
+    assert result["raw_status"] == "failed"
+    assert result["error"]["code"] == "PADDLE_OCR_LINES_NORMALIZED_EMPTY"
 def test_classify_page_api_uses_ocr_text(client):
     project_id = create_project(client)
     evidence_id = upload_evidence(client, project_id, "password-policy.txt")

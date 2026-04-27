@@ -80,21 +80,27 @@ class GuidanceHistoryLinkService:
         self.guidance_service.get_item(db, guidance_id)
         normalized_status = compliance_status.strip() if compliance_status else None
         rows = self.repository.list_history_by_guidance(db, guidance_id, normalized_status)
-        return [
-            {
-                "guidance_item_id": link.guidance_item_id,
-                "history_record_id": record.id,
-                "match_score": link.match_score,
-                "match_reason": link.match_reason,
-                "record_text": record.record_text,
-                "compliance_status": record.compliance_status,
-                "asset_type": record.asset_type,
-                "control_point": record.control_point,
-                "evaluation_item": record.evaluation_item,
-                "sheet_name": record.sheet_name,
-            }
-            for link, record in rows
-        ]
+        return [self._build_history_link_payload(link, record) for link, record in rows]
+
+    def list_history_by_guidance_page(
+        self,
+        db: Session,
+        guidance_id: str,
+        compliance_status: str | None = None,
+        *,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> tuple[list[dict], int]:
+        self.guidance_service.get_item(db, guidance_id)
+        normalized_status = compliance_status.strip() if compliance_status else None
+        rows, total = self.repository.list_history_by_guidance_page(
+            db,
+            guidance_id,
+            normalized_status,
+            page=page,
+            page_size=page_size,
+        )
+        return [self._build_history_link_payload(link, record) for link, record in rows], total
 
     def list_guidance_by_history(self, db: Session, history_id: str) -> list[dict]:
         self.history_service.get_record(db, history_id)
@@ -111,6 +117,20 @@ class GuidanceHistoryLinkService:
             }
             for link, item in rows
         ]
+
+    def _build_history_link_payload(self, link: GuidanceHistoryLink, record: HistoryRecord) -> dict:
+        return {
+            "guidance_item_id": link.guidance_item_id,
+            "history_record_id": record.id,
+            "match_score": link.match_score,
+            "match_reason": link.match_reason,
+            "record_text": record.record_text,
+            "compliance_status": record.compliance_status,
+            "asset_type": record.asset_type,
+            "control_point": record.control_point,
+            "evaluation_item": record.evaluation_item,
+            "sheet_name": record.sheet_name,
+        }
 
     def _build_matches(self, guidance_item, history_records: list[HistoryRecord]) -> list[dict]:
         guidance_asset_type = self._infer_asset_type(guidance_item)

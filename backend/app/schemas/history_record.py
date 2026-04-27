@@ -5,6 +5,30 @@ from pydantic import BaseModel, ConfigDict
 from app.schemas.common import TimestampSchema
 
 
+class HistoryRecordUpdate(BaseModel):
+    project_name: str | None = None
+    sheet_name: str | None = None
+    asset_name: str | None = None
+    asset_type: str | None = None
+    asset_ip: str | None = None
+    asset_version: str | None = None
+    standard_type: str | None = None
+    extension_standard: str | None = None
+    control_point: str | None = None
+    item_text: str | None = None
+    evaluation_item: str | None = None
+    record_text: str | None = None
+    raw_text: str | None = None
+    compliance_result: str | None = None
+    compliance_status: str | None = None
+    score_weight: float | None = None
+    score: float | None = None
+    item_code: str | None = None
+    item_no: str | None = None
+    row_index: int | None = None
+    keywords_json: list[str] | None = None
+
+
 class HistoryRecordRead(TimestampSchema):
     id: str
     source_file: str
@@ -44,11 +68,17 @@ class HistoryGuidanceLinkRead(BaseModel):
 
 
 class HistoryImportRead(BaseModel):
+    batch_id: str | None = None
     source_file: str
+    source_file_hash: str | None = None
     sheet_count: int
     imported_count: int
     skipped_count: int
     compliance_status_counts: dict[str, int]
+    duplicate: bool = False
+    duplicate_policy: str | None = None
+    duplicate_of_id: str | None = None
+    status: str | None = None
 
 
 class HistoryStatsRead(BaseModel):

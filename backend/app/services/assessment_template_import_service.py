@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 import unicodedata
 from collections import Counter
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import BadRequestException
 from app.models.assessment_template import AssessmentTemplateItem, AssessmentTemplateSheet, AssessmentTemplateWorkbook
+from app.models.knowledge_import_batch import KnowledgeImportBatch
 
 
 @dataclass(slots=True)
@@ -52,6 +54,8 @@ class ParsedAssessmentTemplateSheet:
 
 
 class AssessmentTemplateImportService:
+    LIBRARY_TYPE = "assessment_template"
+    ALLOWED_DUPLICATE_POLICIES = {"skip", "overwrite", "new_version"}
     REQUIRED_HEADERS = {
         "standard_type": ("扩展标准", "标准类型"),
         "control_point": ("控制点",),
@@ -89,7 +93,9 @@ class AssessmentTemplateImportService:
         {"keywords": ("安全管理",), "object_type": "管理制度", "object_category": "管理对象", "object_subtype": None, "flags": {"is_management": True}},
     )
 
-    def import_excel(self, db: Session, filename: str, content: bytes) -> dict:
+    def import_excel(self, db: Session, filename: str, content: bytes, duplicate_policy: str = "skip") -> dict:
+        policy = self._normalize_duplicate_policy(duplicate_policy)
+        source_file_hash = self._build_source_file_hash(content)
         workbook = self._load_workbook(filename, content)
         workbook_name = self._build_workbook_name(filename)
         version = self._extract_version(filename)
@@ -107,8 +113,59 @@ class AssessmentTemplateImportService:
         if item_count == 0:
             raise BadRequestException("ASSESSMENT_TEMPLATE_EMPTY", "Excel 未解析出有效模板项")
 
+        duplicate_workbook = self._find_duplicate_workbook(db, source_file_hash)
+        batch = KnowledgeImportBatch(
+            library_type=self.LIBRARY_TYPE,
+            source_file=filename,
+            source_file_hash=source_file_hash,
+            file_size=len(content),
+            item_count=item_count,
+            status="pending",
+            duplicate_of_id=duplicate_workbook.import_batch_id if duplicate_workbook else None,
+            import_mode=policy,
+        )
+        db.add(batch)
+        db.flush()
+
+        sheet_names = [parsed_sheet.sheet_name for parsed_sheet in parsed_sheets]
+        duplicate = duplicate_workbook is not None
+        if duplicate and policy == "skip":
+            batch.status = "skipped"
+            batch.summary_json = self._build_batch_summary(
+                sheet_count=len(parsed_sheets),
+                sheet_names=sheet_names,
+                item_count=item_count,
+                imported_count=0,
+                skipped_count=item_count,
+            )
+            db.commit()
+            return {
+                "workbook_id": duplicate_workbook.id,
+                "batch_id": batch.id,
+                "source_file": filename,
+                "source_file_hash": source_file_hash,
+                "name": workbook_name,
+                "version": version,
+                "sheet_count": len(parsed_sheets),
+                "sheet_names": sheet_names,
+                "item_count": item_count,
+                "imported_count": 0,
+                "skipped_count": item_count,
+                "duplicate": True,
+                "duplicate_policy": policy,
+                "duplicate_of_id": batch.duplicate_of_id,
+                "status": batch.status,
+            }
+
+        if policy == "overwrite":
+            self._archive_active_workbooks(db, filename)
+
         workbook_record = AssessmentTemplateWorkbook(
             source_file=filename,
+            source_file_hash=source_file_hash,
+            file_size=len(content),
+            import_batch_id=batch.id,
+            is_archived=False,
             name=workbook_name,
             version=version,
             sheet_count=len(parsed_sheets),
@@ -117,9 +174,7 @@ class AssessmentTemplateImportService:
         db.add(workbook_record)
         db.flush()
 
-        sheet_names: list[str] = []
         for parsed_sheet in parsed_sheets:
-            sheet_names.append(parsed_sheet.sheet_name)
             sheet_record = AssessmentTemplateSheet(
                 workbook_id=workbook_record.id,
                 sheet_name=parsed_sheet.sheet_name,
@@ -164,16 +219,78 @@ class AssessmentTemplateImportService:
                 for item in parsed_sheet.items
             ]
             db.add_all(item_records)
+
+        batch.status = "imported"
+        batch.summary_json = self._build_batch_summary(
+            sheet_count=len(parsed_sheets),
+            sheet_names=sheet_names,
+            item_count=item_count,
+            imported_count=item_count,
+            skipped_count=skipped_count,
+        )
         db.commit()
         return {
             "workbook_id": workbook_record.id,
+            "batch_id": batch.id,
             "source_file": filename,
+            "source_file_hash": source_file_hash,
             "name": workbook_record.name,
             "version": workbook_record.version,
             "sheet_count": workbook_record.sheet_count,
             "sheet_names": sheet_names,
             "item_count": workbook_record.item_count,
             "imported_count": workbook_record.item_count,
+            "skipped_count": skipped_count,
+            "duplicate": duplicate,
+            "duplicate_policy": policy,
+            "duplicate_of_id": batch.duplicate_of_id,
+            "status": batch.status,
+        }
+
+    def _normalize_duplicate_policy(self, duplicate_policy: str) -> str:
+        normalized = (duplicate_policy or "skip").strip().lower()
+        if normalized not in self.ALLOWED_DUPLICATE_POLICIES:
+            raise BadRequestException(
+                "ASSESSMENT_TEMPLATE_DUPLICATE_POLICY_INVALID",
+                "duplicate_policy 仅支持 skip、overwrite、new_version",
+            )
+        return normalized
+
+    def _build_source_file_hash(self, content: bytes) -> str:
+        return hashlib.sha256(content).hexdigest()
+
+    def _find_duplicate_workbook(self, db: Session, source_file_hash: str) -> AssessmentTemplateWorkbook | None:
+        return (
+            db.query(AssessmentTemplateWorkbook)
+            .filter(AssessmentTemplateWorkbook.source_file_hash == source_file_hash)
+            .order_by(AssessmentTemplateWorkbook.created_at.desc())
+            .first()
+        )
+
+    def _archive_active_workbooks(self, db: Session, source_file: str) -> None:
+        (
+            db.query(AssessmentTemplateWorkbook)
+            .filter(
+                AssessmentTemplateWorkbook.source_file == source_file,
+                AssessmentTemplateWorkbook.is_archived.is_(False),
+            )
+            .update({AssessmentTemplateWorkbook.is_archived: True}, synchronize_session=False)
+        )
+
+    def _build_batch_summary(
+        self,
+        *,
+        sheet_count: int,
+        sheet_names: list[str],
+        item_count: int,
+        imported_count: int,
+        skipped_count: int,
+    ) -> dict:
+        return {
+            "sheet_count": sheet_count,
+            "sheet_names": sheet_names,
+            "item_count": item_count,
+            "imported_count": imported_count,
             "skipped_count": skipped_count,
         }
 

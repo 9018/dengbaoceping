@@ -166,6 +166,7 @@ README.md                    仓库说明
 ### 项目流程接口
 
 - `GET /api/v1/projects/{project_id}/workflow/status`
+- `GET /api/v1/projects/{project_id}/assessment-next-action`
 - `POST /api/v1/projects/{project_id}/assets/{asset_id}/generate-assessment-table`
 - `GET /api/v1/projects/{project_id}/assessment-tables`
 - `GET /api/v1/assessment-tables/{table_id}/items`
@@ -173,6 +174,165 @@ README.md                    仓库说明
 - `POST /api/v1/evidences/{evidence_id}/match-project-assessment-item`
 - `POST /api/v1/project-assessment-items/{item_id}/generate-draft`
 - `POST /api/v1/project-assessment-items/{item_id}/confirm`
+
+## 知识库分页与 CRUD 约定
+
+### 分页响应
+
+知识库大列表接口统一返回分页结构，避免一次性下发全量重字段：
+
+```json
+{
+  "success": true,
+  "message": "ok",
+  "data": {
+    "items": [],
+    "total": 0,
+    "page": 1,
+    "page_size": 20
+  },
+  "meta": {
+    "total": 0,
+    "page": 1,
+    "page_size": 20
+  }
+}
+```
+
+当前已统一到分页契约的主要接口：
+
+- `GET /api/v1/assessment-templates`
+- `GET /api/v1/assessment-templates/items`
+- `GET /api/v1/assessment-templates/{workbook_id}/sheets`
+- `GET /api/v1/guidance/items`
+- `GET /api/v1/guidance/{guidance_id}/history-records`
+- `GET /api/v1/history-records`
+- `GET /api/v1/history/records`
+
+### 知识库编辑接口
+
+- `PATCH /api/v1/assessment-templates/{workbook_id}`
+- `PATCH /api/v1/assessment-template-items/{item_id}`
+- `PATCH /api/v1/guidance/items/{guidance_id}`
+- `PATCH /api/v1/history-records/{record_id}`
+
+### 知识库删除接口
+
+- `DELETE /api/v1/assessment-templates/{workbook_id}`
+- `DELETE /api/v1/assessment-template-items/{item_id}`
+- `DELETE /api/v1/guidance/items/{guidance_id}`
+- `DELETE /api/v1/history-records/{record_id}`
+- `DELETE /api/v1/history-records/by-source`
+
+### 删除保护语义
+
+系统优先做显式业务校验，而不是只依赖外键副作用：
+
+- 模板工作簿：
+  - 未被项目测评表引用时可直接删除
+  - 被 `ProjectAssessmentTable.source_workbook_id` 引用时，默认返回 `TEMPLATE_WORKBOOK_IN_USE`
+  - `force=true` 时不物理删除，而是将工作簿归档 `is_archived=true`
+- 模板项：
+  - 被 `ProjectAssessmentItem.source_template_item_id` 引用时，返回 `TEMPLATE_ITEM_IN_USE`
+- 指导书章节：
+  - 被 `TemplateGuidebookLink` 引用时，默认返回 `GUIDANCE_ITEM_IN_USE`
+  - `force=true` 时先清理模板关联，再删除指导书章节
+- 历史记录：
+  - 被 `TemplateHistoryLink` 或 `GuidanceHistoryLink` 引用时，默认返回 `HISTORY_RECORD_IN_USE`
+  - `force=true` 时先清理关联，再删除记录
+- 历史记录按来源删除：
+  - `DELETE /api/v1/history-records/by-source` 需提供 `source_file` 或 `source_file_hash`
+
+## 导入防重复与批次跟踪
+
+模板、指导书、历史记录导入统一记录到 `KnowledgeImportBatch`，用于保存：
+
+- `library_type`
+- `source_file`
+- `source_file_hash`
+- `file_size`
+- `item_count`
+- `status`
+- `duplicate_of_id`
+- `import_mode`
+- `summary_json`
+
+### 去重规则
+
+- 模板导入：
+  - 基于文件内容 SHA256 判重
+  - 支持 `skip / overwrite / new_version`
+- 历史记录导入：
+  - 基于文件内容 SHA256 判重
+  - 支持 `skip / overwrite`
+- 指导书导入：
+  - 相同 hash 直接 `skipped`
+  - hash 变化时按 `guidance_code` 执行 upsert
+
+## OCR 状态规范
+
+OCR 状态统一为：
+
+- `pending`
+- `processing`
+- `completed`
+- `completed_with_warning`
+- `failed`
+
+判定规则：
+
+- 识别成功且存在文本：`completed`
+- 底层返回失败但仍提取到文本：`completed_with_warning`
+- 失败且没有文本：`failed`
+
+### 手工 OCR
+
+当自动 OCR 无法给出可用文本时，可通过以下接口补录：
+
+- `PATCH /api/v1/evidences/{evidence_id}/ocr-result`
+
+手工补录会：
+
+- 写入 `text_content`
+- 写入 `ocr_result_json`
+- 将 `ocr_provider` 置为 `manual`
+- 将 `ocr_status` 置为 `completed`
+
+## Workflow 状态与下一步动作
+
+项目工作流状态不再只看“是否生成测评表”，而是按真实阶段推进：
+
+- `global_template_missing`
+- `guidance_missing`
+- `history_missing`
+- `asset_missing`
+- `table_missing`
+- `evidence_missing`
+- `ocr_pending`
+- `facts_missing`
+- `item_match_missing`
+- `draft_missing`
+- `confirm_missing`
+- `next_item`
+- `completed`
+
+### 下一步动作接口
+
+- `GET /api/v1/projects/{project_id}/assessment-next-action`
+
+返回内容包含：
+
+- `stage`
+- `step_key`
+- `step_index`
+- `route`
+- `message`
+- `table_id / item_id / asset_id / evidence_id`
+- `stats`
+
+### OCR 与 workflow 的联动
+
+如果 OCR 原始状态为失败，但 `text_content` 或 `ocr_result_json.full_text` 中已经存在可用文本，流程会继续进入 `facts_missing`，不会继续卡在 `ocr_pending`。
 
 ## 本地开发启动
 

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.schemas.common import ApiResponse, list_response, success_response
+from app.schemas.common import ApiResponse, list_response, paged_response, success_response
 from app.schemas.history_record import (
     HistoryGuidanceLinkRead,
     HistoryImportRead,
@@ -22,9 +22,13 @@ link_service = GuidanceHistoryLinkService()
 
 
 @router.post("/import-excel", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
-async def import_history_excel(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def import_history_excel(
+    file: UploadFile = File(...),
+    duplicate_policy: str = Query(default="skip"),
+    db: Session = Depends(get_db),
+):
     content = await file.read()
-    result = import_service.import_excel(db, file.filename or "history.xlsx", content)
+    result = import_service.import_excel(db, file.filename or "history.xlsx", content, duplicate_policy=duplicate_policy)
     return success_response(HistoryImportRead.model_validate(result), "历史测评记录导入成功")
 
 
@@ -34,16 +38,26 @@ def list_history_records(
     control_point: str | None = Query(default=None),
     compliance_status: str | None = Query(default=None),
     asset_type: str | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
-    records = search_service.list_records(
+    records, total = search_service.list_records_page(
         db,
+        page=page,
+        page_size=page_size,
         sheet_name=sheet_name,
         control_point=control_point,
         compliance_status=compliance_status,
         asset_type=asset_type,
     )
-    return list_response([HistoryRecordRead.model_validate(item) for item in records], "历史测评记录列表获取成功")
+    return paged_response(
+        [HistoryRecordRead.model_validate(item) for item in records],
+        total,
+        page,
+        page_size,
+        "历史测评记录列表获取成功",
+    )
 
 
 @router.get("/records/{record_id}", response_model=ApiResponse)

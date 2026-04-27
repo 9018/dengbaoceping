@@ -6,7 +6,6 @@ from tests.assessment_template_excel_utils import build_assessment_template_matc
 from tests.test_history_api import import_sample_history
 
 
-
 def import_assessment_template_match_library(client):
     resp = client.post(
         "/api/v1/assessment-templates/import-excel",
@@ -20,7 +19,6 @@ def import_assessment_template_match_library(client):
     )
     assert resp.status_code == 201
     return resp.json()["data"]
-
 
 
 def build_identity_history_excel() -> bytes:
@@ -42,7 +40,6 @@ def build_identity_history_excel() -> bytes:
     return stream.getvalue()
 
 
-
 def import_identity_history(client):
     resp = client.post(
         "/api/v1/history/import-excel",
@@ -50,7 +47,6 @@ def import_identity_history(client):
     )
     assert resp.status_code == 201
     return resp.json()["data"]
-
 
 
 def test_template_item_link_history_and_list_api(client):
@@ -62,7 +58,7 @@ def test_template_item_link_history_and_list_api(client):
         params={"sheet_name": "外联防火墙A", "item_code": "A-01"},
     )
     assert items_resp.status_code == 200
-    item_id = items_resp.json()["data"][0]["id"]
+    item_id = items_resp.json()["data"]["items"][0]["id"]
 
     link_resp = client.post(f"/api/v1/assessment-template-items/{item_id}/link-history")
     assert link_resp.status_code == 200
@@ -78,7 +74,6 @@ def test_template_item_link_history_and_list_api(client):
     assert "compliance_result" in rows[0]
 
 
-
 def test_template_item_history_links_support_compliance_filter(client):
     import_sample_history(client)
     import_assessment_template_match_library(client)
@@ -87,7 +82,7 @@ def test_template_item_history_links_support_compliance_filter(client):
         "/api/v1/assessment-templates/items",
         params={"sheet_name": "外联防火墙A", "item_code": "A-01"},
     )
-    item_id = items_resp.json()["data"][0]["id"]
+    item_id = items_resp.json()["data"]["items"][0]["id"]
 
     client.post(f"/api/v1/assessment-template-items/{item_id}/link-history")
     rows = client.get(
@@ -99,7 +94,6 @@ def test_template_item_history_links_support_compliance_filter(client):
     assert all((row["compliance_result"] or row["compliance_status"]) == "符合" for row in rows)
 
 
-
 def test_template_item_link_history_acceptance_case_hits_identity_history(client):
     import_identity_history(client)
     import_assessment_template_match_library(client)
@@ -108,7 +102,7 @@ def test_template_item_link_history_acceptance_case_hits_identity_history(client
         "/api/v1/assessment-templates/items",
         params={"sheet_name": "外联防火墙A", "item_code": "A-01"},
     )
-    item_id = items_resp.json()["data"][0]["id"]
+    item_id = items_resp.json()["data"]["items"][0]["id"]
 
     client.post(f"/api/v1/assessment-template-items/{item_id}/link-history")
     rows = client.get(f"/api/v1/assessment-template-items/{item_id}/history-links").json()["data"]
@@ -116,7 +110,6 @@ def test_template_item_link_history_acceptance_case_hits_identity_history(client
     assert rows[0]["sheet_name"] == "出口防火墙"
     assert rows[0]["match_score"] >= 0.5
     assert any("控制点" in reason or "测评项" in reason or "写法" in reason for reason in rows[0]["match_reason"]["summary"])
-
 
 
 def test_template_item_link_history_api_rejects_missing_item(client):

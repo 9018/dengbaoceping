@@ -19,6 +19,8 @@ class EvidenceBase(BaseModel):
     ocr_result_json: dict | list | None = Field(default=None, description="OCR结构化结果JSON")
     ocr_status: str | None = Field(default=None, description="OCR状态")
     ocr_provider: str | None = Field(default=None, description="OCR提供方")
+    ocr_error_message: str | None = Field(default=None, description="OCR错误信息")
+    ocr_error_json: dict | list | None = Field(default=None, description="OCR错误详情JSON")
     ocr_processed_at: datetime | None = Field(default=None, description="OCR处理时间")
     device: str | None = Field(default=None, description="关联设备名称")
     ports_json: dict | list | None = Field(default=None, description="端口或网络信息JSON")
@@ -54,6 +56,10 @@ class EvidenceUploadData(BaseModel):
 class EvidenceOCRRequest(BaseModel):
     sample_id: str | None = Field(default=None, description="mock OCR样例ID；paddle/real provider 场景下可为空且会被忽略")
     force: bool = Field(default=False, description="是否强制重新执行")
+
+
+class EvidenceManualOCRRequest(BaseModel):
+    text_content: str = Field(..., description="手工录入的 OCR 文本")
 
 
 class EvidenceExtractRequest(BaseModel):

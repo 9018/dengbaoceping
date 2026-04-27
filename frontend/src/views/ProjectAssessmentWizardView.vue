@@ -38,6 +38,27 @@
         </div>
       </section>
 
+      <section v-if="workflowStore.nextAction" class="page-section">
+        <el-card>
+          <div class="section-header">
+            <div class="section-title">当前下一步动作</div>
+            <div class="section-subtitle">{{ workflowStore.nextAction.message }}</div>
+          </div>
+          <div class="next-action-grid">
+            <div class="soft-panel">
+              <div class="panel-label">当前阶段</div>
+              <div class="panel-value">{{ workflowStore.nextAction.stage }}</div>
+              <div class="panel-meta">步骤：{{ workflowStore.nextAction.step_key }} / {{ workflowStore.nextAction.step_index + 1 }}</div>
+            </div>
+            <div class="soft-panel">
+              <div class="panel-label">统计</div>
+              <div class="panel-value">{{ workflowStore.nextAction.stats.confirmed_item_count }}/{{ workflowStore.nextAction.stats.item_count }}</div>
+              <div class="panel-meta">已确认 / 总测评项</div>
+            </div>
+          </div>
+        </el-card>
+      </section>
+
       <el-card>
         <template #header>
           <div class="section-header">
@@ -149,6 +170,7 @@ import {
   extractEvidenceFacts,
   generateProjectAssessmentDraft,
   generateProjectAssessmentTable,
+  getProjectAssessmentNextAction,
   getProjectWorkflowStatus,
   listProjectAssessmentItems,
   listProjectAssessmentTables,
@@ -190,10 +212,15 @@ const steps = [
 
 const selectedAsset = computed(() => assets.value.find((item) => item.id === selectedAssetId.value) || null)
 const selectedEvidence = computed(() => evidences.value.find((item) => item.id === selectedEvidenceId.value) || null)
+const ocrReady = computed(() => {
+  const evidence = selectedEvidence.value
+  if (!evidence) return false
+  return evidence.ocr_status === 'completed' || evidence.ocr_status === 'completed_with_warning' || Boolean(evidence.text_content?.trim())
+})
 const nextDisabled = computed(() => {
   if (activeStep.value === 0) return assets.value.length === 0
   if (activeStep.value === 1) return !workflowStore.currentTableId || workflowStore.projectItems.length === 0
-  if (activeStep.value === 2) return !selectedEvidenceId.value || selectedEvidence.value?.ocr_status !== 'completed'
+  if (activeStep.value === 2) return !selectedEvidenceId.value || !ocrReady.value
   if (activeStep.value === 3) return !workflowStore.extractedFacts
   if (activeStep.value === 4) return !workflowStore.currentProjectAssessmentItemId
   if (activeStep.value === 5) return !workflowStore.generatedDraft
@@ -220,9 +247,39 @@ function syncConfirmFields() {
   reviewedBy.value = item?.reviewed_by || ''
 }
 
+function getActiveStepByKey(stepKey?: string | null) {
+  const index = steps.findIndex((step) => step.key === stepKey)
+  return index >= 0 ? index : 0
+}
+
+function applyNextActionSelection() {
+  const nextAction = workflowStore.nextAction
+  if (!nextAction) return
+  if (nextAction.asset_id) {
+    selectedAssetId.value = nextAction.asset_id
+  }
+  if (nextAction.evidence_id) {
+    selectedEvidenceId.value = nextAction.evidence_id
+  }
+  if (nextAction.table_id) {
+    workflowStore.setCurrentTableId(nextAction.table_id)
+  }
+  if (nextAction.item_id) {
+    workflowStore.setCurrentProjectAssessmentItemId(nextAction.item_id)
+  }
+  if (nextAction.step_key && nextAction.step_key !== 'setup' && nextAction.step_key !== 'export') {
+    activeStep.value = getActiveStepByKey(nextAction.step_key)
+  }
+}
+
 async function loadProjectStatus() {
   const { data } = await getProjectWorkflowStatus(props.projectId)
   workflowStore.setProjectStatus(data)
+}
+
+async function loadNextAction() {
+  const { data } = await getProjectAssessmentNextAction(props.projectId)
+  workflowStore.setNextAction(data)
 }
 
 async function loadAssetsOnly() {
@@ -238,8 +295,8 @@ async function loadAssetsOnly() {
 
 async function loadTablesOnly() {
   const { data } = await listProjectAssessmentTables(props.projectId)
-  workflowStore.setProjectTables(data)
-  const currentTable = data.find((item) => item.id === workflowStore.currentTableId) || data.find((item) => item.asset_id === selectedAssetId.value) || null
+  workflowStore.setProjectTables(data.items)
+  const currentTable = data.items.find((item) => item.id === workflowStore.currentTableId) || data.items.find((item) => item.asset_id === selectedAssetId.value) || null
   workflowStore.setCurrentTableId(currentTable?.id || '')
   if (workflowStore.currentTableId) {
     await loadProjectItems(workflowStore.currentTableId)
@@ -251,8 +308,8 @@ async function loadTablesOnly() {
 
 async function loadProjectItems(tableId: string) {
   const { data } = await listProjectAssessmentItems(tableId)
-  workflowStore.setProjectItems(data)
-  if (workflowStore.currentProjectAssessmentItemId && !data.some((item) => item.id === workflowStore.currentProjectAssessmentItemId)) {
+  workflowStore.setProjectItems(data.items)
+  if (workflowStore.currentProjectAssessmentItemId && !data.items.some((item) => item.id === workflowStore.currentProjectAssessmentItemId)) {
     workflowStore.setCurrentProjectAssessmentItemId('')
   }
   syncConfirmFields()
@@ -287,9 +344,14 @@ async function loadOcrText() {
 async function loadWorkflowContext() {
   appStore.setLoading(true)
   try {
-    await Promise.all([loadProjectStatus(), loadAssetsOnly(), loadEvidenceOnly()])
+    await Promise.all([loadProjectStatus(), loadNextAction(), loadAssetsOnly(), loadEvidenceOnly()])
+    applyNextActionSelection()
     await loadTablesOnly()
+    if (workflowStore.currentTableId) {
+      await loadProjectItems(workflowStore.currentTableId)
+    }
     await loadOcrText()
+    applyNextActionSelection()
   } finally {
     appStore.setLoading(false)
   }
@@ -330,7 +392,8 @@ async function createProjectAsset(payload: Record<string, unknown>) {
   assetDialogVisible.value = false
   selectedAssetId.value = data.id
   ElMessage.success(message || '项目资产创建成功')
-  await Promise.all([loadAssetsOnly(), loadProjectStatus()])
+  await Promise.all([loadAssetsOnly(), loadProjectStatus(), loadNextAction()])
+  applyNextActionSelection()
 }
 
 async function handleGenerateTable() {
@@ -341,7 +404,8 @@ async function handleGenerateTable() {
   const { data, message } = await generateProjectAssessmentTable(props.projectId, selectedAssetId.value)
   workflowStore.setCurrentTableId(data.id)
   ElMessage.success(message || '项目测评表生成成功')
-  await Promise.all([loadProjectStatus(), loadTablesOnly()])
+  await Promise.all([loadProjectStatus(), loadNextAction(), loadTablesOnly()])
+  applyNextActionSelection()
 }
 
 async function submitEvidenceUpload(payload: Record<string, unknown>) {
@@ -355,6 +419,9 @@ async function submitEvidenceUpload(payload: Record<string, unknown>) {
   ElMessage.success(message || '证据上传成功')
   await loadEvidenceOnly()
   await loadOcrText()
+  await loadProjectStatus()
+  await loadNextAction()
+  applyNextActionSelection()
 }
 
 async function handleRunOcr() {
@@ -362,10 +429,20 @@ async function handleRunOcr() {
     ElMessage.warning('请先选择证据')
     return
   }
-  const { message } = await runOcr(selectedEvidenceId.value)
-  ElMessage.success(message || 'OCR 执行成功')
+  const { data, message } = await runOcr(selectedEvidenceId.value)
+  const ocrStatus = data.ocr_status
+  if (ocrStatus === 'completed_with_warning') {
+    ElMessage.warning(data.ocr_error_message || message || 'OCR 已完成，但存在告警')
+  } else if (ocrStatus === 'failed') {
+    ElMessage.error(data.ocr_error_message || message || 'OCR 执行失败')
+  } else {
+    ElMessage.success(message || 'OCR 执行成功')
+  }
   await loadEvidenceOnly()
   await loadOcrText()
+  await loadProjectStatus()
+  await loadNextAction()
+  applyNextActionSelection()
 }
 
 async function handleExtractFacts() {
@@ -427,6 +504,12 @@ async function handleConfirmItem() {
   })
   ElMessage.success(message || '项目测评项确认成功')
   await reloadCurrentTableItems()
+  await loadProjectStatus()
+  await loadNextAction()
+  applyNextActionSelection()
+  if (workflowStore.nextAction?.stage === 'completed') {
+    ElMessage.success('当前项目测评流程已完成，可进入导出中心')
+  }
 }
 
 watch(selectedAssetId, async (value) => {

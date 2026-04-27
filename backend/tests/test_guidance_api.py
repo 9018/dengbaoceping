@@ -3,6 +3,8 @@ from pathlib import Path
 import pytest
 
 from app.core.config import settings
+from app.models.assessment_template import TemplateGuidebookLink
+from tests.assessment_template_excel_utils import build_assessment_template_excel
 from tests.history_excel_utils import build_history_excel
 
 
@@ -60,6 +62,13 @@ def import_sample_history(client):
     )
 
 
+def import_assessment_template(client):
+    return client.post(
+        "/api/v1/assessment-templates/import-excel",
+        files={"file": ("template.xlsx", build_assessment_template_excel(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+
+
 def test_guidance_import_file_not_found(client, tmp_path: Path):
     configure_guidance_path(tmp_path / "md" / "指导书.md")
 
@@ -90,7 +99,6 @@ def test_guidance_import_and_items_api(client, tmp_path: Path):
     items_resp = client.get("/api/v1/guidance/items")
     assert items_resp.status_code == 200
     items_data = items_resp.json()["data"]
-    assert items_data["imported"] is True
     assert items_data["total"] == 3
     assert len(items_data["items"]) == 3
 
@@ -98,6 +106,53 @@ def test_guidance_import_and_items_api(client, tmp_path: Path):
     detail_resp = client.get(f"/api/v1/guidance/items/{detail_item['id']}")
     assert detail_resp.status_code == 200
     assert detail_resp.json()["data"]["section_title"] == "安全通用要求"
+
+
+def test_update_and_delete_guidance_item(client, tmp_path: Path):
+    import_sample_guidance(client, tmp_path)
+    item = client.get("/api/v1/guidance/items").json()["data"]["items"][0]
+
+    update_resp = client.patch(
+        f"/api/v1/guidance/items/{item['id']}",
+        json={"section_title": "新的章节标题", "record_suggestion": "新的记录建议"},
+    )
+    assert update_resp.status_code == 200
+    updated = update_resp.json()["data"]
+    assert updated["section_title"] == "新的章节标题"
+    assert updated["record_suggestion"] == "新的记录建议"
+
+    delete_resp = client.delete(f"/api/v1/guidance/items/{item['id']}")
+    assert delete_resp.status_code == 200
+    assert delete_resp.json()["data"]["id"] == item["id"]
+
+
+def test_delete_guidance_item_requires_force_when_linked(client, db_session, tmp_path: Path):
+    import_network_guidance(client, tmp_path)
+    import_sample_history(client)
+    import_assessment_template(client)
+    guidance_id = client.get("/api/v1/guidance/items").json()["data"]["items"][0]["id"]
+    template_item_id = client.get("/api/v1/assessment-templates/items").json()["data"]["items"][0]["id"]
+    client.post(f"/api/v1/guidance/{guidance_id}/link-history")
+
+    db_session.add(
+        TemplateGuidebookLink(
+            template_item_id=template_item_id,
+            guidance_item_id=guidance_id,
+            match_score=0.9,
+            match_reason={"reason": "test"},
+        )
+    )
+    db_session.commit()
+
+    resp = client.delete(f"/api/v1/guidance/items/{guidance_id}")
+    assert resp.status_code == 409
+    assert resp.json()["error"]["code"] == "GUIDANCE_ITEM_IN_USE"
+
+    force_resp = client.delete(f"/api/v1/guidance/items/{guidance_id}", params={"force": True})
+    assert force_resp.status_code == 200
+    data = force_resp.json()["data"]
+    assert data["linked_template_count"] == 1
+    assert data["linked_history_count"] >= 1
 
 
 def test_guidance_default_path_prefers_repo_md_file(client):
@@ -156,7 +211,7 @@ def test_guidance_link_history_and_list_records_api(client, tmp_path: Path):
 
     list_resp = client.get(f"/api/v1/guidance/{guidance_id}/history-records")
     assert list_resp.status_code == 200
-    rows = list_resp.json()["data"]
+    rows = list_resp.json()["data"]["items"]
     assert rows
     assert "match_score" in rows[0]
     assert "match_reason" in rows[0]
@@ -178,7 +233,7 @@ def test_guidance_history_records_api_supports_status_filter(client, tmp_path: P
         params={"compliance_status": "符合"},
     )
     assert resp.status_code == 200
-    data = resp.json()["data"]
+    data = resp.json()["data"]["items"]
     assert data
     assert all(item["compliance_status"] == "符合" for item in data)
 

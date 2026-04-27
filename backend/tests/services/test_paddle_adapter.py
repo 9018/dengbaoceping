@@ -102,6 +102,37 @@ def test_paddle_adapter_normalizes_predict_record_shape(tmp_path):
     assert result["lines"][0]["bbox"] == [[0, 0], [10, 0], [10, 10], [0, 10]]
 
 
+def test_paddle_adapter_falls_back_to_object_string_payload(tmp_path):
+    evidence_file = tmp_path / "sample.png"
+    evidence_file.write_bytes(b"fake image")
+
+    adapter = PaddleOCRAdapter()
+
+    class FakeEntry:
+        def __init__(self, text):
+            self.text = text
+
+    class FakeEngine:
+        def predict(self, file_path, use_textline_orientation=True):
+            return FakeEntry("兜底文本")
+
+    original_get_engine = PaddleOCRAdapter._get_engine
+    PaddleOCRAdapter._get_engine = classmethod(lambda cls: FakeEngine())
+    try:
+        result = adapter.run(
+            evidence_id="e-1c",
+            filename="sample.png",
+            file_path=str(evidence_file),
+        )
+    finally:
+        PaddleOCRAdapter._get_engine = original_get_engine
+
+    assert result["status"] == "failed"
+    assert result["full_text"] == "兜底文本"
+    assert result["lines"] == []
+    assert result["error"]["code"] == "PADDLE_OCR_LINES_NORMALIZED_EMPTY"
+
+
 def test_paddle_adapter_returns_failed_payload_on_runtime_error(tmp_path):
     evidence_file = tmp_path / "sample.png"
     evidence_file.write_bytes(b"fake image")

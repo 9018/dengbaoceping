@@ -8,11 +8,16 @@ class AssessmentTemplateWorkbook(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "assessment_template_workbooks"
 
     source_file: Mapped[str] = mapped_column(String(255), nullable=False, index=True, comment="来源文件")
+    source_file_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True, comment="来源文件哈希")
+    file_size: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="来源文件大小")
+    import_batch_id: Mapped[str | None] = mapped_column(ForeignKey("knowledge_import_batches.id", ondelete="SET NULL"), nullable=True, index=True, comment="导入批次ID")
+    is_archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True, comment="是否归档")
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True, comment="模板名称")
     version: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True, comment="模板版本")
     sheet_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="工作表数量")
     item_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="模板项数量")
 
+    import_batch = relationship("KnowledgeImportBatch")
     sheets = relationship("AssessmentTemplateSheet", back_populates="workbook", cascade="all, delete-orphan")
     items = relationship("AssessmentTemplateItem", back_populates="workbook", cascade="all, delete-orphan")
 

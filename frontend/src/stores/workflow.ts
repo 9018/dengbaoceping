@@ -7,6 +7,7 @@ import type {
   ProjectAssessmentItemMatchResult,
   ProjectAssessmentTable,
   WorkflowGlobalStatus,
+  WorkflowNextAction,
   WorkflowProjectStatus,
 } from '@/types/domain'
 
@@ -21,6 +22,7 @@ export interface WorkflowStepState {
 export const useWorkflowStore = defineStore('workflow', () => {
   const globalStatus = ref<WorkflowGlobalStatus | null>(null)
   const projectStatus = ref<WorkflowProjectStatus | null>(null)
+  const nextAction = ref<WorkflowNextAction | null>(null)
   const projectTables = ref<ProjectAssessmentTable[]>([])
   const projectItems = ref<ProjectAssessmentItem[]>([])
   const extractedFacts = ref<EvidenceFactExtractionResult | null>(null)
@@ -40,6 +42,10 @@ export const useWorkflowStore = defineStore('workflow', () => {
 
   function setProjectStatus(value: WorkflowProjectStatus | null) {
     projectStatus.value = value
+  }
+
+  function setNextAction(value: WorkflowNextAction | null) {
+    nextAction.value = value
   }
 
   function setProjectTables(value: ProjectAssessmentTable[]) {
@@ -76,6 +82,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
 
   function resetProjectWorkflow() {
     projectStatus.value = null
+    nextAction.value = null
     projectTables.value = []
     projectItems.value = []
     extractedFacts.value = null
@@ -89,6 +96,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
   return {
     globalStatus,
     projectStatus,
+    nextAction,
     projectTables,
     projectItems,
     extractedFacts,
@@ -102,6 +110,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     currentItem,
     setGlobalStatus,
     setProjectStatus,
+    setNextAction,
     setProjectTables,
     setProjectItems,
     setExtractedFacts,

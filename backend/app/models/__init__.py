@@ -10,6 +10,7 @@ from app.models.extracted_field import ExtractedField, ReviewAuditLog
 from app.models.guidance_history_link import GuidanceHistoryLink
 from app.models.guidance_item import GuidanceItem
 from app.models.history_record import HistoricalAssessmentRecord, HistoryRecord
+from app.models.knowledge_import_batch import KnowledgeImportBatch
 from app.models.project import Project
 from app.models.project_assessment_table import ProjectAssessmentItem, ProjectAssessmentTable
 from app.models.template import Template
@@ -31,6 +32,7 @@ __all__ = [
     "GuidanceHistoryLink",
     "HistoricalAssessmentRecord",
     "HistoryRecord",
+    "KnowledgeImportBatch",
     "AssessmentTemplateWorkbook",
     "AssessmentTemplateSheet",
     "AssessmentTemplateItem",

@@ -5,6 +5,21 @@ from pydantic import BaseModel, ConfigDict
 from app.schemas.common import TimestampSchema
 
 
+class GuidanceItemUpdate(BaseModel):
+    guidance_code: str | None = None
+    section_path: str | None = None
+    section_title: str | None = None
+    level1: str | None = None
+    level2: str | None = None
+    level3: str | None = None
+    raw_markdown: str | None = None
+    plain_text: str | None = None
+    keywords_json: list[str] | None = None
+    check_points_json: list[str] | None = None
+    evidence_requirements_json: list[str] | None = None
+    record_suggestion: str | None = None
+
+
 class GuidanceItemRead(TimestampSchema):
     id: str
     guidance_code: str
@@ -86,4 +101,12 @@ class GuidanceLibraryRead(GuidanceLibraryStatus):
 
 
 class GuidanceImportRead(GuidanceLibraryStatus):
+    batch_id: str | None = None
+    source_file_hash: str | None = None
     imported_count: int
+    updated_count: int = 0
+    skipped_count: int = 0
+    deleted_count: int = 0
+    duplicate: bool = False
+    duplicate_of_id: str | None = None
+    status: str | None = None

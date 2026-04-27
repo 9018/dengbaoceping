@@ -3,18 +3,38 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.schemas.assessment_template import (
+    AssessmentTemplateItemRead,
+    AssessmentTemplateItemUpdate,
     TemplateGuidebookLinkRead,
     TemplateGuidebookLinkResultRead,
     TemplateHistoryLinkRead,
     TemplateHistoryLinkResultRead,
 )
 from app.schemas.common import ApiResponse, list_response, success_response
+from app.services.assessment_template_service import AssessmentTemplateService
 from app.services.template_guidebook_link_service import TemplateGuidebookLinkService
 from app.services.template_history_link_service import TemplateHistoryLinkService
 
 router = APIRouter(prefix="/assessment-template-items", tags=["assessment-template-items"])
 guidebook_service = TemplateGuidebookLinkService()
 history_service = TemplateHistoryLinkService()
+service = AssessmentTemplateService()
+
+
+@router.patch("/{item_id}", response_model=ApiResponse)
+def update_assessment_template_item(
+    item_id: str,
+    payload: AssessmentTemplateItemUpdate,
+    db: Session = Depends(get_db),
+):
+    item = service.update_item(db, item_id, **payload.model_dump())
+    return success_response(AssessmentTemplateItemRead.model_validate(item), "模板项更新成功")
+
+
+@router.delete("/{item_id}", response_model=ApiResponse)
+def delete_assessment_template_item(item_id: str, db: Session = Depends(get_db)):
+    result = service.delete_item(db, item_id)
+    return success_response(result, "模板项删除成功")
 
 
 @router.post("/{item_id}/link-guidebook", response_model=ApiResponse)

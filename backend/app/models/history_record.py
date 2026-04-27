@@ -1,5 +1,5 @@
-from sqlalchemy import JSON, Float, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import JSON, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
@@ -8,6 +8,8 @@ class HistoricalAssessmentRecord(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "history_records"
 
     source_file: Mapped[str] = mapped_column(String(255), nullable=False, comment="来源文件")
+    source_file_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True, comment="来源文件哈希")
+    import_batch_id: Mapped[str | None] = mapped_column(ForeignKey("knowledge_import_batches.id", ondelete="SET NULL"), nullable=True, index=True, comment="导入批次ID")
     project_name: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True, comment="项目名称")
     sheet_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True, comment="工作表名称")
     asset_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True, comment="资产名称")
@@ -29,6 +31,8 @@ class HistoricalAssessmentRecord(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     item_no: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True, comment="编号")
     row_index: Mapped[int] = mapped_column(Integer, nullable=False, comment="行号")
     keywords_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list, comment="关键词列表")
+
+    import_batch = relationship("KnowledgeImportBatch")
 
 
 HistoryRecord = HistoricalAssessmentRecord

@@ -1,12 +1,14 @@
 import apiClient, { unwrapResponse } from './http'
 import type {
   EvidenceFactExtractionResult,
+  PageResult,
   ProjectAssessmentConfirmPayload,
   ProjectAssessmentDraftResult,
   ProjectAssessmentItem,
   ProjectAssessmentItemMatchResult,
   ProjectAssessmentTable,
   WorkflowGlobalStatus,
+  WorkflowNextAction,
   WorkflowProjectStatus,
 } from '@/types/domain'
 
@@ -42,18 +44,26 @@ export async function getProjectWorkflowStatus(projectId: string) {
   return unwrapResponse<WorkflowProjectStatus>(apiClient.get(`/projects/${projectId}/workflow/status`))
 }
 
+export async function getProjectAssessmentNextAction(projectId: string) {
+  return unwrapResponse<WorkflowNextAction>(apiClient.get(`/projects/${projectId}/assessment-next-action`))
+}
+
 export async function generateProjectAssessmentTable(projectId: string, assetId: string, force = false) {
   return unwrapResponse<ProjectAssessmentTable>(
     apiClient.post(`/projects/${projectId}/assets/${assetId}/generate-assessment-table`, null, { params: { force } }),
   )
 }
 
-export async function listProjectAssessmentTables(projectId: string) {
-  return unwrapResponse<ProjectAssessmentTable[]>(apiClient.get(`/projects/${projectId}/assessment-tables`))
+export async function listProjectAssessmentTables(projectId: string, page = 1, pageSize = 20) {
+  return unwrapResponse<PageResult<ProjectAssessmentTable>>(
+    apiClient.get(`/projects/${projectId}/assessment-tables`, { params: { page, page_size: pageSize } }),
+  )
 }
 
-export async function listProjectAssessmentItems(tableId: string) {
-  return unwrapResponse<ProjectAssessmentItem[]>(apiClient.get(`/assessment-tables/${tableId}/items`))
+export async function listProjectAssessmentItems(tableId: string, page = 1, pageSize = 50) {
+  return unwrapResponse<PageResult<ProjectAssessmentItem>>(
+    apiClient.get(`/assessment-tables/${tableId}/items`, { params: { page, page_size: pageSize } }),
+  )
 }
 
 export async function extractEvidenceFacts(evidenceId: string) {

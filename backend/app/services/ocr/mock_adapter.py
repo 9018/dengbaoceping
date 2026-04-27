@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, UTC
 
+from pydantic import BaseModel, Field
+
 from app.core.exceptions import BadRequestException
 from app.services.ocr.base import OCRLine, OCRResult
 
@@ -111,6 +113,13 @@ MOCK_OCR_SAMPLES: dict[str, dict] = {
 }
 
 
+class MockOCRSampleCreate(BaseModel):
+    provider: str = Field(default="mock_ocr")
+    status: str = Field(default="completed")
+    sample_id: str
+    full_text: str
+
+
 class MockOCRAdapter:
     def run(self, *, evidence_id: str, filename: str, file_path: str, sample_id: str | None = None) -> OCRResult:
         resolved_sample = sample_id or self._infer_sample_id(filename)
@@ -128,7 +137,7 @@ class MockOCRAdapter:
             "filename": filename,
             "file_path": file_path,
             "processed_at": datetime.now(UTC).isoformat(),
-            "error": None,
+            "error": payload.get("error"),
         }
 
     def _build_lines(self, payload: dict) -> list[OCRLine]:

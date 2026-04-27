@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.repositories.history_record_repository import HistoryRecordRepository
-from app.schemas.common import ApiResponse, list_response, success_response
+from app.schemas.common import ApiResponse, paged_response, success_response
+from app.schemas.project import ProjectAssessmentItemRead, ProjectAssessmentTableRead, WorkflowNextActionRead, WorkflowProjectStatusRead
 from app.services.assessment_template_import_service import AssessmentTemplateImportService
 from app.services.assessment_template_service import AssessmentTemplateService
 from app.services.evidence_fact_service import EvidenceFactService
@@ -46,9 +47,18 @@ def get_global_status(db: Session = Depends(get_db)):
 
 
 @router.post("/workflow/import-template", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
-async def import_template(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def import_template(
+    file: UploadFile = File(...),
+    duplicate_policy: str = Query(default="skip"),
+    db: Session = Depends(get_db),
+):
     content = await file.read()
-    result = assessment_template_import_service.import_excel(db, file.filename or "assessment_template.xlsx", content)
+    result = assessment_template_import_service.import_excel(
+        db,
+        file.filename or "assessment_template.xlsx",
+        content,
+        duplicate_policy=duplicate_policy,
+    )
     return success_response(result, "测评记录模板导入成功")
 
 
@@ -59,26 +69,26 @@ def import_guidance(db: Session = Depends(get_db)):
 
 
 @router.post("/workflow/import-history", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
-async def import_history(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def import_history(
+    file: UploadFile = File(...),
+    duplicate_policy: str = Query(default="skip"),
+    db: Session = Depends(get_db),
+):
     content = await file.read()
-    result = history_import_service.import_excel(db, file.filename or "history.xlsx", content)
+    result = history_import_service.import_excel(db, file.filename or "history.xlsx", content, duplicate_policy=duplicate_policy)
     return success_response(result, "历史测评记录导入成功")
 
 
 @router.get("/projects/{project_id}/workflow/status", response_model=ApiResponse)
 def get_project_workflow_status(project_id: str, db: Session = Depends(get_db)):
-    tables = project_assessment_table_service.list_project_tables(db, project_id)
-    return success_response(
-        {
-            "project_id": project_id,
-            "table_count": len(tables),
-            "item_count": sum(table.item_count for table in tables),
-            "status": "completed" if tables else "ready",
-            "canNext": True,
-            "summary": "项目工作流状态汇总",
-        },
-        "项目流程状态获取成功",
-    )
+    result = WorkflowProjectStatusRead.model_validate(project_assessment_table_service.get_project_workflow_status(db, project_id))
+    return success_response(result, "项目流程状态获取成功")
+
+
+@router.get("/projects/{project_id}/assessment-next-action", response_model=ApiResponse)
+def get_project_assessment_next_action(project_id: str, db: Session = Depends(get_db)):
+    result = WorkflowNextActionRead.model_validate(project_assessment_table_service.get_project_next_action(db, project_id))
+    return success_response(result, "项目下一步动作获取成功")
 
 
 @router.post("/projects/{project_id}/assets/{asset_id}/generate-assessment-table", response_model=ApiResponse)
@@ -88,15 +98,37 @@ def generate_project_assessment_table(project_id: str, asset_id: str, force: boo
 
 
 @router.get("/projects/{project_id}/assessment-tables", response_model=ApiResponse)
-def list_project_assessment_tables(project_id: str, db: Session = Depends(get_db)):
-    tables = project_assessment_table_service.list_project_tables(db, project_id)
-    return list_response(tables, "项目测评表列表获取成功")
+def list_project_assessment_tables(
+    project_id: str,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    tables, total = project_assessment_table_service.list_project_tables_page(db, project_id, page=page, page_size=page_size)
+    return paged_response(
+        [ProjectAssessmentTableRead.model_validate(item) for item in tables],
+        total,
+        page,
+        page_size,
+        "项目测评表列表获取成功",
+    )
 
 
 @router.get("/assessment-tables/{table_id}/items", response_model=ApiResponse)
-def list_project_assessment_items(table_id: str, db: Session = Depends(get_db)):
-    items = project_assessment_table_service.list_table_items(db, table_id)
-    return list_response(items, "项目测评项列表获取成功")
+def list_project_assessment_items(
+    table_id: str,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=500),
+    db: Session = Depends(get_db),
+):
+    items, total = project_assessment_table_service.list_table_items_page(db, table_id, page=page, page_size=page_size)
+    return paged_response(
+        [ProjectAssessmentItemRead.model_validate(item) for item in items],
+        total,
+        page,
+        page_size,
+        "项目测评项列表获取成功",
+    )
 
 
 @router.post("/evidences/{evidence_id}/extract-facts", response_model=ApiResponse)

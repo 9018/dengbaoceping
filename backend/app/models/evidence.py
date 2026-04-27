@@ -20,6 +20,8 @@ class Evidence(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     ocr_result_json: Mapped[dict | list | None] = mapped_column(JSON, nullable=True, comment="OCR结构化结果JSON")
     ocr_status: Mapped[str | None] = mapped_column(String(50), nullable=True, comment="OCR状态")
     ocr_provider: Mapped[str | None] = mapped_column(String(50), nullable=True, comment="OCR提供方")
+    ocr_error_message: Mapped[str | None] = mapped_column(Text, nullable=True, comment="OCR错误信息")
+    ocr_error_json: Mapped[dict | list | None] = mapped_column(JSON, nullable=True, comment="OCR错误详情JSON")
     ocr_processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, comment="OCR处理时间")
     device: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="关联设备名称")
     ports_json: Mapped[dict | list | None] = mapped_column(JSON, nullable=True, comment="端口或网络信息JSON")

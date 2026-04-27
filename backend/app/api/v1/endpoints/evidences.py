@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 from datetime import datetime
 
@@ -14,6 +16,7 @@ from app.schemas.evidence import (
     EvidenceExtractRequest,
     EvidenceHistoryMatchRead,
     EvidenceHistoryMatchRequest,
+    EvidenceManualOCRRequest,
     EvidenceMatchAssetRequest,
     EvidenceMatchGuidanceRequest,
     EvidenceOCRRequest,
@@ -91,8 +94,14 @@ def get_evidence(evidence_id: str, db: Session = Depends(get_db)):
 
 @router.post("/evidences/{evidence_id}/ocr", response_model=ApiResponse)
 def run_ocr(evidence_id: str, payload: EvidenceOCRRequest, db: Session = Depends(get_db)):
-    evidence = ocr_service.run_ocr(db, evidence_id, payload.sample_id)
+    evidence = ocr_service.run_ocr(db, evidence_id, payload.sample_id, payload.force)
     return success_response(serialize_evidence(evidence), "OCR执行成功")
+
+
+@router.patch("/evidences/{evidence_id}/ocr-result", response_model=ApiResponse)
+def save_manual_ocr_result(evidence_id: str, payload: EvidenceManualOCRRequest, db: Session = Depends(get_db)):
+    evidence = ocr_service.save_manual_result(db, evidence_id, payload.text_content)
+    return success_response(serialize_evidence(evidence), "OCR结果保存成功")
 
 
 @router.get("/evidences/{evidence_id}/ocr-result", response_model=ApiResponse)

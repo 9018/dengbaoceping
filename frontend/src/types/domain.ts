@@ -6,6 +6,15 @@ export interface ApiError {
 
 export interface ApiMeta {
   total: number
+  page?: number
+  page_size?: number
+}
+
+export interface PageResult<T> {
+  items: T[]
+  total: number
+  page: number
+  page_size: number
 }
 
 export interface ApiResponse<T> {
@@ -133,6 +142,7 @@ export interface Evidence extends Timestamped {
   ocr_result_json: unknown
   ocr_status: string | null
   ocr_provider: string | null
+  ocr_error_message: string | null
   ocr_processed_at: string | null
   device: string | null
   ports_json: unknown
@@ -245,13 +255,16 @@ export interface EvidenceUploadPayload {
 export interface OcrResult {
   provider?: string
   status?: string
+  raw_status?: string
   sample_id?: string
   full_text?: string
+  lines?: Array<{ text: string; confidence?: number | null; bbox?: unknown[] }>
   pages?: unknown
   evidence_id?: string
   filename?: string
   file_path?: string
   processed_at?: string
+  error?: { code?: string; message?: string; details?: unknown } | null
 }
 
 export interface ExtractedField extends Timestamped {
@@ -767,13 +780,60 @@ export interface WorkflowGlobalStatus {
   summary: string
 }
 
+export type WorkflowStage =
+  | 'global_template_missing'
+  | 'guidance_missing'
+  | 'history_missing'
+  | 'asset_missing'
+  | 'table_missing'
+  | 'evidence_missing'
+  | 'ocr_pending'
+  | 'facts_missing'
+  | 'item_match_missing'
+  | 'draft_missing'
+  | 'confirm_missing'
+  | 'next_item'
+  | 'completed'
+
+export type WorkflowStepKey = 'setup' | 'asset' | 'table' | 'evidence' | 'ocr' | 'facts' | 'match' | 'draft' | 'confirm' | 'export'
+
+export interface WorkflowProjectStats {
+  asset_count: number
+  table_count: number
+  item_count: number
+  evidence_count: number
+  ocr_completed_count: number
+  fact_count: number
+  matched_item_count: number
+  drafted_item_count: number
+  confirmed_item_count: number
+  pending_item_count: number
+  pending_review_count: number
+}
+
+export interface WorkflowNextAction {
+  project_id: string
+  stage: WorkflowStage
+  step_key: WorkflowStepKey
+  step_index: number
+  route: string
+  message: string
+  table_id: string | null
+  item_id: string | null
+  asset_id: string | null
+  evidence_id: string | null
+  stats: WorkflowProjectStats
+}
+
 export interface WorkflowProjectStatus {
   project_id: string
   table_count: number
   item_count: number
-  status: string
+  status: WorkflowStage
   canNext: boolean
   summary: string
+  next_action: WorkflowNextAction
+  stats: WorkflowProjectStats
 }
 
 export interface ProjectAssessmentTable extends Timestamped {

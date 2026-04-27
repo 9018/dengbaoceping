@@ -96,8 +96,8 @@ const keyword = ref('')
 
 const summaryCards = computed<StatsCardItem[]>(() => [
   { label: '证据总数', value: evidences.value.length, tip: '项目内全部证据', tone: 'primary' },
-  { label: '待 OCR', value: evidences.value.filter((item) => item.ocr_status !== 'completed').length, tip: '优先推进识别', tone: 'warning' },
-  { label: '已完成 OCR', value: evidences.value.filter((item) => item.ocr_status === 'completed').length, tip: '可进入向导分析', tone: 'success' },
+  { label: '待 OCR', value: evidences.value.filter((item) => !['completed', 'completed_with_warning'].includes(item.ocr_status || '') && !item.text_content?.trim()).length, tip: '优先推进识别', tone: 'warning' },
+  { label: '已完成 OCR', value: evidences.value.filter((item) => ['completed', 'completed_with_warning'].includes(item.ocr_status || '') || Boolean(item.text_content?.trim())).length, tip: '可进入向导分析', tone: 'success' },
   { label: '已生成记录', value: records.value.length, tip: '可进入结果复核', tone: 'default' },
 ])
 
@@ -123,19 +123,23 @@ function hasGeneratedRecord(evidence: Evidence) {
   return generatedEvidenceIds.value.has(evidence.id)
 }
 
+function isEvidenceOcrReady(evidence: Evidence) {
+  return ['completed', 'completed_with_warning'].includes(evidence.ocr_status || '') || Boolean(evidence.text_content?.trim())
+}
+
 function getWizardEntryType(evidence: Evidence) {
-  return evidence.ocr_status === 'completed' || hasGeneratedRecord(evidence) ? 'success' : 'primary'
+  return isEvidenceOcrReady(evidence) || hasGeneratedRecord(evidence) ? 'success' : 'primary'
 }
 
 function getWizardEntryLabel(evidence: Evidence) {
   if (hasGeneratedRecord(evidence)) return '查看结果'
-  if (evidence.ocr_status === 'completed') return '继续向导分析'
+  if (isEvidenceOcrReady(evidence)) return '继续向导分析'
   return '进入向导处理'
 }
 
 function getPipelineHint(evidence: Evidence) {
   if (hasGeneratedRecord(evidence)) return '查看结果'
-  if (evidence.ocr_status === 'completed') return '继续向导分析'
+  if (isEvidenceOcrReady(evidence)) return '继续向导分析'
   return '进入向导处理'
 }
 

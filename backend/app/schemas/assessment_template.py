@@ -8,15 +8,26 @@ from app.schemas.history_record import HistoryRecordRead
 
 
 class AssessmentTemplateImportRead(BaseModel):
-    workbook_id: str
+    workbook_id: str | None = None
+    batch_id: str | None = None
     source_file: str
-    name: str
+    source_file_hash: str | None = None
+    name: str | None = None
     version: str | None = None
     sheet_count: int
     sheet_names: list[str]
     item_count: int
     imported_count: int
     skipped_count: int
+    duplicate: bool = False
+    duplicate_policy: str | None = None
+    duplicate_of_id: str | None = None
+    status: str | None = None
+
+
+class AssessmentTemplateWorkbookUpdate(BaseModel):
+    name: str | None = None
+    version: str | None = None
 
 
 class AssessmentTemplateWorkbookRead(TimestampSchema):
@@ -61,6 +72,23 @@ class AssessmentTemplateSheetRead(TimestampSchema):
     row_count: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AssessmentTemplateItemUpdate(BaseModel):
+    standard_type: str | None = None
+    control_point: str | None = None
+    item_text: str | None = None
+    record_template: str | None = None
+    default_compliance_result: str | None = None
+    weight: float | None = None
+    item_code: str | None = None
+    object_type: str | None = None
+    object_category: str | None = None
+    page_types_json: list[str] | None = None
+    required_facts_json: list[str] | None = None
+    evidence_keywords_json: list[str] | None = None
+    command_keywords_json: list[str] | None = None
+    applicability_json: list[str] | None = None
 
 
 class AssessmentTemplateItemRead(TimestampSchema):
