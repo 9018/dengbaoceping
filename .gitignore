@@ -44,3 +44,13 @@ frontend/src/main.js
 
 # OS / editor
 .DS_Store
+
+# Local Claude workspace
+.claude/CLAUDE.md
+.claude/settings.local.json
+.claude/worktrees/
+
+# Local assessment materials
+img/
+中讯邮电等保测评结果记录v5.xlsx
+新政公共资源交易中心-三级-批注-V4.xlsx
